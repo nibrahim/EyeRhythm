@@ -322,6 +322,7 @@ def main() -> None:
     fps, frames = 0.0, 0
     fps_t = t0
     last_ts_ms = -1
+    window_ready = False
 
     try:
         while True:
@@ -356,6 +357,20 @@ def main() -> None:
                 res, fps, screen_time.formatted(), states,
                 avg_bpm=screen_time.avg_blinks_per_minute,
                 total_blinks=screen_time.blinks_today)
+
+            if not window_ready:
+                # Clean floating-card window: fixed size, no status bar.
+                # (True OS title-bar removal is not available in OpenCV;
+                #  the rounded outer shell makes the UI look borderless.)
+                flags = cv2.WINDOW_NORMAL | cv2.WINDOW_GUI_NORMAL
+                try:
+                    cv2.namedWindow(WINDOW, flags)
+                except cv2.error:
+                    cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL)
+                h, w = canvas.shape[:2]
+                cv2.resizeWindow(WINDOW, w, h)
+                window_ready = True
+
             cv2.imshow(WINDOW, canvas)
 
             if apply_topmost:

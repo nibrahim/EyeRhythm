@@ -35,38 +35,29 @@ The window is a compact **statistics-only** card (the live camera feed is never 
 # 1. Install Python 3.10–3.12 if you don’t have it
 #    → https://www.python.org/downloads/   or   brew install python@3.11
 
-# 2. Clone / open the project, then:
-cd EyeRhythm
-python3 -m venv EyeRhythm          # venv named exactly “EyeRhythm”
-source EyeRhythm/bin/activate
-pip install -r requirements.txt
-
-# 3. Run
-python -m app.main
-# or simply:
-./run_mac.sh
+# 2. From the project root:
+./for_mac/setup.sh          # creates venv “EyeRhythm” + installs deps
+./for_mac/run.sh            # launches the app
 ```
 
 The first time macOS will ask for **Camera** permission — allow it  
 (System Settings → Privacy & Security → Camera).
 
-Detailed step-by-step (including troubleshooting) lives in  
-**[`for_mac/`](for_mac/)**.
+Full guide (troubleshooting, building a standalone `.app`, etc.):  
+**[`for_mac/`](for_mac/)**
 
 ### Windows
 
-**Option A — for everyone (recommended for non-coders)**  
-1. Install Python 3.10–3.12 from [python.org](https://www.python.org/downloads/)  
-   ⚠️ **tick “Add python.exe to PATH”** during setup.  
-2. Double-click **`run_windows.bat`**.  
-   It creates the virtual environment, installs everything and launches the app.  
-   That’s it — no extra tools required.
+All Windows files live under **[`for_windows/`](for_windows/)**.
 
-**Option B — from source (coders)**  
-See the full end-to-end guide in **[`for_windows/`](for_windows/)**.
+- **Non-developers** → [`for_windows/just_use_for_nondevelopers/`](for_windows/just_use_for_nondevelopers/)  
+  Install Python once (tick “Add to PATH”), then double-click `EyeRhythm_Launch.bat`.
 
-You can also build a single-folder standalone executable with the included  
-`build_windows.bat` (requires PyInstaller).
+- **Developers / release managers** → [`for_windows/for_developers/`](for_windows/for_developers/)  
+  Build a standalone `.exe` or a full Windows installer (`EyeRhythm-Setup.exe` that installs into Program Files and creates Desktop/Start-menu shortcuts).  
+  The rebuild process is fully documented and automatic so new releases can be produced after every code update.
+
+A ready-made `EyeRhythm-Setup.exe` (zero extra installs) is published on the project’s **GitHub Releases** page when available.
 
 ---
 
@@ -103,14 +94,16 @@ EyeRhythm/
 ├── blink_core/          # platform-independent blink detection & screen-time
 ├── models/              # MediaPipe face landmarker
 ├── assets/              # fonts + logo + screenshot
-├── for_mac/             # macOS install & run helpers
-├── for_windows/         # Windows install & run helpers
+├── for_mac/             # macOS / Linux helpers (setup, run, build .app)
+├── for_windows/
+│   ├── just_use_for_nondevelopers/   # one-click launcher for end users
+│   └── for_developers/               # build .exe + full Setup.exe pipeline
 ├── tools/               # optional signal-analysis helpers
 ├── requirements.txt
-├── run_app.py           # thin entry point (also used by PyInstaller)
-├── run_mac.sh
-└── run_windows.bat
+└── run_app.py           # shared packaging entry-point (used by PyInstaller on both Mac & Windows)
 ```
+
+`run_app.py` stays at the root because it is the single entry-point used by the packaging tools on **both** platforms. It is not Windows-specific.
 
 ---
 

@@ -54,6 +54,6 @@ pip install -r requirements.txt
 echo
 echo "=============================================="
 echo "  Setup complete."
-echo "  Run the app with:  ./run_mac.sh"
+echo "  Run the app with:  ./for_mac/run.sh"
 echo "  or:                source EyeRhythm/bin/activate && python -m app.main"
 echo "=============================================="
