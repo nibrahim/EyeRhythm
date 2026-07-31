@@ -1,11 +1,12 @@
 #!/bin/bash
+# Launch EyeRhythm on macOS / Linux (creates venv named "EyeRhythm" on first run)
 cd "$(dirname "$0")"
-if [ ! -d .venv ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv .venv
-    source .venv/bin/activate
+if [ ! -d EyeRhythm ]; then
+    echo "Creating virtual environment 'EyeRhythm'..."
+    python3 -m venv EyeRhythm
+    source EyeRhythm/bin/activate
     pip install -r requirements.txt
 else
-    source .venv/bin/activate
+    source EyeRhythm/bin/activate
 fi
-python3 -m app.main
+python3 -m app.main "$@"

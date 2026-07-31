@@ -1,165 +1,127 @@
-# EyeRhythm — BlinkCounter (Open-Source Edition)
+# EyeRhythm — BlinkCounter
 
-Reliable real-time eye blink detection with a live counter, using only the
-built-in laptop webcam. **Statistics-only interface** — the camera feed is
-never displayed. 100% open-source stack, identical business logic on
-Windows, macOS and Linux.
+**Your eyes work hard for you. EyeRhythm helps them work longer.**
 
-## Eye-health features
+Every day millions of knowledge workers, students and creators spend hours staring at screens. Research from the American Academy of Ophthalmology shows that the spontaneous blink rate drops by **half or more** during computer use. Fewer blinks → dry eyes, fatigue, blurred vision, and the classic symptoms of Computer Vision Syndrome.
 
-- **Blink-rate guidance** — the UI shows your live blinks/min with a
-  colour indicator against the healthy spontaneous rate of ~15–20
-  blinks/min reported in medical research; blink rate can drop by half
-  or more during screen use (computer vision syndrome), so the app
-  reminds you to blink more.
-- **Daily average blink rate** — total blinks counted today divided by
-  screen-time minutes, shown under “Screen time today” with the same
-  green / amber / red indicator. Survives the `R` reset and app restarts;
-  rolls over at midnight with screen time.
-- **Daily screen-time tracking** — the app silently accumulates how long
-  a face is in front of the screen. It is stored in
-  `~/.eyerhythm_blinkcounter/screentime.json`, survives the `R` reset key
-  and app restarts, and automatically resets to zero at midnight.
-- **Modern UI** — rendered with the bundled open-source
-  [Inter](https://rsms.me/inter/) typeface (SIL OFL license) in
-  `assets/fonts/`. Brand theme: blue / green / brown; the EyeRhythm logo
-  (drawn programmatically) sits top-right of the stats panel.
-- **Blink beep (B)** — optional audio cue on every counted blink, using
-  only what ships with the OS (winsound on Windows, afplay on macOS).
-  Off by default.
-- **Low-rate alert (A)** — optional continuous beep for 30 seconds when
-  the instantaneous rate drops below 10 blinks/min. Off by default;
-  toggle with `A`.
-- **Always on top (T)** — keep the counter visible above all other
-  application windows.
-- **Startup self-check** — on launch the app verifies the runtime,
-  required components, model assets and camera availability, then
-  offers a clear exit path with short troubleshooting advice if
-  anything is missing.
+EyeRhythm is a lightweight, **completely offline** open-source companion that quietly watches your blink rate through the built-in webcam and gently nudges you back toward a healthy rhythm (~15–20 blinks per minute). No accounts, no cloud, no analytics, no video ever leaves your machine. The camera is used only for *your* benefit — so you can stay focused longer with less strain and build a lifelong habit of regular blinking.
 
-## Keys
+> **Privacy first.** Once installed, EyeRhythm runs 100 % offline. Nothing is uploaded. Nothing is shared. The only data stored is a tiny local JSON file with today’s blink count and screen-time minutes (it resets at midnight).
 
-| Key | Action                                   |
-|-----|------------------------------------------|
-| Q / Esc | quit                                 |
-| R   | reset blink counter                      |
-| B   | beep on blink ON/OFF (default OFF)       |
-| A   | alert on low rate ON/OFF (default OFF)   |
-| T   | always-on-top ON/OFF                     |
+---
 
-All toggles and their current state are shown in the in-app help bar.
+## What you see
 
-## How it works
+![EyeRhythm statistics panel](assets/screenshot.png)
 
-```
-webcam frame (never shown)
-   ├─> optional CLAHE low-light enhancement (only when dim)
-   └─> MediaPipe Face Landmarker (478 landmarks + 52 blendshapes, CPU real-time)
-         ├─> eyeBlinkLeft/Right blendshape scores  (primary signal)
-         ├─> Eye Aspect Ratio from eye landmarks   (fallback signal)
-         ├─> frontal-face gate (eye-to-mouth distance symmetry)
-         ├─> lightweight glasses detector (nose-bridge edge energy)
-         └─> adaptive per-person threshold + hysteresis state machine
-               └─> blink events -> live counter + blinks/min
-```
+The window is a compact **statistics-only** card (the live camera feed is never shown):
 
-Key reliability features:
+| Element | Meaning |
+|--------|---------|
+| **Large number** | Total blinks counted **today** (survives restarts & app closes) |
+| **EYES OPEN / CLOSED** | Live eye state |
+| **blinks/min** | Instantaneous rate (colour-coded: green = healthy, amber = low, red = very low) |
+| **Screen time today** | How long a face has been in front of the screen |
+| **Avg today** | Daily average = total blinks ÷ screen-time minutes |
+| **Help bar** | Live status of the keyboard toggles |
 
-- **Adaptive thresholds** — the detector learns each person's open-eye
-  baseline (rolling percentile over ~10 s) and sets the blink threshold
-  relative to it. No fixed magic numbers, robust across eye shapes and
-  eyeglasses.
-- **Hysteresis + refractory period** — a blink is only counted on a full
-  close→open cycle; one blink can never be counted twice.
-- **Both eyes must agree** — winks and single-eye landmark jitter are
-  not counted as blinks.
-- **EAR fallback** — if blendshapes are unavailable the geometric Eye
-  Aspect Ratio (Soukupová & Čech 2016) takes over automatically.
-- **Frontal-face gate (anti false-positive)** — distances from the left
-  and right eye centres to the mouth centre must agree within ~15 %.
-  When the head is turned or moving (large asymmetry) a candidate blink
-  is discarded.
-- **Low-light enhancement (anti false-negative)** — when mean luminance
-  is low, CLAHE is applied to the L channel of LAB before landmark
-  detection, improving signal quality under dim lighting.
-- **Glasses compensation (anti false-negative)** — a lightweight
-  nose-bridge horizontal-edge detector flags eyeglasses; the close
-  threshold is then relaxed so weaker blendshape / EAR signals still
-  register.
+---
 
-## Install (Windows)
+## Quick start
 
-1. Install Python 3.10–3.12 (or newer) from https://python.org
-   — during setup tick **"Add python.exe to PATH"**.
-2. Open Command Prompt in this folder and run:
-
-   ```bat
-   python -m venv .venv
-   .venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-
-3. Start the app (or double-click `run_windows.bat`):
-
-   ```bat
-   python -m app.main
-   ```
-
-## Install (macOS / Linux)
+### macOS / Linux
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+# 1. Install Python 3.10–3.12 if you don’t have it
+#    → https://www.python.org/downloads/   or   brew install python@3.11
+
+# 2. Clone / open the project, then:
+cd EyeRhythm
+python3 -m venv EyeRhythm          # venv named exactly “EyeRhythm”
+source EyeRhythm/bin/activate
 pip install -r requirements.txt
-python3 -m app.main
+
+# 3. Run
+python -m app.main
+# or simply:
+./run_mac.sh
 ```
 
-macOS will ask for camera permission the first time — allow it
-(System Settings → Privacy & Security → Camera → Terminal/IDE).
+The first time macOS will ask for **Camera** permission — allow it  
+(System Settings → Privacy & Security → Camera).
 
-## Usage
+Detailed step-by-step (including troubleshooting) lives in  
+**[`for_mac/`](for_mac/)**.
 
-- A compact window opens showing only the statistics panel (no video).
-- Panel contents: total **BLINKS**, eye state, **blinks/min**, FPS,
-  medical guidance note and daily screen-time.
-- Keys: `q` quit · `r` reset counter · `b` beep · `a` alert · `t` always-on-top.
-- Wrong camera? `python -m app.main --camera 1`
-- Skip the startup checks (not recommended): `--skip-checks`
+### Windows
+
+**Option A — for everyone (recommended for non-coders)**  
+1. Install Python 3.10–3.12 from [python.org](https://www.python.org/downloads/)  
+   ⚠️ **tick “Add python.exe to PATH”** during setup.  
+2. Double-click **`run_windows.bat`**.  
+   It creates the virtual environment, installs everything and launches the app.  
+   That’s it — no extra tools required.
+
+**Option B — from source (coders)**  
+See the full end-to-end guide in **[`for_windows/`](for_windows/)**.
+
+You can also build a single-folder standalone executable with the included  
+`build_windows.bat` (requires PyInstaller).
+
+---
+
+## Keyboard shortcuts
+
+| Key | Action |
+|-----|--------|
+| **Q** / **Esc** | Quit |
+| **B** | Toggle beep on every counted blink (default OFF) |
+| **A** | Toggle low-rate alert (beeps while rate < 10 blinks/min, default OFF) |
+| **T** | Toggle always-on-top |
+
+All toggles show their live state in the bottom help bar.
+
+---
+
+## Libraries (all open-source)
+
+- **MediaPipe** (Face Landmarker) — Apache 2.0  
+- **OpenCV** — Apache 2.0  
+- **NumPy** — BSD  
+- **Pillow** — HPND  
+- **Inter** typeface — SIL Open Font License 1.1  
+
+The face-landmarker model is bundled under `models/` (Apache 2.0).
+
+---
 
 ## Project layout
 
 ```
-blink_core/          platform-independent business logic
-  detector.py        BlinkDetector: landmarks -> signals -> blink events
-  screentime.py      daily screen-time tracker (persists across restarts)
-app/
-  main.py            live app (statistics-only UI)
-  overlay.py         stats card + logo + help bar rendering
-  beeper.py          cross-platform beep
-models/
-  face_landmarker.task   MediaPipe model (Apache 2.0, bundled)
-assets/fonts/        Inter typeface (SIL OFL)
-tools/               signal analysis helpers (optional)
+EyeRhythm/
+├── app/                 # UI + camera loop
+├── blink_core/          # platform-independent blink detection & screen-time
+├── models/              # MediaPipe face landmarker
+├── assets/              # fonts + logo + screenshot
+├── for_mac/             # macOS install & run helpers
+├── for_windows/         # Windows install & run helpers
+├── tools/               # optional signal-analysis helpers
+├── requirements.txt
+├── run_app.py           # thin entry point (also used by PyInstaller)
+├── run_mac.sh
+└── run_windows.bat
 ```
 
-## Licenses (all open source)
+---
 
-- MediaPipe + face_landmarker model: Apache 2.0
-- OpenCV: Apache 2.0 · NumPy: BSD · Pillow: HPND
-- Inter font: SIL Open Font License 1.1
-- Test clip (if present): public domain
+## Feedback & sharing
 
-## Design notes (this edition)
+I have done my best to make blink detection as accurate and robust as possible across different faces, lighting conditions and eyeglasses. Still, real-world conditions vary — if the counter feels off for you, or you have ideas for improvement, please open an issue or drop me a note. Your feedback directly helps make the next version better.
 
-- Video preview, landmark mesh overlay and the related key toggles
-  (V / M) have been removed entirely. The camera is used only for
-  analysis; the UI is a fixed-size statistics card.
-- Startup performs a quiet checklist of runtime, imaging stack, face
-  engine, model file, fonts and camera without naming individual
-  library packages. On failure the user is given a short troubleshooting
-  list and the choice to exit or continue.
-- Branding renamed from EyeCare to **EyeRhythm**. Logo uses the same
-  blue / green / brown palette.
-- Blink-detection reliability improvements (frontal-face gate, adaptive
-  low-light CLAHE, glasses-aware threshold) live entirely inside
-  `blink_core/detector.py` and require no UI or API changes.
+If EyeRhythm is useful, **please share it with friends, family and colleagues**. A simple healthy habit — blinking regularly — is one of the easiest gifts we can give our eyes in the digital age.
+
+Thank you for using EyeRhythm. Take care of your eyes — they are the only pair you get.
+
+---
+
+*EyeRhythm is free and open-source. Use it, improve it, share it.*

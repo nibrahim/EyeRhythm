@@ -1,0 +1,40 @@
+# Virtual environments — never commit these
+.venv/
+venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Local runtime data (user home is preferred; ignore if ever created here)
+.eyerhythm_blinkcounter/
+screentime.json
+
+# Test / temp outputs
+*.log
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
