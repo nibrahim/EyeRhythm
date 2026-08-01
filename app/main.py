@@ -40,7 +40,10 @@ if str(ROOT) not in sys.path:
 
 from blink_core import BlinkDetector  # noqa: E402
 from blink_core.screentime import ScreenTimeTracker  # noqa: E402
-from app.overlay import render_stats, render_startup  # noqa: E402
+from app.overlay import (  # noqa: E402
+    render_stats, render_startup,
+    composite_camera_and_stats,
+)
 from app.beeper import Beeper  # noqa: E402
 
 WINDOW = "EyeRhythm - BlinkCounter"
@@ -292,6 +295,12 @@ def main() -> None:
                         help="webcam index (default 0)")
     parser.add_argument("--skip-checks", action="store_true",
                         help="skip startup checks (not recommended)")
+    parser.add_argument("--display_camera", action="store_true",
+                        help="show live camera view with eye-centre dots "
+                             "(green=open, red=closed)")
+    parser.add_argument("--show_landmarks", action="store_true",
+                        help="draw all face landmarks (blue dots + light-blue "
+                             "contour lines); only useful with --display_camera")
     args = parser.parse_args()
 
     if not args.skip_checks:
@@ -351,12 +360,18 @@ def main() -> None:
                 fps = frames / (now - fps_t)
                 frames, fps_t = 0, now
 
-            # Always statistics-only view (camera feed is never shown).
-            # Big number = daily total from JSON (survives restarts).
-            canvas = render_stats(
-                res, fps, screen_time.formatted(), states,
-                avg_bpm=screen_time.avg_blinks_per_minute,
-                total_blinks=screen_time.blinks_today)
+            # Stats-only by default; optional live camera + landmark debug.
+            if args.display_camera:
+                canvas = composite_camera_and_stats(
+                    frame, res, fps, screen_time.formatted(), states,
+                    avg_bpm=screen_time.avg_blinks_per_minute,
+                    total_blinks=screen_time.blinks_today,
+                    show_landmarks=args.show_landmarks)
+            else:
+                canvas = render_stats(
+                    res, fps, screen_time.formatted(), states,
+                    avg_bpm=screen_time.avg_blinks_per_minute,
+                    total_blinks=screen_time.blinks_today)
 
             if not window_ready:
                 # Clean floating-card window: fixed size, no status bar.
