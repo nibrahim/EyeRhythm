@@ -74,17 +74,17 @@ class BlinkConfig:
     instead of relying on one fixed magic number.
     """
     # Blink score must rise this far above the open-eye baseline
-    close_delta: float = 0.25
+    close_delta: float = 0.18
     # ... and fall back to baseline + open_delta to re-open (hysteresis)
     open_delta: float = 0.12
     # Absolute clamps for the adaptive close threshold
-    close_min: float = 0.30
+    close_min: float = 0.22
     close_max: float = 0.60
     # Absolute clamps for the adaptive open threshold
     open_min: float = 0.20
     # EAR fallback (used if blendshapes are unavailable): eye counts as
     # closed when EAR drops below this fraction of the open-eye baseline
-    ear_close_ratio: float = 0.72
+    ear_close_ratio: float = 0.78
     ear_open_ratio: float = 0.85
     # Rolling window (frames) used to estimate the open-eye baseline
     baseline_window: int = 300
@@ -99,15 +99,15 @@ class BlinkConfig:
     # ---- anti false-positive / false-negative knobs -------------------
     # max(dL, dR) / min(dL, dR)  of eye-centres → mouth-centre distances.
     # Larger than this ⇒ head is turned / moving → discard candidate blink.
-    face_turn_max_ratio: float = 1.15
+    face_turn_max_ratio: float = 1.25
     # When glasses are detected, reduce close_delta by this amount so that
     # weaker signals still cross the threshold.
-    glasses_close_delta_reduction: float = 0.08
+    glasses_close_delta_reduction: float = 0.12
     # Mean gray value below which CLAHE enhancement is applied.
     low_light_mean: float = 70.0
     # Sobel-x mean energy on the nose-bridge ROI above which glasses are
     # considered present (tuned for typical webcam resolutions).
-    glasses_edge_threshold: float = 14.0
+    glasses_edge_threshold: float = 9.0
     # Number of recent frames to smooth the glasses decision.
     glasses_smooth_window: int = 9
 
