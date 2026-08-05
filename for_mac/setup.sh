@@ -1,5 +1,12 @@
 #!/bin/bash
-# One-time setup: create the "EyeRhythm" virtual environment and install dependencies.
+# =============================================================================
+# EyeRhythm — one-time setup for macOS / Linux
+# =============================================================================
+#
+# 1. Creates virtualenv EyeRhythm/
+# 2. Installs Python deps from requirements.txt
+# 3. Builds the React UI (frontend/) when Node.js is available
+# =============================================================================
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -12,7 +19,6 @@ echo "  Project root: $ROOT"
 echo "=============================================="
 echo
 
-# Prefer a 3.10–3.12 interpreter
 PYTHON=""
 for candidate in python3.12 python3.11 python3.10 python3; do
     if command -v "$candidate" >/dev/null 2>&1; then
@@ -47,13 +53,22 @@ fi
 # shellcheck disable=SC1091
 source EyeRhythm/bin/activate
 
-echo "Installing dependencies..."
+echo "Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
+
+if command -v npm >/dev/null 2>&1; then
+    echo
+    echo "Building React UI..."
+    (cd frontend && npm install && npm run build)
+else
+    echo
+    echo "NOTE: npm not found — skipped React build."
+    echo "Install Node.js 18+, then:  cd frontend && npm install && npm run build"
+fi
 
 echo
 echo "=============================================="
 echo "  Setup complete."
-echo "  Run the app with:  ./for_mac/run.sh"
-echo "  or:                source EyeRhythm/bin/activate && python -m app.main"
+echo "  Run:  ./for_mac/run.sh"
 echo "=============================================="

@@ -1,4 +1,18 @@
+# EyeRhythm Python dependencies
+# -----------------------------
+# Install with:  pip install -r requirements.txt
+# Recommended Python:  3.10, 3.11, or 3.12
+#
+# Core vision
 mediapipe>=0.10.14
 opencv-python>=4.9
 numpy>=1.26
-pillow>=10.0
+#
+# Local API for the React UI
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.0
+#
+# Desktop window (macOS + Windows + Linux)
+# Falls back to the system browser if unavailable.
+pywebview>=5.0

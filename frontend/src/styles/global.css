@@ -1,0 +1,1197 @@
+/* ==========================================================================
+   EyeRhythm UI — soft blue medical-tech dashboard
+   ========================================================================== */
+
+:root {
+  --fs: clamp(13px, 0.85rem + 0.35vw, 17px);
+  --pad: clamp(12px, 1.2vw + 8px, 24px);
+  --gap: clamp(8px, 0.8vw + 4px, 14px);
+  --radius: clamp(14px, 1.2vw + 8px, 22px);
+  --radius-sm: clamp(10px, 0.8vw + 6px, 14px);
+
+  --bg: #f2f5f9;
+  --bg-elevated: rgba(255, 255, 255, 0.82);
+  --stroke: rgba(30, 48, 72, 0.09);
+  --text: #1e2c3a;
+  --text-soft: #5a6f82;
+  --text-faint: #8a9aab;
+
+  --blue: #5b9fe0;
+  --blue-deep: #2f78c4;
+  --blue-soft: #7eb8ec;
+  --peach: #e8b896;
+  --amber: #e0a15a;
+  --rose: #e07a72;
+  --slate: #8a9aab;
+
+  --shadow: 0 10px 30px rgba(30, 48, 72, 0.07),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  --shadow-soft: 0 4px 14px rgba(30, 48, 72, 0.055);
+
+  color-scheme: light;
+  font-family: "Inter", "SF Pro Text", "Segoe UI", system-ui, -apple-system,
+    sans-serif;
+  font-size: var(--fs);
+  line-height: 1.4;
+  color: var(--text);
+  /* Opaque base — transparent roots break click hit-testing in some desktop webviews */
+  background: #e8eef6;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  height: 100%;
+  /* Keep opaque so the whole window receives mouse events (pywebview / WKWebView) */
+  background-color: #e8eef6;
+}
+
+body {
+  overflow: hidden;
+  position: relative;
+  /* Solid background — consistent with solid cards / logo */
+  background-color: #e8eef6;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  pointer-events: auto;
+}
+
+/* ---- shell -------------------------------------------------------------- */
+
+.app-shell {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: var(--pad);
+  padding-bottom: calc(var(--pad) + 4px);
+  overflow: hidden;
+  /* Slightly translucent so washes show; still hit-testable over opaque body */
+  background: transparent;
+  pointer-events: auto;
+}
+
+/* ---- top bar ------------------------------------------------------------ */
+
+.topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  margin-bottom: calc(var(--gap) * 0.9);
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar__title {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  font-size: 1.05em;
+  line-height: 1.1;
+}
+
+.topbar__tag {
+  font-size: 0.72em;
+  color: var(--text-soft);
+  margin-top: 1px;
+}
+
+.topbar__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-soft);
+  font-size: 0.78em;
+  color: var(--text-soft);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--slate);
+  box-shadow: 0 0 0 3px rgba(138, 154, 171, 0.15);
+}
+.status-dot.ok {
+  background: var(--blue);
+  box-shadow: 0 0 0 3px rgba(91, 159, 224, 0.22);
+}
+.status-dot.warn {
+  background: var(--amber);
+  box-shadow: 0 0 0 3px rgba(224, 161, 90, 0.2);
+}
+.status-dot.bad {
+  background: var(--rose);
+  box-shadow: 0 0 0 3px rgba(224, 122, 114, 0.2);
+}
+
+/* ---- dashboard (scroll only if content still overflows) ----------------- */
+
+.dashboard {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(91, 159, 224, 0.4) transparent;
+}
+
+/* Footer always fully visible and above scrolling content for clicks */
+.shell-footer {
+  position: relative;
+  z-index: 20;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: calc(var(--gap) * 0.75);
+  padding-top: 2px;
+  padding-bottom: 2px;
+  pointer-events: auto;
+}
+
+/* ---- hero --------------------------------------------------------------- */
+/*
+ * Full-width card: centered avatar, chips pinned, 4 equal picker chips.
+ * No live-rate column (rate lives in Continuous rate card).
+ */
+
+/*
+ * Avatar stage size — FIXED for every mode (Atlas / Lumen / Vesper / Lens / Trace)
+ * so switching options never jumps the layout.
+ *   --stage-h: shared height
+ *   Portrait: fixed width (--avatar-w)
+ *   Lens: wider (~4:3) at same height
+ *   Trace: full hero width at same height
+ */
+.hero {
+  --avatar-w: 168px;
+  --stage-h: calc(168px * 280 / 220); /* ~214px — portrait baseline */
+  --avatar-h: var(--stage-h); /* alias for any remaining refs */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 14px 12px;
+  overflow: visible;
+}
+
+.hero__stage-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding-top: 4px;
+  /* Fixed stage height for all avatars */
+  min-height: var(--stage-h);
+  height: var(--stage-h);
+  /* Stage is decorative — do not intercept clicks meant for picker below */
+  pointer-events: none;
+}
+
+/* Locked stage: full figure always visible */
+.hero__avatar-stage {
+  position: relative;
+  width: var(--avatar-w);
+  height: var(--stage-h);
+  max-width: 100%;
+  flex: 0 0 auto;
+  /* Clip painted overflow so SVG cannot cover the avatar picker hit area */
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Same height as portrait avatars; wider for camera aspect */
+.hero--lens .hero__avatar-stage {
+  width: min(100%, calc(var(--stage-h) * 4 / 3));
+  height: var(--stage-h);
+  max-height: none;
+  aspect-ratio: auto;
+  overflow: hidden;
+}
+
+/* Trace graph: full width, same height as every other avatar */
+.hero--graph .hero__stage-wrap {
+  width: 100%;
+  min-height: var(--stage-h);
+  height: var(--stage-h);
+  padding-top: 2px;
+}
+
+.hero--graph .hero__avatar-stage {
+  width: 100%;
+  height: var(--stage-h);
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.avatar {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.35s ease;
+  overflow: hidden;
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.avatar:not(.avatar--lens) {
+  overflow: hidden;
+  border-radius: 0;
+}
+
+.avatar__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.avatar__eyes ellipse {
+  transition: ry 0.12s ease;
+}
+
+/* Live camera fill for Lens avatar */
+.avatar-lens {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #121a24;
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-soft);
+}
+
+.avatar-lens__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(-1);
+}
+
+.avatar-lens__placeholder {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.78em;
+}
+
+.avatar-lens__badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--blue-deep);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Eyes status — dead-center on top of the avatar head */
+.hero__status-pill.pill,
+.pill {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -35%);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.7em;
+  font-weight: 550;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--slate);
+  flex-shrink: 0;
+}
+.pill.tone-good .pill__dot { background: var(--blue); }
+.pill.tone-warn .pill__dot { background: var(--amber); }
+.pill.tone-bad .pill__dot { background: var(--rose); }
+.pill.tone-idle .pill__dot { background: var(--slate); }
+
+/* Blinks today — top-right of hero card */
+.hero__stat-chip {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 3;
+  text-align: right;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  box-shadow: var(--shadow-soft);
+  pointer-events: none;
+  min-width: 4.5em;
+}
+
+.hero__stat-value {
+  display: block;
+  font-size: 1.25em;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--blue-deep);
+}
+
+.hero__stat-label {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.64em;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+
+/* ---- Information & Quote (full-width gray card, same height as metrics) -- */
+
+.info-quote-card {
+  grid-column: 1 / -1;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(30, 48, 72, 0.1);
+  /* Match metric-card padding / min-height — do not grow taller */
+  padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.4vw, 16px);
+  min-height: clamp(84px, 12vh, 110px);
+  box-shadow: var(--shadow-soft);
+  background: #e6ebf0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.info-quote-card--practice {
+  background: #dce8f4;
+}
+
+.info-quote-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.info-quote-card__title {
+  font-size: 0.74em;
+  font-weight: 650;
+  color: rgba(30, 44, 58, 0.72);
+  letter-spacing: 0.01em;
+}
+
+.info-quote-card__timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.85em;
+  letter-spacing: -0.02em;
+  color: #1e2c3a;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(30, 48, 72, 0.1);
+  border-radius: 8px;
+  padding: 2px 8px;
+  min-width: 2.8em;
+  text-align: center;
+}
+
+.info-quote-card__tips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.68em;
+  line-height: 1.3;
+  color: var(--text-soft);
+}
+
+.info-quote-card__tips li strong {
+  color: #3a4f62;
+  font-weight: 650;
+}
+
+.info-quote-card__instruction {
+  margin: 0;
+  font-size: 0.72em;
+  line-height: 1.35;
+  color: var(--blue-deep);
+  font-weight: 600;
+}
+
+/* Slow attention pulse while the 10s prep countdown runs */
+.info-quote-card__instruction--flash {
+  animation: instruction-flash 2.2s ease-in-out infinite;
+}
+
+@keyframes instruction-flash {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.info-quote-card__quote-box {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  padding-bottom: 2px;
+}
+
+.info-quote-card__quote {
+  margin: 0;
+  font-size: 0.82em;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #1e2c3a;
+  letter-spacing: -0.01em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  animation: quote-in 0.35s ease;
+  padding-right: 0.5em;
+}
+
+.info-quote-card__author {
+  margin: 4px 0 0;
+  font-size: 0.7em;
+  font-weight: 550;
+  color: #5a6f82;
+  font-style: italic;
+  text-align: right;
+  align-self: flex-end;
+  animation: quote-in 0.4s ease;
+}
+
+@keyframes quote-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.info-quote-card__bar {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(30, 48, 72, 0.08);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.info-quote-card__bar-fill {
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  border-radius: inherit;
+  background: #5b9fe0;
+  transition: transform 0.35s linear;
+}
+
+/* ---- target rhythm strip (above metric cards) --------------------------- */
+
+.target-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(91, 159, 224, 0.28);
+  background: #e4eef8;
+  box-shadow: var(--shadow-soft);
+  text-align: center;
+}
+
+.target-strip__label {
+  font-size: 0.72em;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.target-strip__value {
+  font-size: 0.86em;
+  font-weight: 550;
+  color: var(--text);
+}
+
+/* ---- rate graph (Trace avatar) ------------------------------------------ */
+
+.rate-graph {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #f7fafc 0%, #eef4fa 100%);
+  border: 1px solid rgba(91, 159, 224, 0.18);
+  border-radius: 12px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.rate-graph__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.rate-graph__blink-dot {
+  /* Top-left of the card, above the plot so it never sits on Y labels */
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 0 3px rgba(91, 159, 224, 0.2);
+  transition: background 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+
+.rate-graph__blink-dot.is-idle {
+  background: var(--slate);
+  box-shadow: 0 0 0 3px rgba(138, 154, 171, 0.15);
+}
+
+.rate-graph__blink-dot.is-flash {
+  background: #f0a040;
+  box-shadow: 0 0 0 5px rgba(240, 160, 64, 0.4);
+  transform: scale(1.45);
+}
+
+.rate-graph__legend {
+  position: absolute;
+  top: 7px;
+  left: 26px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.6em;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  pointer-events: none;
+}
+
+.rate-graph__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.rate-graph__legend-item::before {
+  content: "";
+  width: 12px;
+  height: 2.5px;
+  border-radius: 2px;
+  background: var(--blue);
+}
+
+.rate-graph__legend-item--reg::before {
+  background: #f0a040;
+}
+
+.rate-graph__legend-item.muted {
+  opacity: 0.4;
+}
+
+.rate-graph__live {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.rate-graph__live-value {
+  font-size: 1.05em;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--blue-deep);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.rate-graph__live-unit {
+  font-size: 0.62em;
+  font-weight: 550;
+  color: var(--text-soft);
+}
+
+.rate-graph__target-band {
+  fill: rgba(91, 159, 224, 0.1);
+}
+
+.rate-graph__low-line {
+  stroke: #e05a52;
+  stroke-width: 1.4;
+  stroke-dasharray: 4 3.5;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+.rate-graph__grid {
+  stroke: rgba(30, 48, 72, 0.07);
+  stroke-width: 1;
+}
+
+.rate-graph__axis {
+  stroke: rgba(30, 48, 72, 0.14);
+  stroke-width: 1;
+}
+
+.rate-graph__axis-label {
+  fill: var(--text-faint);
+  font-size: 9px;
+  font-weight: 550;
+  font-family: inherit;
+}
+
+.rate-graph__line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Soft halo under the scope stroke (helps visibility in desktop webviews) */
+.rate-graph__line--glow {
+  stroke: rgba(74, 148, 219, 0.35);
+  stroke-width: 5;
+}
+
+.rate-graph__line--rate {
+  stroke: #3d8fd6;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Reserved for regularity series later */
+.rate-graph__line--regularity {
+  stroke: #f0a040;
+  stroke-width: 1.2;
+  opacity: 0.9;
+}
+
+.rate-graph__head {
+  fill: #3a86d4;
+  stroke: #ffffff;
+  stroke-width: 1.1;
+}
+
+.rate-graph__empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+  font-size: 0.78em;
+  font-weight: 550;
+  color: var(--text-soft);
+  background: rgba(247, 250, 252, 0.55);
+  pointer-events: none;
+}
+
+/* ---- avatar picker — equal chips, labels aligned ------------------------ */
+
+.avatar-picker {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.avatar-picker__btn {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 0.68em;
+  font-weight: 600;
+  color: var(--text-soft);
+  box-shadow: var(--shadow-soft);
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.avatar-picker__btn:hover {
+  border-color: rgba(91, 159, 224, 0.45);
+}
+
+.avatar-picker__btn.active {
+  color: var(--blue-deep);
+  border-color: rgba(91, 159, 224, 0.55);
+  background: rgba(91, 159, 224, 0.16);
+}
+
+.avatar-picker__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(30, 48, 72, 0.1);
+  flex-shrink: 0;
+}
+
+.avatar-picker__swatch--atlas {
+  background: #b89a7a;
+}
+.avatar-picker__swatch--lumen {
+  background: #e0c8b8;
+}
+.avatar-picker__swatch--vesper {
+  background: #8fb8d0;
+}
+.avatar-picker__swatch--lens {
+  background: #5694d9;
+  border-radius: 4px;
+}
+.avatar-picker__swatch--graph {
+  background: linear-gradient(90deg, #5b9fe0 0%, #5b9fe0 55%, #f0a040 55%, #f0a040 100%);
+  border-radius: 3px;
+}
+
+.avatar-picker__label {
+  line-height: 1;
+  text-align: center;
+  width: 100%;
+}
+
+/* ---- metric cards — multicolour like reference -------------------------- */
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap);
+}
+
+@media (min-width: 720px) {
+  .metrics-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hero {
+    padding: 14px 18px 14px;
+    --avatar-w: 180px;
+    --stage-h: calc(180px * 280 / 220);
+  }
+}
+
+.metric-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(30, 48, 72, 0.08);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-soft);
+  padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.4vw, 16px);
+  min-height: clamp(80px, 11vh, 104px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* Solid fills only — no gradients */
+  background: #f2f6fa;
+}
+
+/* Soft azure (was sage green) */
+.metric-card.palette-sage {
+  background: #b5d4ec;
+}
+
+/* Peach / coral */
+.metric-card.palette-peach {
+  background: #f0c8a8;
+}
+
+/* Sun / gold */
+.metric-card.palette-sun {
+  background: #f0d878;
+}
+
+/* Ice blue (was mint) */
+.metric-card.palette-mint {
+  background: #9cc8e8;
+}
+
+/* Sky blue */
+.metric-card.palette-sky {
+  background: #a8ccec;
+}
+
+/* Lavender */
+.metric-card.palette-lavender {
+  background: #c8c0e8;
+}
+
+/* Mist / soft grey-blue */
+.metric-card.palette-mist {
+  background: #d4dce6;
+}
+
+.metric-card.placeholder .metric-card__value {
+  color: rgba(30, 44, 58, 0.35);
+  font-weight: 500;
+}
+
+.metric-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.metric-card__title {
+  font-size: 0.74em;
+  font-weight: 650;
+  color: rgba(30, 44, 58, 0.72);
+  letter-spacing: 0.01em;
+}
+
+.metric-card__sub {
+  font-size: 0.66em;
+  color: rgba(30, 44, 58, 0.5);
+}
+
+.metric-card__body {
+  position: relative;
+  z-index: 1;
+  margin-top: 6px;
+}
+
+.metric-card__value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.metric-card__value {
+  font-size: clamp(1.35rem, 3.2vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: #1a2a3a;
+}
+
+.metric-card.tone-good .metric-card__value { color: #1a5f9e; }
+.metric-card.tone-warn .metric-card__value { color: #8a5a12; }
+.metric-card.tone-bad .metric-card__value { color: #a3443a; }
+
+.metric-card__unit {
+  font-size: 0.72em;
+  color: rgba(30, 44, 58, 0.55);
+  font-weight: 550;
+}
+
+/* ---- camera panel ------------------------------------------------------- */
+
+.camera-panel {
+  background: #ffffff;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.camera-panel__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  color: var(--text);
+  font-weight: 550;
+  font-size: 0.88em;
+  min-height: 44px;
+}
+
+.camera-panel__toggle:hover {
+  background: rgba(91, 159, 224, 0.1);
+}
+
+.camera-panel__toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.camera-panel__icon {
+  display: inline-flex;
+  color: var(--blue-deep);
+}
+
+.camera-panel__chevron {
+  color: var(--text-faint);
+  font-size: 0.95em;
+}
+
+.camera-panel__body {
+  padding: 0 12px 12px;
+}
+
+.camera-panel__frame {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #121a24;
+  aspect-ratio: 4 / 3;
+  /* When window expands for camera, use a comfortable fixed band */
+  height: min(280px, 32vh);
+  max-height: 300px;
+}
+
+.app-shell.camera-open .camera-panel__frame {
+  height: 260px;
+  max-height: 280px;
+}
+
+.camera-panel__frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(-1);
+}
+
+.camera-panel__placeholder {
+  height: 100%;
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.85em;
+  padding: 16px;
+  text-align: center;
+}
+
+.camera-panel__privacy {
+  margin: 8px 2px 0;
+  font-size: 0.7em;
+  color: var(--text-faint);
+}
+
+/* ---- controls ----------------------------------------------------------- */
+
+.controls {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.toggle-chip {
+  position: relative;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-soft);
+  font-size: 0.78em;
+  font-weight: 550;
+  color: var(--text-soft);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.toggle-chip:hover {
+  border-color: rgba(91, 159, 224, 0.4);
+}
+
+.toggle-chip.active {
+  background: #d4e8f8;
+  color: var(--blue-deep);
+  border-color: rgba(91, 159, 224, 0.45);
+}
+
+.toggle-chip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--slate);
+  transition: background 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+
+.toggle-chip.active .toggle-chip__dot {
+  background: var(--blue);
+  box-shadow: 0 0 0 3px rgba(91, 159, 224, 0.22);
+}
+
+/* Orange: counted blink (Beep when on, Practice when on) */
+.toggle-chip.pulse-orange .toggle-chip__dot {
+  background: #f0a040;
+  box-shadow: 0 0 0 4px rgba(240, 160, 64, 0.45);
+  transform: scale(1.35);
+}
+
+/* Red: low-rate alert beep */
+.toggle-chip.pulse-red .toggle-chip__dot {
+  background: #e05a52;
+  box-shadow: 0 0 0 4px rgba(224, 90, 82, 0.45);
+  transform: scale(1.35);
+}
+
+.toggle-chip kbd {
+  font-family: inherit;
+  font-size: 0.85em;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(30, 48, 72, 0.06);
+  color: var(--text-faint);
+}
+
+.toggle-chip.active kbd {
+  background: rgba(47, 120, 196, 0.12);
+  color: var(--blue-deep);
+}
+
+/* ---- narrow / default compact window ------------------------------------ */
+
+@media (max-width: 520px) {
+  .hero {
+    padding: 12px 10px 10px;
+    --avatar-w: 156px;
+    --stage-h: calc(156px * 280 / 220);
+  }
+
+  .hero__stat-chip {
+    top: 8px;
+    right: 8px;
+    padding: 6px 8px;
+  }
+
+  .hero__stat-value {
+    font-size: 1.1em;
+  }
+
+  .avatar-picker {
+    max-width: 100%;
+    gap: 4px;
+  }
+
+  .avatar-picker__btn {
+    min-height: 42px;
+    font-size: 0.6em;
+    padding: 5px 2px;
+  }
+
+  .rate-graph__live-value {
+    font-size: 0.95em;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
