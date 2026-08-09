@@ -5,6 +5,8 @@
 
 export interface EyeRhythmBridge {
   set_camera_layout: (expanded: boolean) => Promise<void> | void;
+  /** Expand to fullscreen for Practice; restore on exit. */
+  set_practice_fullscreen?: (enabled: boolean) => Promise<void> | void;
 }
 
 declare global {
@@ -27,6 +29,34 @@ export async function setCameraLayout(expanded: boolean): Promise<void> {
     await api.set_camera_layout(expanded);
   } catch {
     /* browser / unsupported */
+  }
+}
+
+/**
+ * Full-screen the native window for Practice mode.
+ * Falls back to the Fullscreen API in browser mode.
+ */
+export async function setPracticeFullscreen(enabled: boolean): Promise<void> {
+  const api = window.pywebview?.api;
+  if (api?.set_practice_fullscreen) {
+    try {
+      await api.set_practice_fullscreen(enabled);
+      return;
+    } catch {
+      /* try browser API below */
+    }
+  }
+
+  try {
+    if (enabled) {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen?.();
+      }
+    } else if (document.fullscreenElement) {
+      await document.exitFullscreen?.();
+    }
+  } catch {
+    /* permission / unsupported */
   }
 }
 

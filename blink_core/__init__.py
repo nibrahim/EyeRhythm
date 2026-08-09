@@ -10,6 +10,8 @@ What lives here
 * ``detector``   – looks at each webcam frame and decides “was that a blink?”
 * ``screentime`` – quietly keeps today’s screen-time minutes and blink totals
                    on disk so they survive restarts and reset at midnight.
+* ``interblink_hours`` – research log: min/max/mean/median inter-blink gap
+                         for each hour of face-present screen time.
 
 Public exports (what other code should import)
 ----------------------------------------------
@@ -28,7 +30,13 @@ Windows, macOS, and Linux. Only the camera/UI layer needs OS-specific code.
 # instead of the longer:
 #   from blink_core.detector import BlinkDetector
 from .detector import BlinkDetector, BlinkConfig, FrameResult
+from .interblink_hours import InterBlinkHourTracker
 
 # Explicit list of names that `from blink_core import *` would expose.
 # Also documents the public API of this package.
-__all__ = ["BlinkDetector", "BlinkConfig", "FrameResult"]
+__all__ = [
+    "BlinkDetector",
+    "BlinkConfig",
+    "FrameResult",
+    "InterBlinkHourTracker",
+]

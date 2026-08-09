@@ -7,7 +7,9 @@ import { HeroPanel } from "./components/HeroPanel";
 import { Logo } from "./components/Logo";
 import { MetricCard } from "./components/MetricCard";
 import { InfoQuoteCard } from "./components/InfoQuoteCard";
+import { PracticeScreen } from "./components/PracticeScreen";
 import { useEngineState } from "./hooks/useEngineState";
+import { useRateHistory } from "./hooks/useRateHistory";
 import { formatBpm, regularityTone, rateTone } from "./utils/format";
 
 const AVATARS: AvatarId[] = ["atlas", "lumen", "vesper", "lens", "graph"];
@@ -23,6 +25,9 @@ export default function App() {
   const { state, connected } = useEngineState();
   const [avatarId, setAvatarId] = useState<AvatarId>("atlas");
   const [prefsReady, setPrefsReady] = useState(false);
+
+  // Session-wide Trace history: starts at boot, survives avatar switches + minimize.
+  useRateHistory(state.continuous_bpm, state.face_found);
 
   useEffect(() => {
     void whenBridgeReady();
@@ -183,6 +188,9 @@ export default function App() {
       <div className="shell-footer">
         <ControlsBar state={state} />
       </div>
+
+      {/* Full-screen practice: countdown + ball/string visual coach */}
+      <PracticeScreen state={state} />
     </div>
   );
 }

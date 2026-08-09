@@ -46,7 +46,7 @@ const FALLBACK: QuoteItem[] = [
 const QUOTE_ROTATE_MS = 30_000;
 
 const PRACTICE_INSTRUCTION =
-  "Practice a healthy rhythm — blink gently on each beep, wear a soft smile, and enjoy the wonderful quotes below.";
+  "Follow the moving ball with your eyes. Blink gently on each beep, keep your head still, and enjoy the quotes below.";
 
 /**
  * Full-width gray card: “Information & Quote”.
@@ -62,7 +62,8 @@ export function InfoQuoteCard({
 
   const inCountdown = practice && practicePhase === "countdown";
   const inActive = practice && practicePhase === "active";
-  const inPractice = inCountdown || inActive;
+  const inSummary = practice && practicePhase === "summary";
+  const inPractice = inCountdown || inActive || inSummary;
 
   useEffect(() => {
     let cancelled = false;
@@ -107,7 +108,7 @@ export function InfoQuoteCard({
   const progress = inActive
     ? Math.min(1, Math.max(0, remainingS / 120))
     : inCountdown
-      ? Math.min(1, Math.max(0, countdownS / 10))
+      ? Math.min(1, Math.max(0, countdownS / 20))
       : 0;
 
   return (
@@ -141,7 +142,7 @@ export function InfoQuoteCard({
             <strong>Beep</strong> — sound on each blink
           </li>
           <li>
-            <strong>Alert</strong> — warn if rate is low
+            <strong>Alert</strong> — warn if rate stays low (~10/min, 5‑min trend)
           </li>
           <li>
             <strong>Practice</strong> — 2‑min blink coach

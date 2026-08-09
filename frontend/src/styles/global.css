@@ -1190,6 +1190,249 @@ button {
   }
 }
 
+/* ==========================================================================
+   Full-screen Practice (countdown + ball / string coach)
+   ========================================================================== */
+
+.practice-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  background: #2b2e33;
+  color: #e8eef4;
+  font-family: inherit;
+  user-select: none;
+}
+
+.practice-screen__chrome {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(0, 0, 0, 0.28);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.practice-screen__brand {
+  font-weight: 650;
+  font-size: 0.95em;
+  letter-spacing: 0.01em;
+}
+
+.practice-screen__meta {
+  flex: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: rgba(232, 238, 244, 0.72);
+  font-size: 0.95em;
+}
+
+.practice-screen__end {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e8eef4;
+  font-weight: 600;
+  font-size: 0.88em;
+  transition: background 0.12s ease;
+}
+
+.practice-screen__end:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.practice-screen__end kbd {
+  font-family: inherit;
+  font-size: 0.85em;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(232, 238, 244, 0.7);
+}
+
+.practice-screen__stage {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 0;
+  width: 100%;
+}
+
+.practice-screen__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.practice-screen__intro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: clamp(20px, 5vw, 56px);
+  text-align: center;
+}
+
+.practice-screen__instruction {
+  margin: 0;
+  max-width: 42rem;
+  font-size: clamp(1rem, 0.9rem + 0.6vw, 1.35rem);
+  line-height: 1.55;
+  font-weight: 500;
+  color: rgba(232, 238, 244, 0.92);
+}
+
+.practice-screen__countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.practice-screen__countdown-num {
+  font-size: clamp(3.5rem, 8vw, 6.5rem);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #7eb8ec;
+  text-shadow: 0 0 40px rgba(91, 159, 224, 0.35);
+}
+
+.practice-screen__countdown-label {
+  font-size: 0.95em;
+  font-weight: 550;
+  color: rgba(232, 238, 244, 0.55);
+}
+
+.practice-screen__countdown-bar {
+  width: min(420px, 80vw);
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.practice-screen__countdown-bar-fill {
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #5b9fe0, #9ec8f0);
+  transition: transform 0.15s linear;
+}
+
+.practice-screen__hint {
+  flex: 0 0 auto;
+  padding: 12px 16px 16px;
+  text-align: center;
+  font-size: 0.88em;
+  font-weight: 550;
+  color: rgba(232, 238, 244, 0.45);
+  letter-spacing: 0.01em;
+}
+
+/* Post-practice results (held ~20s then auto-close) */
+.practice-screen__summary {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: clamp(20px, 5vw, 56px);
+  text-align: center;
+}
+
+.practice-screen__summary-title {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 700;
+  color: #e8eef4;
+  letter-spacing: 0.01em;
+}
+
+.practice-screen__summary-sub {
+  margin: 0;
+  font-size: 1em;
+  font-weight: 500;
+  color: rgba(232, 238, 244, 0.55);
+}
+
+.practice-screen__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: min(520px, 92vw);
+  margin-top: 8px;
+}
+
+.practice-screen__summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 22px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.practice-screen__summary-label {
+  font-size: 0.85em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(232, 238, 244, 0.5);
+}
+
+.practice-screen__summary-value {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #7eb8ec;
+  line-height: 1.1;
+}
+
+.practice-screen__summary-unit {
+  font-size: 0.45em;
+  font-weight: 600;
+  margin-left: 2px;
+  color: rgba(126, 184, 236, 0.75);
+}
+
+.practice-screen__summary-note {
+  font-size: 0.82em;
+  font-weight: 500;
+  color: rgba(232, 238, 244, 0.42);
+}
+
+.practice-screen__countdown-bar--summary {
+  margin-top: 12px;
+}
+
+.practice-screen__summary-footer {
+  margin: 4px 0 0;
+  font-size: 0.9em;
+  font-weight: 550;
+  color: rgba(232, 238, 244, 0.45);
+}
+
+@media (max-width: 480px) {
+  .practice-screen__summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

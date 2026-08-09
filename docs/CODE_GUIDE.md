@@ -40,6 +40,7 @@ Nothing is uploaded. Privacy is by design. Camera preview is collapsed by defaul
 │  blink_core/        “brain” (unchanged science)             │
 │  - detector.py      blink state machine                     │
 │  - screentime.py    daily diary on disk                     │
+│  - interblink_hours.py  research: IBI stats per screen hour │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -47,11 +48,13 @@ Nothing is uploaded. Privacy is by design. Camera preview is collapsed by defaul
 |------|------|
 | `app/main.py` | Start engine + HTTP + desktop window |
 | `app/engine.py` | Camera, detector, stats, beeps/alerts |
+| `app/frame_pacer.py` | Adaptive FPS: 30 face / post-blink sleep / 1 no-face |
 | `app/server.py` | Local API for the UI |
 | `app/regularity.py` | Inter-blink CV → score 0–100 |
 | `app/beeper.py` | Sounds |
 | `blink_core/detector.py` | Blink detection |
 | `blink_core/screentime.py` | Daily totals |
+| `blink_core/interblink_hours.py` | Per screen-hour inter-blink research JSON |
 | `frontend/` | React source |
 | `frontend/dist/` | Built UI (served in production) |
 | `run_app.py` | Packaging entry + crash log |
@@ -94,6 +97,57 @@ Path: `~/.eyerhythm_blinkcounter/screentime.json`
 ```
 
 Resets at local midnight.
+
+---
+
+## Inter-blink research log (per screen-time hour)
+
+Path: `~/.eyerhythm_blinkcounter/interblink_hours.json`
+
+Each **hour of face-present screen time** (not wall-clock hour) gets one
+entry with inter-blink interval stats. Example: **6 h 45 m** screen time →
+**7 entries** for that date (6 complete hours + 1 partial).
+
+```json
+{
+  "version": 1,
+  "records": [
+    {
+      "date": "2026-04-05",
+      "hour_index": 1,
+      "start_time": "2026-04-05T09:15:22",
+      "end_time": "2026-04-05T10:40:11",
+      "screen_seconds": 3600.0,
+      "blink_count": 420,
+      "gap_count": 419,
+      "min_s": 0.42,
+      "max_s": 18.3,
+      "mean_s": 3.15,
+      "median_s": 2.88,
+      "complete": true
+    }
+  ]
+}
+```
+
+Gaps longer than 30 s (or under 0.15 s) are ignored as breaks/noise.
+History is kept across days in the same file.
+
+---
+
+## Practice mode (full-screen coach)
+
+1. User toggles **Practice** → engine enters `countdown` for **20 s**.
+2. React opens a dark full-screen overlay with instructions + countdown.
+3. Desktop shell may expand the window (`set_practice_fullscreen` bridge).
+4. Countdown ends → `active` for **120 s**: beeps every **3 s** (at the *end*
+   of each interval) and a ball+string animation that arrives on each beep.
+5. Path cycle: center → top-left → bottom-left → bottom-right → top-right →
+   spiral back to center (then repeat).
+6. Esc or **End practice** stops early; natural end clears the toggle.
+
+Tunables in `app/engine.py`: `PRACTICE_COUNTDOWN_S`, `PRACTICE_INTERVAL_S`,
+`PRACTICE_DURATION_S`. Animation lives in `frontend/src/components/PracticeScreen.tsx`.
 
 ---
 

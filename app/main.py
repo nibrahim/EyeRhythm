@@ -46,6 +46,9 @@ class _WindowApi:
 
     def __init__(self) -> None:
         self._window = None
+        self._practice_fullscreen = False
+        self._used_native_fullscreen = False
+        self._pre_practice_geometry: tuple[int, int] | None = None
 
     def bind(self, window) -> None:
         self._window = window
@@ -53,6 +56,56 @@ class _WindowApi:
     def set_camera_layout(self, expanded: bool) -> None:
         # No-op: Lens avatar replaces the expandable camera panel.
         return None
+
+    def set_practice_fullscreen(self, enabled: bool) -> None:
+        """
+        Expand the desktop window for Practice mode; restore on exit.
+
+        Prefer native fullscreen when available; otherwise maximize.
+        Idempotent — safe to call repeatedly from the React overlay.
+        """
+        window = self._window
+        if window is None:
+            return
+        want = bool(enabled)
+        if want == self._practice_fullscreen:
+            return
+        try:
+            if want:
+                try:
+                    w = int(getattr(window, "width", 0) or 0)
+                    h = int(getattr(window, "height", 0) or 0)
+                    if w > 0 and h > 0:
+                        self._pre_practice_geometry = (w, h)
+                except Exception:
+                    self._pre_practice_geometry = None
+                self._used_native_fullscreen = False
+                try:
+                    window.toggle_fullscreen()
+                    self._used_native_fullscreen = True
+                except Exception:
+                    try:
+                        window.maximize()
+                    except Exception:
+                        pass
+                self._practice_fullscreen = True
+            else:
+                if self._used_native_fullscreen:
+                    try:
+                        window.toggle_fullscreen()
+                    except Exception:
+                        pass
+                geom = self._pre_practice_geometry
+                if geom is not None:
+                    try:
+                        window.resize(geom[0], geom[1])
+                    except Exception:
+                        pass
+                self._pre_practice_geometry = None
+                self._used_native_fullscreen = False
+                self._practice_fullscreen = False
+        except Exception as exc:
+            _log(f"practice fullscreen toggle failed: {exc}")
 
 
 def _log(msg: str) -> None:

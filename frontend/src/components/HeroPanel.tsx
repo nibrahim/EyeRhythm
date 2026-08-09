@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { startPreviewPolling } from "../api";
-import { useRateHistory } from "../hooks/useRateHistory";
 import type { EngineState } from "../types";
 import { eyesLabel, rateTone } from "../utils/format";
 import { Avatar, AvatarPicker, type AvatarId } from "./Avatar";
@@ -17,7 +16,8 @@ interface Props {
  * - Eyes status pill: centered on the top of the head (hidden for Trace)
  * - Blinks today: top-right (avatar modes only — hidden in Trace)
  * - Picker: Atlas / Lumen / Vesper / Lens / Trace
- * - Rate history always records so Trace keeps the last 5 minutes
+ * - Rate history is owned at App root (useRateHistory) so Trace always
+ *   has the last 5 minutes, even after avatar switches / minimize.
  */
 export function HeroPanel({ state, avatarId, onAvatarChange }: Props) {
   const tone = rateTone(state.continuous_bpm, state.face_found);
@@ -25,9 +25,6 @@ export function HeroPanel({ state, avatarId, onAvatarChange }: Props) {
   const isLens = avatarId === "lens";
   const isGraph = avatarId === "graph";
   const [frameUrl, setFrameUrl] = useState<string | null>(null);
-
-  // Always sample — history survives avatar switches.
-  useRateHistory(state.continuous_bpm, state.face_found);
 
   useEffect(() => {
     if (!isLens) {

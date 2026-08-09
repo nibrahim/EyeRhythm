@@ -391,7 +391,8 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
         </text>
       </svg>
 
-      {!faceFound && (
+      {/* Only show the prompt before any real trail exists — not on brief face loss. */}
+      {!faceFound && getRateSamples().length < 8 && (
         <div className="rate-graph__empty">
           Face the camera to start the trace
         </div>

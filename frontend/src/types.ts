@@ -26,12 +26,26 @@ export interface EngineState {
   alert: boolean;
   ontop: boolean;
   practice: boolean;
-  /** "off" | "countdown" | "active" */
+  /** "off" | "countdown" | "active" | "summary" */
   practice_phase: string;
-  /** Seconds left in the 10s pre-start countdown. */
+  /** Seconds left in the pre-start countdown. */
   practice_countdown_s: number;
+  /** Total countdown length (for progress UI). */
+  practice_countdown_total_s: number;
   /** Seconds left in the active beeping practice (0 when not active). */
   practice_remaining_s: number;
+  /** Beep / ball travel interval in seconds. */
+  practice_interval_s: number;
+  /** Wall-clock epoch when active practice began (0 if idle). */
+  practice_active_started_at: number;
+  /** Seconds left on the post-practice results screen. */
+  practice_summary_s: number;
+  /** Frozen practice-session blink count. */
+  practice_result_blinks: number;
+  /** Frozen practice-session blink rate (/min). */
+  practice_result_bpm: number;
+  /** Frozen practice-session regularity (0–100), or null if not ready. */
+  practice_result_regularity: number | null;
   /** Wall-clock: last counted blink (Beep/Practice orange pulse). */
   last_blink_at: number;
   /** Wall-clock: last low-rate alert beep (Alert red pulse). */
@@ -69,7 +83,14 @@ export const EMPTY_STATE: EngineState = {
   practice: false,
   practice_phase: "off",
   practice_countdown_s: 0,
+  practice_countdown_total_s: 20,
   practice_remaining_s: 0,
+  practice_interval_s: 3,
+  practice_active_started_at: 0,
+  practice_summary_s: 0,
+  practice_result_blinks: 0,
+  practice_result_bpm: 0,
+  practice_result_regularity: null,
   last_blink_at: 0,
   last_alert_beep_at: 0,
   future_a: null,

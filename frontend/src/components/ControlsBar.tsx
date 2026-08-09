@@ -84,7 +84,7 @@ export function ControlsBar({ state }: Props) {
         pulse={alertPulse ? "red" : null}
         onClick={() => void flip("alert")}
         disabled={busy === "alert"}
-        title="Alert when blink rate is very low"
+        title="Alert when current rate and last-5-min average are both below ~10/min (stops as soon as current rate recovers)"
       />
       <ToggleChip
         label="On top"
@@ -101,7 +101,7 @@ export function ControlsBar({ state }: Props) {
         pulse={practicePulse ? "orange" : null}
         onClick={() => void flip("practice")}
         disabled={busy === "practice"}
-        title="10s to read instructions, then 2 min of beeps every 3s. Regularity resets when beeps start."
+        title="20s to read instructions, then 2 min of full-screen ball + beeps every 3s. Regularity resets when beeps start."
       />
     </footer>
   );

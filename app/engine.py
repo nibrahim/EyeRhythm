@@ -19,6 +19,7 @@ import platform
 import sys
 import threading
 import time
+from collections import deque
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -28,9 +29,14 @@ import numpy as np
 
 from blink_core import BlinkDetector, FrameResult
 from blink_core.screentime import ScreenTimeTracker
+from blink_core.interblink_hours import InterBlinkHourTracker
 from app.beeper import Beeper
 from app import preferences
 from app.regularity import RegularityTracker
+# Blink-gated CPU pacing (30 fps + post-blink rest / 1 fps no-face).
+# Easy rollback: remove this import and restore the previous FACE_FPS=17 /
+# NO_FACE_FPS=3 constants + inline interval logic in the camera loop.
+from app.frame_pacer import FACE_FPS, FramePacer, NO_FACE_FPS
 
 # ---------------------------------------------------------------------------
 # Resource root (source run + PyInstaller)
@@ -55,12 +61,18 @@ ALERT_POLL_S = 0.5
 ALERT_WARMUP_S = 60.0
 # Face absence longer than this restarts the alert warmup on re-detection.
 FACE_BREAK_S = 60.0
+# Rolling window used to judge low-rate *trend* (not a single instant dip).
+ALERT_TREND_WINDOW_S = 300.0  # last 5 minutes of face-present rate samples
+# Do not store a sample more often than this (keeps the deque small).
+ALERT_TREND_SAMPLE_S = 1.0
 
 # Practice coach: metronome for target blink rhythm (~20 blinks/min)
 PRACTICE_INTERVAL_S = 3.0
-# Read instructions first, then beep for two minutes.
-PRACTICE_COUNTDOWN_S = 10.0
+# Read instructions (and full-screen visual cue intro) first, then beep.
+PRACTICE_COUNTDOWN_S = 20.0
 PRACTICE_DURATION_S = 120.0
+# After active practice, hold results (rate + regularity) on screen.
+PRACTICE_SUMMARY_S = 20.0
 
 # Camera resilience
 READ_FAILS_BEFORE_REOPEN = 8
@@ -71,14 +83,12 @@ REOPEN_WARMUP_READS = 10
 # Low-power capture profile (target ~20% of one core on typical laptops).
 # MediaPipe Face Landmarker dominates CPU — process a small frame; display
 # uses the full-res camera crop with landmarks remapped after inference.
+#
+# Frame *rate* policy (30 fps face / post-blink sleep / 1 fps no-face) lives
+# entirely in ``app.frame_pacer`` so it can be rolled back without touching
+# detection, screen-time, regularity, or research logging.
 PROCESS_MAX_WIDTH = 480          # MediaPipe input width; height keeps aspect
 DISPLAY_CAPTURE_MAX_WIDTH = 1280 # camera hint for a sharper Lens crop
-FACE_FPS = 17.0                  # inference rate while a face is present
-NO_FACE_FPS = 3.0                # hunt rate when no face (much cheaper average)
-# Stay at FACE_FPS for this many consecutive misses so a blink is not cut short.
-NO_FACE_GRACE_FRAMES = 5
-FACE_INTERVAL_S = 1.0 / FACE_FPS
-NO_FACE_INTERVAL_S = 1.0 / NO_FACE_FPS
 
 # Preview encoding (only when UI requests camera)
 PREVIEW_MAX_WIDTH = 640          # displayed crop / full-frame width
@@ -254,12 +264,26 @@ def _reopen_camera(cap: cv2.VideoCapture | None, index: int,
 
 class AlertMonitor:
     """
-    Background beeps while face present and rate below threshold.
+    Background beeps while face present and rate is low — with trend guard.
 
-    Alert beeps are suppressed for ``ALERT_WARMUP_S`` after:
-      * construction (fresh app start — continuous BPM has no data yet), and
-      * face re-detection after an absence of ``FACE_BREAK_S`` or more
-        (window is empty / stale; gather a full minute before acting).
+    Beep only when **all** of these hold:
+      * face is present,
+      * face-break / first-face warmup is finished,
+      * **current** continuous BPM is below ``ALERT_BPM_THRESHOLD`` (10)
+        but **not zero** (0 means no usable face / empty window — ignored),
+      * **average** continuous BPM over the last ``ALERT_TREND_WINDOW_S``
+        (5 minutes of **genuine** face-present, non-zero samples) is also
+        below that threshold.
+
+    Samples with BPM ≤ 0 are never stored in the trend and never count as
+    “low rate” (those are no-face / unusable readings, not genuine low blinking).
+
+    As soon as the **current** rate rises to ≥ threshold, beeps stop
+    immediately (even if the 5-minute average is still low).
+
+    Alert beeps are also suppressed for ``ALERT_WARMUP_S`` (default 60 s) after:
+      * construction / first face of the session, and
+      * face re-detection after an absence of ``FACE_BREAK_S`` or more.
     """
 
     def __init__(
@@ -280,48 +304,174 @@ class AlertMonitor:
         self._thread: threading.Thread | None = None
         # Fresh start: do not beep until one minute of data has accumulated.
         self._suppress_until = time.monotonic() + ALERT_WARMUP_S
-        self._last_face_at: float | None = None
-        self._had_face = False
+        # True while the latest update reported a face.
+        self._face_present = False
+        # Monotonic time when the current no-face stretch began (None if face
+        # is present or we have not yet observed a loss after a face).
+        self._absent_since: float | None = time.monotonic()
+        # Have we ever seen a face this process lifetime?
+        self._ever_had_face = False
+        # Rolling 5-minute face-present rate history: (monotonic_t, bpm).
+        self._trend: deque[tuple[float, float]] = deque()
+        self._last_trend_sample_at = 0.0
 
     def update(self, bpm: float, face_found: bool) -> None:
+        """
+        Feed latest detection. Safe to call every camera frame whether or not
+        the alert thread is running (state is kept warm for face-break logic).
+        """
         with self._lock:
             now = time.monotonic()
             if face_found:
-                if not self._had_face:
-                    # Face just (re)appeared.
-                    if self._last_face_at is None:
-                        # First face of the session: ensure a full warmup from
-                        # now so we gather data even if camera started late.
-                        self._suppress_until = max(
-                            self._suppress_until, now + ALERT_WARMUP_S)
-                        _log(
-                            f"alert warmup {int(ALERT_WARMUP_S)}s "
-                            "(fresh start / first face)"
-                        )
-                    else:
-                        gap = now - self._last_face_at
-                        if gap >= FACE_BREAK_S:
-                            # Long break: restart warmup so BPM can refill.
-                            self._suppress_until = now + ALERT_WARMUP_S
-                            _log(
-                                f"alert warmup {int(ALERT_WARMUP_S)}s "
-                                f"(face back after {gap:.0f}s break)"
-                            )
-                self._had_face = True
-                self._last_face_at = now
+                if not self._face_present:
+                    # Rising edge: face just (re)appeared.
+                    self._on_face_reappeared(now)
+                self._face_present = True
+                self._ever_had_face = True
+                self._absent_since = None
+                # Only genuine rates (BPM > 0). Zero is treated as no usable
+                # face / empty window — must not inflate “low rate” time.
+                if float(bpm) > 0.0:
+                    self._record_trend_sample(now, float(bpm))
             else:
-                self._had_face = False
-                # Keep _last_face_at so we can measure the break length.
-            self._bpm = bpm
-            self._face_found = face_found
+                if self._face_present:
+                    # Falling edge: start the absence clock exactly once.
+                    self._absent_since = now
+                elif self._absent_since is None:
+                    # Never saw a face yet, or state was reset — count as absent.
+                    self._absent_since = now
+                self._face_present = False
+            self._bpm = float(bpm)
+            self._face_found = bool(face_found)
+            self._prune_trend(now)
+
+    def _record_trend_sample(self, now: float, bpm: float) -> None:
+        """
+        Append a genuine face-present rate sample (throttled); caller holds lock.
+
+        BPM must be > 0 — zeros are no-face / empty-window noise and must not
+        enter the 5-minute low-rate trend.
+        """
+        if bpm <= 0.0:
+            return
+        if (now - self._last_trend_sample_at) < ALERT_TREND_SAMPLE_S:
+            # Refresh the latest sample's bpm so the head stays current
+            # (only with a genuine non-zero reading).
+            if self._trend:
+                t0, _ = self._trend[-1]
+                if now - t0 < ALERT_TREND_SAMPLE_S * 1.5:
+                    self._trend[-1] = (t0, bpm)
+                    return
+            return
+        self._trend.append((now, bpm))
+        self._last_trend_sample_at = now
+
+    def _prune_trend(self, now: float) -> None:
+        """Drop samples older than the 5-minute window; caller holds lock."""
+        cutoff = now - ALERT_TREND_WINDOW_S
+        while self._trend and self._trend[0][0] < cutoff:
+            self._trend.popleft()
+
+    def _trend_average_bpm(self, now: float) -> float | None:
+        """
+        Time-weighted average of continuous BPM over the last 5 minutes.
+
+        Uses only genuine samples (BPM > 0). Zero-rate gaps are skipped so
+        no-face / empty-window zeros cannot drag the average down.
+        None if there is no usable history yet.
+        """
+        self._prune_trend(now)
+        # Keep only positive-rate samples (defensive if any zeros slipped in).
+        pts = [(t, v) for t, v in self._trend if v > 0.0]
+        if not pts:
+            return None
+        # Time-weight consecutive genuine samples; do not bridge long gaps
+        # with a zero-rate span (those gaps are not “low blinking”).
+        total_w = 0.0
+        total_v = 0.0
+        max_bridge = ALERT_TREND_SAMPLE_S * 3.0  # ~3 s between samples
+        for i, (t, v) in enumerate(pts):
+            if i + 1 < len(pts):
+                t_next = pts[i + 1][0]
+                dt = max(0.0, t_next - t)
+                # Large hole = face/zero gap — do not count that empty time.
+                if dt > max_bridge:
+                    dt = ALERT_TREND_SAMPLE_S
+            else:
+                # Last sample: only extend a short tail to ``now`` if still live.
+                dt = min(max(0.0, now - t), ALERT_TREND_SAMPLE_S)
+            if dt <= 0:
+                continue
+            total_w += dt
+            total_v += v * dt
+        if total_w <= 0:
+            return float(pts[-1][1])
+        return total_v / total_w
+
+    def _should_beep_locked(self, now: float) -> bool:
+        """
+        Beep gate (caller holds lock):
+          current bpm is a genuine low rate (0 < bpm < threshold)
+          AND 5-min average of genuine samples < threshold
+          AND face present  AND  not in face-break warmup.
+        Current rate ≥ threshold → False immediately (stop beeps).
+        Current rate ≤ 0 → False (not a genuine low-blink reading).
+        """
+        if not self._face_found:
+            return False
+        if now < self._suppress_until:
+            return False
+        # Zero is not a genuine low count (no-face / empty window).
+        if self._bpm <= 0.0:
+            return False
+        # Immediate stop when current rate is healthy again.
+        if self._bpm >= self._threshold:
+            return False
+        avg = self._trend_average_bpm(now)
+        if avg is None or avg <= 0.0:
+            return False
+        # Trend over last 5 minutes must also be below threshold.
+        return avg < self._threshold
+
+    def _on_face_reappeared(self, now: float) -> None:
+        """Apply warmup after first face or after a long absence (caller holds lock)."""
+        if not self._ever_had_face:
+            self._suppress_until = max(self._suppress_until, now + ALERT_WARMUP_S)
+            _log(
+                f"alert warmup {int(ALERT_WARMUP_S)}s "
+                "(fresh start / first face)"
+            )
+            return
+
+        if self._absent_since is None:
+            # Should not happen on a rising edge; be safe.
+            return
+
+        gap = now - self._absent_since
+        if gap >= FACE_BREAK_S:
+            # Long break: wait a full minute of face-present time before
+            # low-rate alerts can fire (BPM window was empty / stale).
+            self._suppress_until = now + ALERT_WARMUP_S
+            _log(
+                f"alert warmup {int(ALERT_WARMUP_S)}s "
+                f"(face back after {gap:.0f}s break)"
+            )
 
     def start(self) -> None:
+        """
+        Start the beep thread. Does **not** clear ``_suppress_until`` or
+        absence tracking — face-break warmup must survive toggle off/on.
+        """
         if self._thread is not None and self._thread.is_alive():
             return
         self._stop.clear()
         self._thread = threading.Thread(
             target=self._run, name="AlertMonitor", daemon=True)
         self._thread.start()
+        with self._lock:
+            remaining = max(0.0, self._suppress_until - time.monotonic())
+        if remaining > 1.0:
+            _log(f"alert started — warmup {remaining:.0f}s still active")
 
     def stop(self) -> None:
         self._stop.set()
@@ -337,11 +487,13 @@ class AlertMonitor:
     def _run(self) -> None:
         while not self._stop.is_set():
             with self._lock:
-                bpm = self._bpm
-                face = self._face_found
-                warming_up = time.monotonic() < self._suppress_until
-            # Only beep when face is present, rate is low, and warmup is done.
-            if face and not warming_up and bpm < self._threshold:
+                now = time.monotonic()
+                # Keep trend head fresh even between sparse camera frames
+                # (genuine non-zero rates only).
+                if self._face_found and self._bpm > 0.0:
+                    self._record_trend_sample(now, self._bpm)
+                should = self._should_beep_locked(now)
+            if should:
                 self._beeper.beep()
                 if self._on_alert_beep is not None:
                     try:
@@ -374,6 +526,7 @@ class PracticeCoach:
         self._thread: threading.Thread | None = None
         self._started_at: float | None = None
         self._ends_at: float | None = None
+        self._started_wall: float = 0.0
 
     def start(self) -> None:
         # Restart cleanly if already running (new practice session).
@@ -382,6 +535,8 @@ class PracticeCoach:
         now = time.monotonic()
         self._started_at = now
         self._ends_at = now + self._duration_s
+        # Wall clock of active start — UI keys ball disappear to this + n×interval.
+        self._started_wall = time.time()
         self._thread = threading.Thread(
             target=self._run, name="PracticeCoach", daemon=True)
         self._thread.start()
@@ -394,6 +549,12 @@ class PracticeCoach:
         self._thread = None
         self._started_at = None
         self._ends_at = None
+        self._started_wall = 0.0
+
+    @property
+    def started_wall(self) -> float:
+        """Wall-clock epoch when the coach started (0 if idle)."""
+        return float(getattr(self, "_started_wall", 0.0) or 0.0)
 
     @property
     def running(self) -> bool:
@@ -414,10 +575,14 @@ class PracticeCoach:
         return time.time() + self.remaining_s
 
     def _run(self) -> None:
+        """
+        Beep at the *end* of each interval (not immediately).
+
+        That lines up with the full-screen ball animation: the ball travels
+        for ``interval_s`` and arrives at the next waypoint on the beep.
+        """
         finished_naturally = False
         try:
-            # Immediate first beep so the user hears the pace right away.
-            self._beeper.beep()
             while not self._stop.is_set():
                 remaining = self.remaining_s
                 if remaining <= 0:
@@ -426,10 +591,13 @@ class PracticeCoach:
                 wait = min(self._interval_s, remaining)
                 if self._stop.wait(wait):
                     break
+                # Beep only after a full interval so arrivals stay on cadence.
+                # A truncated final wait (session end) does not get a beep.
+                if wait + 1e-3 >= self._interval_s:
+                    self._beeper.beep()
                 if self.remaining_s <= 0:
                     finished_naturally = True
                     break
-                self._beeper.beep()
         finally:
             self._started_at = None
             self._ends_at = None
@@ -478,12 +646,24 @@ class EngineSnapshot:
     alert: bool = False
     ontop: bool = False
     practice: bool = False
-    # "off" | "countdown" | "active"
+    # "off" | "countdown" | "active" | "summary"
     practice_phase: str = "off"
-    # Seconds left in the 10s pre-start countdown (read instructions).
+    # Seconds left in the pre-start countdown (read instructions).
     practice_countdown_s: float = 0.0
+    # Total countdown length (UI progress / full-screen intro).
+    practice_countdown_total_s: float = PRACTICE_COUNTDOWN_S
     # Seconds left in the active beeping practice (0 when not active).
     practice_remaining_s: float = 0.0
+    # Beep / ball travel interval (seconds).
+    practice_interval_s: float = PRACTICE_INTERVAL_S
+    # Wall-clock epoch when active practice (beeps + ball) began; 0 if idle.
+    practice_active_started_at: float = 0.0
+    # Post-practice results screen (seconds left; 0 when not in summary).
+    practice_summary_s: float = 0.0
+    # Frozen results shown on the summary screen.
+    practice_result_blinks: int = 0
+    practice_result_bpm: float = 0.0
+    practice_result_regularity: float | None = None
     # UI pulse markers (wall-clock). Separate signals for each control dot.
     last_blink_at: float = 0.0       # counted blink → Beep/Practice orange
     last_alert_beep_at: float = 0.0  # alert metronome → Alert red
@@ -530,15 +710,29 @@ class EyeRhythmEngine:
             on_finished=self._on_practice_finished,
         )
         self._screen_time = ScreenTimeTracker()
+        # Research log: inter-blink min/max/mean/median per screen-time hour.
+        self._interblink_hours = InterBlinkHourTracker()
+        self._interblink_hours.sync_screen_seconds(self._screen_time.seconds_today)
         self._regularity = RegularityTracker()
         self._detector: BlinkDetector | None = None
         self._last_blink_at = 0.0
         self._last_alert_beep_at = 0.0
-        # Practice session: countdown thread before beeps start.
-        self._practice_phase = "off"  # off | countdown | active
+        # Practice session: countdown → active → summary.
+        self._practice_phase = "off"  # off | countdown | active | summary
         self._countdown_stop = threading.Event()
         self._countdown_thread: threading.Thread | None = None
         self._countdown_ends: float | None = None
+        # Wall-clock epoch when active practice began (for UI animation sync).
+        self._practice_active_started_at: float = 0.0
+        # Blinks counted only while practice_phase == "active".
+        self._practice_blinks = 0
+        # Summary hold after natural finish.
+        self._summary_stop = threading.Event()
+        self._summary_thread: threading.Thread | None = None
+        self._summary_ends: float | None = None
+        self._practice_result_blinks = 0
+        self._practice_result_bpm = 0.0
+        self._practice_result_regularity: float | None = None
 
         # Restore last session toggles (Beep / Alert / On top only).
         # Practice is always session-local and never restored.
@@ -556,7 +750,14 @@ class EyeRhythmEngine:
             practice=False,
             practice_phase="off",
             practice_countdown_s=0.0,
+            practice_countdown_total_s=float(PRACTICE_COUNTDOWN_S),
             practice_remaining_s=0.0,
+            practice_interval_s=float(PRACTICE_INTERVAL_S),
+            practice_active_started_at=0.0,
+            practice_summary_s=0.0,
+            practice_result_blinks=0,
+            practice_result_bpm=0.0,
+            practice_result_regularity=None,
         )
         self._preview_jpeg: bytes | None = None
         self._preview_wanted = False
@@ -587,6 +788,10 @@ class EyeRhythmEngine:
         self._thread = None
         try:
             self._screen_time.save()
+        except Exception:
+            pass
+        try:
+            self._interblink_hours.save()
         except Exception:
             pass
         # Persist durable toggles only (not practice).
@@ -677,17 +882,29 @@ class EyeRhythmEngine:
             return dict(self._states)
 
     def _begin_practice_session(self) -> None:
-        """Start 10s countdown, then active beeping practice."""
+        """Start instruction countdown, then active beeping + visual practice."""
         self._stop_practice_session(clear_toggle=False)
         self._countdown_stop.clear()
         self._countdown_ends = time.monotonic() + PRACTICE_COUNTDOWN_S
+        self._practice_active_started_at = 0.0
+        self._practice_blinks = 0
+        self._practice_result_blinks = 0
+        self._practice_result_bpm = 0.0
+        self._practice_result_regularity = None
         with self._lock:
             self._states["practice"] = True
             self._practice_phase = "countdown"
             self._snap.practice = True
             self._snap.practice_phase = "countdown"
             self._snap.practice_countdown_s = float(PRACTICE_COUNTDOWN_S)
+            self._snap.practice_countdown_total_s = float(PRACTICE_COUNTDOWN_S)
             self._snap.practice_remaining_s = 0.0
+            self._snap.practice_interval_s = float(PRACTICE_INTERVAL_S)
+            self._snap.practice_active_started_at = 0.0
+            self._snap.practice_summary_s = 0.0
+            self._snap.practice_result_blinks = 0
+            self._snap.practice_result_bpm = 0.0
+            self._snap.practice_result_regularity = None
             # Clear regularity now so the card shows “warming up” during prep.
             self._regularity.reset()
             self._snap.regularity = None
@@ -714,19 +931,34 @@ class EyeRhythmEngine:
             return
         # Countdown done → active practice with fresh regularity.
         self._regularity.reset()
+        self._practice_blinks = 0
+        # Start coach first, then publish its wall clock so UI beeps/disappear match.
+        self._practice.start()
+        started_wall = self._practice.started_wall or time.time()
+        self._practice_active_started_at = started_wall
         with self._lock:
             self._practice_phase = "active"
             self._snap.practice_phase = "active"
             self._snap.practice_countdown_s = 0.0
             self._snap.practice_remaining_s = float(PRACTICE_DURATION_S)
+            self._snap.practice_interval_s = float(PRACTICE_INTERVAL_S)
+            self._snap.practice_active_started_at = started_wall
+            self._snap.practice_summary_s = 0.0
             self._snap.regularity = None
             self._snap.regularity_ready = False
             self._snap.regularity_gaps = 0
-        self._practice.start()
         _log(f"practice active for {int(PRACTICE_DURATION_S)}s")
 
+    def _stop_summary_thread(self) -> None:
+        self._summary_stop.set()
+        t = self._summary_thread
+        if t is not None and t.is_alive() and t is not threading.current_thread():
+            t.join(timeout=2.0)
+        self._summary_thread = None
+        self._summary_ends = None
+
     def _stop_practice_session(self, *, clear_toggle: bool = True) -> None:
-        """Cancel countdown + coach; optionally clear the practice toggle."""
+        """Cancel countdown + coach + summary; optionally clear the practice toggle."""
         self._countdown_stop.set()
         t = self._countdown_thread
         if t is not None and t.is_alive() and t is not threading.current_thread():
@@ -734,6 +966,8 @@ class EyeRhythmEngine:
         self._countdown_thread = None
         self._countdown_ends = None
         self._practice.stop()
+        self._stop_summary_thread()
+        self._practice_active_started_at = 0.0
         with self._lock:
             self._practice_phase = "off"
             if clear_toggle:
@@ -744,17 +978,80 @@ class EyeRhythmEngine:
             self._snap.practice_phase = "off"
             self._snap.practice_countdown_s = 0.0
             self._snap.practice_remaining_s = 0.0
+            self._snap.practice_active_started_at = 0.0
+            self._snap.practice_summary_s = 0.0
 
     def _on_practice_finished(self) -> None:
-        """Called by PracticeCoach when the timed session ends naturally."""
+        """
+        Active coach finished naturally → freeze results and hold summary
+        for PRACTICE_SUMMARY_S, then fully close practice.
+        """
+        self._practice_active_started_at = 0.0
+        # Session blink rate: blinks during active practice ÷ practice minutes.
+        minutes = max(1e-6, PRACTICE_DURATION_S / 60.0)
+        blinks = int(self._practice_blinks)
+        bpm = round(blinks / minutes, 1)
+        reg = self._regularity.score
+        self._practice_result_blinks = blinks
+        self._practice_result_bpm = bpm
+        self._practice_result_regularity = reg
+
+        self._stop_summary_thread()
+        self._summary_stop.clear()
+        self._summary_ends = time.monotonic() + PRACTICE_SUMMARY_S
+        with self._lock:
+            self._states["practice"] = True
+            self._practice_phase = "summary"
+            self._snap.practice = True
+            self._snap.practice_phase = "summary"
+            self._snap.practice_countdown_s = 0.0
+            self._snap.practice_remaining_s = 0.0
+            self._snap.practice_active_started_at = 0.0
+            self._snap.practice_summary_s = float(PRACTICE_SUMMARY_S)
+            self._snap.practice_result_blinks = blinks
+            self._snap.practice_result_bpm = bpm
+            self._snap.practice_result_regularity = reg
+        self._summary_thread = threading.Thread(
+            target=self._summary_run, name="PracticeSummary", daemon=True)
+        self._summary_thread.start()
+        _log(
+            f"practice summary {int(PRACTICE_SUMMARY_S)}s — "
+            f"blinks={blinks} bpm={bpm} reg={reg}"
+        )
+
+    def _summary_run(self) -> None:
+        """Hold results on screen, then end practice and close the overlay."""
+        while not self._summary_stop.is_set():
+            left = 0.0
+            if self._summary_ends is not None:
+                left = max(0.0, self._summary_ends - time.monotonic())
+            with self._lock:
+                self._snap.practice_summary_s = round(left, 1)
+                self._snap.practice_phase = "summary"
+                self._snap.practice = True
+                self._snap.practice_result_blinks = self._practice_result_blinks
+                self._snap.practice_result_bpm = self._practice_result_bpm
+                self._snap.practice_result_regularity = (
+                    self._practice_result_regularity
+                )
+            if left <= 0:
+                break
+            if self._summary_stop.wait(0.1):
+                return
+        if self._summary_stop.is_set():
+            return
+        # Summary done → fully close practice (window returns to normal).
         with self._lock:
             self._states["practice"] = False
             self._practice_phase = "off"
             self._snap.practice = False
             self._snap.practice_phase = "off"
-            self._snap.practice_countdown_s = 0.0
+            self._snap.practice_summary_s = 0.0
             self._snap.practice_remaining_s = 0.0
-        _log(f"practice session finished ({int(PRACTICE_DURATION_S)}s)")
+            self._snap.practice_active_started_at = 0.0
+        self._summary_ends = None
+        self._summary_thread = None
+        _log("practice summary finished — session closed")
 
     def _note_blink_pulse(self) -> None:
         """UI: orange pulse on Beep (if on) / Practice (if on) dots."""
@@ -788,19 +1085,37 @@ class EyeRhythmEngine:
             self._snap.ontop = self._states["ontop"]
             self._snap.practice = self._states["practice"]
             self._snap.practice_phase = self._practice_phase
+            self._snap.practice_interval_s = float(PRACTICE_INTERVAL_S)
+            self._snap.practice_countdown_total_s = float(PRACTICE_COUNTDOWN_S)
+            self._snap.practice_active_started_at = (
+                self._practice_active_started_at
+                if self._practice_phase == "active"
+                else 0.0
+            )
+            self._snap.practice_result_blinks = self._practice_result_blinks
+            self._snap.practice_result_bpm = self._practice_result_bpm
+            self._snap.practice_result_regularity = self._practice_result_regularity
             self._snap.last_blink_at = self._last_blink_at
             self._snap.last_alert_beep_at = self._last_alert_beep_at
             if self._practice_phase == "countdown" and self._countdown_ends is not None:
                 self._snap.practice_countdown_s = round(
                     max(0.0, self._countdown_ends - time.monotonic()), 1)
                 self._snap.practice_remaining_s = 0.0
+                self._snap.practice_summary_s = 0.0
             elif self._practice_phase == "active":
                 self._snap.practice_countdown_s = 0.0
                 self._snap.practice_remaining_s = round(
                     self._practice.remaining_s, 1)
+                self._snap.practice_summary_s = 0.0
+            elif self._practice_phase == "summary" and self._summary_ends is not None:
+                self._snap.practice_countdown_s = 0.0
+                self._snap.practice_remaining_s = 0.0
+                self._snap.practice_summary_s = round(
+                    max(0.0, self._summary_ends - time.monotonic()), 1)
             else:
                 self._snap.practice_countdown_s = 0.0
                 self._snap.practice_remaining_s = 0.0
+                self._snap.practice_summary_s = 0.0
             self._snap.timestamp = time.time()
 
     def _face_roi_xyxy(
@@ -984,28 +1299,24 @@ class EyeRhythmEngine:
         read_fails = 0
         reopen_attempt = 0
         last_res = FrameResult()
-        face_absent_streak = 0
-        # Start at face rate so first-second UX feels responsive.
-        frame_interval_s = FACE_INTERVAL_S
+        # Adaptive FPS / post-blink rest — see app/frame_pacer.py.
+        pacer = FramePacer()
         _log(
             f"low-power profile: process_width={PROCESS_MAX_WIDTH} "
             f"preview_width={PREVIEW_MAX_WIDTH} "
-            f"face={FACE_FPS:.0f}fps no_face={NO_FACE_FPS:.0f}fps "
-            f"grace={NO_FACE_GRACE_FRAMES}"
+            f"{pacer.describe()}"
         )
 
         try:
             while not self._stop.is_set():
                 loop_start = time.monotonic()
                 # In no-face mode the camera may buffer many frames; drain a few.
-                drain = 3 if frame_interval_s >= NO_FACE_INTERVAL_S * 0.9 else 0
+                drain = 3 if pacer.should_drain_buffer() else 0
                 ok, frame = _read_frame(cap, drain=drain)
 
                 if not ok or _frame_is_black(frame):
                     read_fails += 1
-                    face_absent_streak += 1
-                    if face_absent_streak >= NO_FACE_GRACE_FRAMES:
-                        frame_interval_s = NO_FACE_INTERVAL_S
+                    pacer.note_no_signal()
                     self._screen_time.tick(False)
                     self._alert.update(last_res.blinks_per_minute, False)
                     self._publish(
@@ -1059,42 +1370,54 @@ class EyeRhythmEngine:
                 except Exception as exc:
                     _log(f"frame processing error (skipped): {exc}")
                     self._screen_time.tick(False)
-                    elapsed = time.monotonic() - loop_start
-                    remaining = frame_interval_s - elapsed
-                    if remaining > 0:
-                        time.sleep(remaining)
+                    # Keep alert absence tracking honest during errors.
+                    self._alert.update(last_res.blinks_per_minute, False)
+                    pacer.sleep_for_frame(loop_start)
                     continue
 
                 last_res = res
                 self._screen_time.tick(res.face_found)
-
-                # Adaptive duty cycle: full rate with face, crawl when alone.
-                if res.face_found:
-                    face_absent_streak = 0
-                    frame_interval_s = FACE_INTERVAL_S
-                else:
-                    face_absent_streak += 1
-                    if face_absent_streak >= NO_FACE_GRACE_FRAMES:
-                        frame_interval_s = NO_FACE_INTERVAL_S
+                # Keep research hour buckets aligned with face-present time.
+                try:
+                    self._interblink_hours.on_screen_seconds(
+                        self._screen_time.seconds_today)
+                except Exception:
+                    pass
 
                 if res.blink_just_counted:
                     self._screen_time.add_blink()
+                    blink_mono = time.monotonic()
+                    # Research: inter-blink gaps for every counted blink
+                    # (including practice — useful for cadence studies).
+                    try:
+                        self._interblink_hours.on_blink(blink_mono)
+                    except Exception:
+                        pass
                     # During practice countdown, ignore gaps (user is reading).
                     # During active practice, score against the 3 s beep cadence.
                     with self._lock:
                         phase = self._practice_phase
                     if phase == "active":
+                        # Practice-only blink tally for the end-of-session rate.
+                        self._practice_blinks += 1
                         self._regularity.record_blink(
-                            time.monotonic(),
+                            blink_mono,
                             target_interval=PRACTICE_INTERVAL_S,
                         )
                     elif phase == "off":
-                        self._regularity.record_blink(time.monotonic())
-                    # phase == "countdown": do not update regularity
+                        self._regularity.record_blink(blink_mono)
+                    # phase == "countdown" | "summary": do not update regularity
                     self._note_blink_pulse()
                     # During the 10s instruction countdown, skip blink-beeps.
                     if self._states["beep"] and phase != "countdown":
                         self._beeper.beep()
+
+                # Adaptive FPS only (face 30 / no-face 1 + post-blink rest).
+                # All other business logic above is unchanged.
+                pacer.observe(
+                    face_found=res.face_found,
+                    blink_just_counted=res.blink_just_counted,
+                )
 
                 self._alert.update(res.blinks_per_minute, res.face_found)
 
@@ -1130,11 +1453,8 @@ class EyeRhythmEngine:
                     running=True,
                 )
 
-                # Pace to current adaptive interval (face 17 / no-face 3).
-                elapsed = time.monotonic() - loop_start
-                remaining = frame_interval_s - elapsed
-                if remaining > 0:
-                    time.sleep(remaining)
+                # Pace: full fps, or POST_BLINK_SLEEP_S after a blink, or 1 fps.
+                pacer.sleep_for_frame(loop_start)
 
         finally:
             _log("engine stopping")
@@ -1142,6 +1462,10 @@ class EyeRhythmEngine:
             self._stop_practice_session()
             try:
                 self._screen_time.save()
+            except Exception:
+                pass
+            try:
+                self._interblink_hours.save()
             except Exception:
                 pass
             if self._detector is not None:
