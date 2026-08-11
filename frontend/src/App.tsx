@@ -27,7 +27,7 @@ export default function App() {
   const [prefsReady, setPrefsReady] = useState(false);
 
   // Session-wide Trace history: starts at boot, survives avatar switches + minimize.
-  useRateHistory(state.continuous_bpm, state.face_found);
+  useRateHistory(state.continuous_bpm, state.face_found, state.regularity);
 
   useEffect(() => {
     void whenBridgeReady();

@@ -732,6 +732,14 @@ button {
   font-family: inherit;
 }
 
+.rate-graph__axis-label--rate {
+  fill: rgba(61, 143, 214, 0.9);
+}
+
+.rate-graph__axis-label--reg {
+  fill: rgba(180, 120, 40, 0.75);
+}
+
 .rate-graph__line {
   fill: none;
   stroke-linecap: round;
@@ -751,17 +759,24 @@ button {
   stroke-linejoin: round;
 }
 
-/* Reserved for regularity series later */
 .rate-graph__line--regularity {
   stroke: #f0a040;
-  stroke-width: 1.2;
-  opacity: 0.9;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.95;
 }
 
 .rate-graph__head {
   fill: #3a86d4;
   stroke: #ffffff;
   stroke-width: 1.1;
+}
+
+.rate-graph__head--reg {
+  fill: #f0a040;
+  stroke: #ffffff;
+  stroke-width: 1;
 }
 
 .rate-graph__empty {

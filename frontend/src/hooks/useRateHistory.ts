@@ -16,6 +16,7 @@ import {
 export function useRateHistory(
   continuousBpm: number,
   faceFound: boolean,
+  regularity: number | null = null,
 ): void {
   // Start the 5-minute ring buffer on first mount; never stop for the session.
   useEffect(() => {
@@ -24,6 +25,6 @@ export function useRateHistory(
 
   // Push every engine reading into the store (face flag kept for API stability).
   useEffect(() => {
-    setRateHistoryInput(continuousBpm, faceFound);
-  }, [continuousBpm, faceFound]);
+    setRateHistoryInput(continuousBpm, faceFound, regularity);
+  }, [continuousBpm, faceFound, regularity]);
 }

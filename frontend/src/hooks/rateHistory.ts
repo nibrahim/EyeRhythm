@@ -14,6 +14,8 @@
 export interface RateSample {
   t: number;
   bpm: number;
+  /** Regularity 0–100, or null while warming up / unavailable. */
+  reg: number | null;
 }
 
 /** Visible + retained time window (seconds). */
@@ -51,6 +53,8 @@ let ema2 = 0;
 let ema3 = 0;
 let smooth = 0;
 let targetBpm = 0;
+/** Latest engine regularity (0–100), held until the next reading. */
+let targetReg: number | null = null;
 let lastSampleAt = 0;
 let lastNotifyAt = 0;
 let running = false;
@@ -85,7 +89,7 @@ function advanceOneStep(sampleT: number, dtS: number): void {
 
   if (smooth < 0.02 && targetBpm < 0.02) smooth = 0;
 
-  samples.push({ t: sampleT, bpm: smooth });
+  samples.push({ t: sampleT, bpm: smooth, reg: targetReg });
   lastSampleAt = sampleT;
 }
 
@@ -119,7 +123,7 @@ function tick(): void {
   if (lag < SAMPLE_MS * 0.5) {
     // Too soon (spurious double-fire); just refresh the head.
     if (samples.length > 0) {
-      samples[samples.length - 1] = { t: now, bpm: smooth };
+      samples[samples.length - 1] = { t: now, bpm: smooth, reg: targetReg };
     }
     return;
   }
@@ -136,7 +140,7 @@ function tick(): void {
   }
   // Pin the latest sample exactly to now.
   if (samples.length > 0) {
-    samples[samples.length - 1] = { t: now, bpm: smooth };
+    samples[samples.length - 1] = { t: now, bpm: smooth, reg: targetReg };
     lastSampleAt = now;
   }
 
@@ -152,12 +156,18 @@ function tick(): void {
  * Feed the latest engine reading. Safe to call every websocket tick.
  * Always records the continuous rate (does not zero when face is lost)
  * so the trail stays continuous while the detector's 60s window ages out.
+ * Regularity is stored alongside for the dual-axis Trace plot (0–100).
  */
 export function setRateHistoryInput(
   continuousBpm: number,
   _faceFound?: boolean,
+  regularity: number | null = null,
 ): void {
   targetBpm = capGraph(Math.max(0, continuousBpm));
+  targetReg =
+    regularity !== null && Number.isFinite(regularity)
+      ? Math.min(100, Math.max(0, regularity))
+      : null;
   // Ensure the clock is running as soon as the engine feeds us data.
   ensureRateHistoryRunning();
 }
@@ -169,7 +179,7 @@ export function ensureRateHistoryRunning(): void {
   lastSampleAt = 0;
   // Seed an immediate zero sample so Trace has a trail from t=0.
   const t0 = nowMs();
-  samples.push({ t: t0, bpm: 0 });
+  samples.push({ t: t0, bpm: 0, reg: null });
   lastSampleAt = t0;
   // setInterval survives minimize/hide; rAF does not.
   intervalId = setInterval(tick, SAMPLE_MS);
@@ -183,6 +193,11 @@ export function getRateSamples(): readonly RateSample[] {
 
 export function getRateEma(): number {
   return smooth;
+}
+
+/** Latest regularity target held by the sampler (0–100 or null). */
+export function getRateReg(): number | null {
+  return targetReg;
 }
 
 /** Subscribe to sample ticks (for Trace redraw). Returns unsubscribe. */
@@ -208,6 +223,7 @@ export function _resetRateHistoryForTests(): void {
   running = false;
   samples.length = 0;
   ema1 = ema2 = ema3 = smooth = targetBpm = 0;
+  targetReg = null;
   lastSampleAt = lastNotifyAt = 0;
   listeners.clear();
 }

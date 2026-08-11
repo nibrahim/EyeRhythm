@@ -4,7 +4,8 @@
  * Renders the last 5 minutes from the session-wide rate history store
  * (so switching avatars does not reset the plot).
  * Thin blue stroke; multi-stage smoothing for a continuous glide.
- * Y-axis fixed 0–30 with marks every 10; red dotted line at 10.
+ * Left Y-axis: blink rate 0–30 (marks every 10; red dotted line at 10).
+ * Right Y-axis: regularity 0–100 (plotted simultaneously, orange stroke).
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -12,6 +13,7 @@ import {
   RATE_WINDOW_S,
   capRateForGraph,
   getRateEma,
+  getRateReg,
   getRateSamples,
   subscribeRateHistory,
   type RateSample,
@@ -23,8 +25,10 @@ const GAUSS_RADIUS = 4;
 const TENSION = 0.14;
 const Y_MAX = 30;
 const Y_TICKS = [10, 20, 30] as const;
+const Y_REG_MAX = 100;
+const Y_REG_TICKS = [25, 50, 75, 100] as const;
 const LOW_RATE_LINE = 10;
-const PAD = { top: 28, right: 12, bottom: 20, left: 28 };
+const PAD = { top: 28, right: 28, bottom: 20, left: 28 };
 
 export interface RateGraphProps {
   faceFound: boolean;
@@ -52,6 +56,31 @@ function bpmAt(arr: readonly RateSample[], t: number): number | null {
   return a.bpm + (b.bpm - a.bpm) * u;
 }
 
+/** Interpolate regularity; returns null when no sample near t has a score. */
+function regAt(arr: readonly RateSample[], t: number): number | null {
+  if (arr.length === 0) return null;
+  if (t <= arr[0].t) return arr[0].reg;
+  if (t >= arr[arr.length - 1].t) return arr[arr.length - 1].reg;
+
+  let lo = 0;
+  let hi = arr.length - 1;
+  while (lo + 1 < hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid].t <= t) lo = mid;
+    else hi = mid;
+  }
+  const a = arr[lo];
+  const b = arr[hi];
+  if (a.reg === null && b.reg === null) return null;
+  if (a.reg === null) return b.reg;
+  if (b.reg === null) return a.reg;
+  const span = b.t - a.t;
+  if (span <= 0) return b.reg;
+  let u = (t - a.t) / span;
+  u = u * u * (3 - 2 * u);
+  return a.reg + (b.reg - a.reg) * u;
+}
+
 function averagedBpm(
   arr: readonly RateSample[],
   t: number,
@@ -74,6 +103,10 @@ function averagedBpm(
   }
   if (wsum > 0) return sum / wsum;
   return bpmAt(arr, t);
+}
+
+function capRegForGraph(reg: number): number {
+  return Math.min(Y_REG_MAX, Math.max(0, reg));
 }
 
 function blurYs(ys: number[], radius: number): number[] {
@@ -183,7 +216,7 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
     return () => window.clearTimeout(id);
   }, [lastBlinkAt]);
 
-  const { pathD, nowBpm } = useMemo(() => {
+  const { pathD, regPathD, nowBpm, nowReg } = useMemo(() => {
     void frame;
     const now = performance.now();
     const arr = getRateSamples();
@@ -198,8 +231,11 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
       PAD.left + ((t - tStart) / (RATE_WINDOW_S * 1000)) * plotW;
     const yOf = (bpm: number) =>
       PAD.top + plotH - (capRateForGraph(bpm) / Y_MAX) * plotH;
+    const yOfReg = (reg: number) =>
+      PAD.top + plotH - (capRegForGraph(reg) / Y_REG_MAX) * plotH;
 
     const pts: { x: number; y: number }[] = [];
+    const regPts: { x: number; y: number }[] = [];
 
     if (arr.length > 0) {
       // First sample time (never left of −5m).
@@ -215,6 +251,8 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
 
       const xs: number[] = [];
       const ys: number[] = [];
+      const regXs: number[] = [];
+      const regYs: number[] = [];
       for (let i = 0; i < n; i++) {
         const u = n === 1 ? 1 : i / (n - 1);
         const t = dataStart + u * spanMs;
@@ -226,6 +264,12 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
         const x = Math.max(PAD.left, Math.min(PAD.left + plotW, xOf(t)));
         xs.push(x);
         ys.push(yOf(v));
+
+        const reg = regAt(arr, t);
+        if (reg !== null) {
+          regXs.push(x);
+          regYs.push(yOfReg(reg));
+        }
       }
 
       const smoothY = blurYs(ys, GAUSS_RADIUS);
@@ -240,11 +284,27 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
           y: yOf(getRateEma()),
         };
       }
+
+      if (regXs.length > 0) {
+        const smoothRegY = blurYs(regYs, Math.min(GAUSS_RADIUS, 2));
+        for (let i = 0; i < regXs.length; i++) {
+          regPts.push({ x: regXs[i], y: smoothRegY[i] });
+        }
+        const liveReg = getRateReg();
+        if (liveReg !== null && regPts.length > 0) {
+          regPts[regPts.length - 1] = {
+            x: PAD.left + plotW,
+            y: yOfReg(liveReg),
+          };
+        }
+      }
     }
 
     return {
       pathD: smoothPath(pts),
+      regPathD: smoothPath(regPts),
       nowBpm: getRateEma(),
+      nowReg: getRateReg(),
     };
   }, [frame, size]);
 
@@ -253,19 +313,22 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
   const plotH = Math.max(1, h - PAD.top - PAD.bottom);
   const yOf = (bpm: number) =>
     PAD.top + plotH - (capRateForGraph(bpm) / Y_MAX) * plotH;
+  const yOfReg = (reg: number) =>
+    PAD.top + plotH - (capRegForGraph(reg) / Y_REG_MAX) * plotH;
 
   const bandTop = yOf(20);
   const bandBot = yOf(15);
   const lowY = yOf(LOW_RATE_LINE);
   const headX = PAD.left + plotW;
   const headY = yOf(nowBpm);
+  const regHeadY = nowReg !== null ? yOfReg(nowReg) : null;
   const displayBpm = capRateForGraph(nowBpm);
 
   return (
     <div
       className="rate-graph"
       ref={wrapRef}
-      aria-label="Continuous blink rate, last 5 minutes"
+      aria-label="Continuous blink rate and regularity, last 5 minutes"
     >
       <div
         className={`rate-graph__blink-dot ${blinkFlash ? "is-flash" : ""} ${
@@ -279,7 +342,7 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
         <span className="rate-graph__legend-item rate-graph__legend-item--rate">
           Rate
         </span>
-        <span className="rate-graph__legend-item rate-graph__legend-item--reg muted">
+        <span className="rate-graph__legend-item rate-graph__legend-item--reg">
           Regularity
         </span>
       </div>
@@ -321,7 +384,7 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
                 x={PAD.left - 5}
                 y={y + 3}
                 textAnchor="end"
-                className="rate-graph__axis-label"
+                className="rate-graph__axis-label rate-graph__axis-label--rate"
               >
                 {v}
               </text>
@@ -332,7 +395,31 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
           x={PAD.left - 5}
           y={PAD.top + plotH + 3}
           textAnchor="end"
-          className="rate-graph__axis-label"
+          className="rate-graph__axis-label rate-graph__axis-label--rate"
+        >
+          0
+        </text>
+
+        {/* Right axis: regularity 0–100 */}
+        {Y_REG_TICKS.map((v) => {
+          const y = yOfReg(v);
+          return (
+            <text
+              key={`reg-${v}`}
+              x={PAD.left + plotW + 5}
+              y={y + 3}
+              textAnchor="start"
+              className="rate-graph__axis-label rate-graph__axis-label--reg"
+            >
+              {v}
+            </text>
+          );
+        })}
+        <text
+          x={PAD.left + plotW + 5}
+          y={PAD.top + plotH + 3}
+          textAnchor="start"
+          className="rate-graph__axis-label rate-graph__axis-label--reg"
         >
           0
         </text>
@@ -369,8 +456,24 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
           </>
         ) : null}
 
+        {regPathD ? (
+          <path
+            d={regPathD}
+            fill="none"
+            className="rate-graph__line rate-graph__line--regularity"
+          />
+        ) : null}
+
         {faceFound ? (
           <circle cx={headX} cy={headY} r={3} className="rate-graph__head" />
+        ) : null}
+        {faceFound && regHeadY !== null ? (
+          <circle
+            cx={headX}
+            cy={regHeadY}
+            r={2.5}
+            className="rate-graph__head rate-graph__head--reg"
+          />
         ) : null}
 
         <text
