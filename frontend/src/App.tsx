@@ -10,7 +10,7 @@ import { InfoQuoteCard } from "./components/InfoQuoteCard";
 import { PracticeScreen } from "./components/PracticeScreen";
 import { useEngineState } from "./hooks/useEngineState";
 import { useRateHistory } from "./hooks/useRateHistory";
-import { formatBpm, regularityTone, rateTone } from "./utils/format";
+import { formatBpm, lookAngleTone, regularityTone, rateTone } from "./utils/format";
 
 const AVATARS: AvatarId[] = ["atlas", "lumen", "vesper", "lens", "graph"];
 
@@ -81,6 +81,7 @@ export default function App() {
   const bpmTone = rateTone(state.continuous_bpm, state.face_found);
   const avgTone = rateTone(state.average_bpm, state.screen_time_seconds > 30);
   const regTone = regularityTone(state.regularity);
+  const lookTone = lookAngleTone(state.face_angle_deg, state.face_found);
 
   const regValue =
     state.regularity_ready && state.regularity !== null
@@ -91,6 +92,15 @@ export default function App() {
     : state.regularity_gaps > 0
       ? `warming up · ${state.regularity_gaps}/2 gaps`
       : "need a few blinks";
+
+  const lookValue =
+    state.face_found && state.face_angle_deg !== null
+      ? Math.round(state.face_angle_deg)
+      : "—";
+  const lookSub =
+    state.face_found && state.face_direction
+      ? state.face_direction
+      : "no face";
 
   return (
     <div className="app-shell" data-prefs-ready={prefsReady ? "1" : "0"}>
@@ -174,6 +184,16 @@ export default function App() {
             subtitle={regSub}
             tone={regTone}
             palette="sun"
+          />
+          <MetricCard
+            title="Look angle"
+            value={lookValue}
+            unit={
+              state.face_found && state.face_angle_deg !== null ? "°" : undefined
+            }
+            subtitle={lookSub}
+            tone={lookTone}
+            palette="lavender"
           />
           {/* Always full-width gray card: tips + famous quotes (practice mode overlays coach) */}
           <InfoQuoteCard

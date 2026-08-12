@@ -13,6 +13,17 @@ export function regularityTone(score: number | null): "good" | "warn" | "bad" | 
   return "bad";
 }
 
+/** Colour band for face–camera look angle (0° = looking straight in). */
+export function lookAngleTone(
+  angleDeg: number | null,
+  faceFound: boolean,
+): "good" | "warn" | "bad" | "idle" {
+  if (!faceFound || angleDeg === null || !Number.isFinite(angleDeg)) return "idle";
+  if (angleDeg <= 12) return "good";
+  if (angleDeg <= 25) return "warn";
+  return "bad";
+}
+
 export function formatBpm(n: number): string {
   if (!Number.isFinite(n)) return "—";
   return n < 10 ? n.toFixed(1) : Math.round(n).toString();

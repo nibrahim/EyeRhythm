@@ -21,6 +21,12 @@ export interface EngineState {
   is_frontal: boolean;
   has_glasses: boolean;
   low_light: boolean;
+  /** Degrees between face/eye axis and camera axis; null when no face. */
+  face_angle_deg: number | null;
+  face_yaw_deg: number | null;
+  face_pitch_deg: number | null;
+  /** "straight" | "left" | "right-top" | … ; null when no face. */
+  face_direction: string | null;
 
   beep: boolean;
   alert: boolean;
@@ -77,6 +83,10 @@ export const EMPTY_STATE: EngineState = {
   is_frontal: true,
   has_glasses: false,
   low_light: false,
+  face_angle_deg: null,
+  face_yaw_deg: null,
+  face_pitch_deg: null,
+  face_direction: null,
   beep: false,
   alert: false,
   ontop: false,

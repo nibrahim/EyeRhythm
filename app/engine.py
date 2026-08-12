@@ -640,6 +640,12 @@ class EngineSnapshot:
     is_frontal: bool = True
     has_glasses: bool = False
     low_light: bool = False
+    # Face/eye axis vs camera optical axis (None when no face).
+    face_angle_deg: float | None = None
+    face_yaw_deg: float | None = None
+    face_pitch_deg: float | None = None
+    # "straight" | "left" | "right-top" | …  (None when no face)
+    face_direction: str | None = None
 
     # Toggles
     beep: bool = False
@@ -1333,6 +1339,10 @@ class EyeRhythmEngine:
                         regularity=self._regularity.score,
                         regularity_ready=self._regularity.score is not None,
                         regularity_gaps=self._regularity.gap_count,
+                        face_angle_deg=None,
+                        face_yaw_deg=None,
+                        face_pitch_deg=None,
+                        face_direction=None,
                     )
 
                     if read_fails >= READ_FAILS_BEFORE_REOPEN:
@@ -1450,6 +1460,10 @@ class EyeRhythmEngine:
                     is_frontal=res.is_frontal,
                     has_glasses=res.has_glasses,
                     low_light=res.low_light,
+                    face_angle_deg=res.face_angle_deg,
+                    face_yaw_deg=res.face_yaw_deg,
+                    face_pitch_deg=res.face_pitch_deg,
+                    face_direction=res.face_direction,
                     running=True,
                 )
 

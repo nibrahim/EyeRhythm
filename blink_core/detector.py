@@ -85,6 +85,18 @@ MOUTH_LOWER_IDX = 14
 # Points along the nose bridge — used when estimating “are glasses present?”
 NOSE_BRIDGE_IDX = [6, 168, 197, 195, 5]
 
+# Face / eye axis vs camera (look angle)
+# Forehead + chin + outer eye corners define the face plane (more frontal-stable
+# than eyes+nose alone, which always tilts the normal downward).
+FOREHEAD_IDX = 10
+CHIN_IDX = 152
+LEFT_EYE_OUTER_IDX = 33
+RIGHT_EYE_OUTER_IDX = 263
+# Dead-zone (degrees): |yaw| and |pitch| below this → direction "straight".
+FACE_STRAIGHT_DEG = 8.0
+# Flip yaw sign if mirrored preview makes left/right feel reversed (+1 or -1).
+FACE_YAW_SIGN = 1.0
+
 
 @dataclass
 class BlinkConfig:
@@ -221,6 +233,14 @@ class FrameResult:
     has_glasses: bool = False
     low_light: bool = False
 
+    # Angle between face/eye axis and camera optical axis (degrees).
+    # 0 ≈ looking straight into the camera. None when no face.
+    face_angle_deg: float | None = None
+    face_yaw_deg: float | None = None
+    face_pitch_deg: float | None = None
+    # "straight" | "left" | "right" | "top" | "bottom" | "right-top" | …
+    face_direction: str | None = None
+
 
 # ==========================================================================
 # Small math helpers (no MediaPipe needed)
@@ -322,6 +342,97 @@ def is_face_frontal(landmarks, max_ratio: float = 1.15) -> bool:
     # How much longer is the longer side vs the shorter side?
     ratio = max(dL, dR) / min(dL, dR)
     return ratio <= max_ratio
+
+
+def estimate_face_camera_pose(
+    landmarks,
+) -> tuple[float, float, float] | None:
+    """
+    Angle between the face/eye axis and the camera optical axis.
+
+    Idea
+    ----
+    Build a 3D face plane from the outer eye corners, forehead, and chin
+    (MediaPipe landmarks already carry a relative depth ``z``). The plane
+    normal is the direction the face / eyes point. The camera axis in this
+    coordinate system is ``(0, 0, −1)`` (toward the camera: smaller ``z``
+    is closer to the lens).
+
+    Returns
+    -------
+    (angle_deg, yaw_deg, pitch_deg) or None if geometry is degenerate.
+
+    * **angle_deg** — 0 means face axis ‖ camera axis (looking straight in).
+    * **yaw_deg** — positive → face points to the **right** of the image.
+    * **pitch_deg** — positive → face points **up** (looking toward top).
+    """
+    try:
+        le = landmarks[LEFT_EYE_OUTER_IDX]
+        re = landmarks[RIGHT_EYE_OUTER_IDX]
+        forehead = landmarks[FOREHEAD_IDX]
+        chin = landmarks[CHIN_IDX]
+    except (IndexError, TypeError, KeyError, AttributeError):
+        return None
+
+    # Horizontal: left eye → right eye; vertical: forehead → chin.
+    v1x = re.x - le.x
+    v1y = re.y - le.y
+    v1z = re.z - le.z
+    v2x = chin.x - forehead.x
+    v2y = chin.y - forehead.y
+    v2z = chin.z - forehead.z
+
+    # Face normal = v1 × v2 (right-hand rule).
+    cx = v1y * v2z - v1z * v2y
+    cy = v1z * v2x - v1x * v2z
+    cz = v1x * v2y - v1y * v2x
+    norm = math.sqrt(cx * cx + cy * cy + cz * cz)
+    if norm < 1e-9:
+        return None
+    inv = 1.0 / norm
+    cx, cy, cz = cx * inv, cy * inv, cz * inv
+
+    # Outward normal should point toward the camera (negative z). Flip if not.
+    if cz > 0.0:
+        cx, cy, cz = -cx, -cy, -cz
+
+    # Camera optical axis in MediaPipe face space: toward camera = (0, 0, -1).
+    # angle = arccos( face_forward · camera_axis ) = arccos( -cz )
+    dot = max(-1.0, min(1.0, -cz))
+    angle_deg = math.degrees(math.acos(dot))
+
+    # Yaw / pitch of the face-forward vector relative to the camera axis.
+    # atan2 keeps the full −180…180 range for clear left/right, up/down.
+    yaw_deg = FACE_YAW_SIGN * math.degrees(math.atan2(cx, -cz))
+    # Image y grows downward → negate cy so positive pitch = looking up / top.
+    pitch_deg = math.degrees(math.atan2(-cy, -cz))
+
+    return angle_deg, yaw_deg, pitch_deg
+
+
+def face_direction_label(
+    yaw_deg: float,
+    pitch_deg: float,
+    straight_deg: float = FACE_STRAIGHT_DEG,
+) -> str:
+    """
+    Map yaw/pitch into a short direction string for the UI.
+
+    Examples: ``straight``, ``left``, ``right``, ``top``, ``bottom``,
+    ``right-top``, ``left-bottom``.
+    """
+    thr = max(0.0, float(straight_deg))
+    parts: list[str] = []
+
+    if abs(yaw_deg) >= thr:
+        parts.append("right" if yaw_deg > 0.0 else "left")
+    if abs(pitch_deg) >= thr:
+        # "top" / "bottom" matches combinations like "right-top".
+        parts.append("top" if pitch_deg > 0.0 else "bottom")
+
+    if not parts:
+        return "straight"
+    return "-".join(parts)
 
 
 def _enhance_low_light(bgr: np.ndarray, mean_thr: float) -> tuple[np.ndarray, bool]:
@@ -569,6 +680,16 @@ class BlinkDetector:
         # First (and only) face’s landmark list.
         landmarks = detection.face_landmarks[0]
         result.face_found = True
+
+        # ---- Step 3b: face axis vs camera (look angle + direction) ----
+        # Computed every face frame; independent of blink gating.
+        pose = estimate_face_camera_pose(landmarks)
+        if pose is not None:
+            angle_deg, yaw_deg, pitch_deg = pose
+            result.face_angle_deg = round(angle_deg, 1)
+            result.face_yaw_deg = round(yaw_deg, 1)
+            result.face_pitch_deg = round(pitch_deg, 1)
+            result.face_direction = face_direction_label(yaw_deg, pitch_deg)
 
         # ---- Step 4: frontal gate (head-turn filter) ------------------
         frontal = is_face_frontal(landmarks, cfg.face_turn_max_ratio)

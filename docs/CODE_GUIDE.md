@@ -88,6 +88,20 @@ Needs a few recent blinks before the UI shows a number.
 
 ---
 
+## Look angle (face axis vs camera)
+
+Every face frame, `blink_core.detector.estimate_face_camera_pose` builds a 3D
+face plane from outer eye corners + forehead + chin, takes the outward normal
+(face/eye axis), and measures the angle to the camera optical axis.
+
+* **0°** → axes parallel → looking straight into the camera  
+* **yaw / pitch** → direction label: `straight`, `left`, `right`, `top`,
+  `bottom`, or combinations like `right-top`  
+* Published on `EngineSnapshot` and shown in the **Look angle** metric card
+  beside Regularity
+
+---
+
 ## Daily stats file
 
 Path: `~/.eyerhythm_blinkcounter/screentime.json`
