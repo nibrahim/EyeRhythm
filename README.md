@@ -44,12 +44,15 @@ Score = max(0, 100 − 100 × CV)
 ### macOS / Linux
 
 ```bash
-./for_mac/setup.sh          # venv + Python deps + React build
-./for_mac/run.sh            # launches the desktop window
+./for_mac/setup.sh                 # venv + Python deps + React build
+./for_mac/run.sh                   # launches the desktop window
+./for_mac/install_autostart.sh     # optional: open at every login
 ```
 
 First launch: allow **Camera** permission  
 (System Settings → Privacy & Security → Camera).
+
+To stop opening at login: `./for_mac/uninstall_autostart.sh`.
 
 ### Windows
 
@@ -83,6 +86,7 @@ Open the Vite URL (proxies `/api` and `/ws` to the Python server).
 | **B** | Toggle beep on every counted blink |
 | **A** | Toggle low-rate alert (beeps while rate is very low) |
 | **T** | Toggle always-on-top (desktop window) |
+| **D** | More / Less (compact companion vs full dashboard) |
 | **C** | Expand / collapse camera preview |
 
 Close the window to quit (or Ctrl+C in browser mode).
@@ -122,7 +126,7 @@ EyeRhythm/
 ├── models/              # MediaPipe face landmarker
 ├── assets/              # logo + brand assets
 ├── docs/CODE_GUIDE.md   # map of the codebase
-├── for_mac/             # setup / run helpers
+├── for_mac/             # setup / run / login-start helpers
 ├── for_windows/         # launchers + packaging
 ├── requirements.txt
 └── run_app.py           # packaging entry-point

@@ -74,6 +74,16 @@ class RegularityTracker:
         self._last_blink_s = timestamp_s
         return self._score
 
+    def note_break(self) -> None:
+        """
+        Face left or looked down off-screen.
+
+        The next blink must not form a gap with the last on-screen blink
+        (that pause is not rhythm). Keep existing gaps and score so the
+        value resumes where it left off — same idea as the blink-rate hold.
+        """
+        self._last_blink_s = None
+
     def reset(self) -> None:
         """Clear history (e.g. practice session start)."""
         self._gaps.clear()

@@ -15,6 +15,7 @@ The GUI is intentionally not here — only numbers, flags, and optional JPEG fra
 from __future__ import annotations
 
 import base64
+import math
 import platform
 import sys
 import threading
@@ -32,6 +33,7 @@ from blink_core.screentime import ScreenTimeTracker
 from blink_core.interblink_hours import InterBlinkHourTracker
 from app.beeper import Beeper
 from app import preferences
+from app.eye_score import ocular_rhythm_index
 from app.regularity import RegularityTracker
 # Blink-gated CPU pacing (30 fps + post-blink rest / 1 fps no-face).
 # Easy rollback: remove this import and restore the previous FACE_FPS=17 /
@@ -66,6 +68,12 @@ ALERT_TREND_WINDOW_S = 300.0  # last 5 minutes of face-present rate samples
 # Do not store a sample more often than this (keeps the deque small).
 ALERT_TREND_SAMPLE_S = 1.0
 
+# Looking down this far (bottom / left-bottom / right-bottom) is off-screen.
+# Pitch is negative when looking down. Change this one number to retune.
+LOOK_DOWN_OFFSCREEN_DEG = 20.0
+# Stay off-screen until pitch rises this many degrees back toward level.
+LOOK_DOWN_OFFSCREEN_HYSTERESIS_DEG = 1.5
+
 # Practice coach: metronome for target blink rhythm (~20 blinks/min)
 PRACTICE_INTERVAL_S = 3.0
 # Read instructions (and full-screen visual cue intro) first, then beep.
@@ -96,6 +104,55 @@ PREVIEW_JPEG_QUALITY = 82
 PREVIEW_MIN_INTERVAL_S = 0.12  # ~8 fps ceiling for the stream
 # Legacy alias (logs / older call sites)
 CAPTURE_MAX_WIDTH = PROCESS_MAX_WIDTH
+
+
+def look_down_offscreen(
+    pitch_deg: float | None,
+    *,
+    currently_off: bool,
+    angle_deg: float | None = None,
+    direction: str | None = None,
+    threshold_deg: float = LOOK_DOWN_OFFSCREEN_DEG,
+    hysteresis_deg: float = LOOK_DOWN_OFFSCREEN_HYSTERESIS_DEG,
+) -> bool:
+    """
+    True when the user is looking down and the Look-angle card is past 20°.
+
+    The card shows the combined face-to-camera angle (yaw + pitch). A
+    down-left / down-right glance can be 25° on the card while pitch is
+    only −12°, which used to miss off-screen. We now use that same card
+    angle once the face is aimed downward (``bottom`` / ``left-bottom`` /
+    ``right-bottom``). Pure left/right (no down) stays on-screen.
+    """
+    looking_down = isinstance(direction, str) and direction.endswith("bottom")
+    if not looking_down:
+        try:
+            looking_down = (
+                pitch_deg is not None and float(pitch_deg) <= -8.0
+            )
+        except (TypeError, ValueError):
+            looking_down = False
+    if not looking_down:
+        return False
+
+    measure: float | None = None
+    for raw in (angle_deg, pitch_deg):
+        if raw is None:
+            continue
+        try:
+            value = abs(float(raw))
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(value):
+            measure = value
+            break
+    if measure is None:
+        return False
+
+    limit = float(threshold_deg)
+    if currently_off:
+        limit = max(0.0, limit - float(hysteresis_deg))
+    return measure >= limit
 
 
 def _log(msg: str) -> None:
@@ -620,6 +677,9 @@ class EngineSnapshot:
     # Core metrics
     continuous_bpm: float = 0.0
     average_bpm: float = 0.0
+    # Ocular Rhythm Index — 70 % rate + 30 % regularity (0–100).
+    ocular_rhythm_index: float | None = None
+    ocular_rhythm_full: bool = False
     screen_time: str = "0m"
     screen_time_seconds: float = 0.0
     fps: float = 0.0
@@ -646,6 +706,8 @@ class EngineSnapshot:
     face_pitch_deg: float | None = None
     # "straight" | "left" | "right-top" | …  (None when no face)
     face_direction: str | None = None
+    # Looking down past LOOK_DOWN_OFFSCREEN_DEG (bottom / left-bottom / right-bottom).
+    off_screen: bool = False
 
     # Toggles
     beep: bool = False
@@ -723,6 +785,12 @@ class EyeRhythmEngine:
         self._detector: BlinkDetector | None = None
         self._last_blink_at = 0.0
         self._last_alert_beep_at = 0.0
+        self._look_off_screen = False
+        # Freeze rate + regularity while looking down / no-face.
+        self._rate_present = False
+        self._rate_absent_mono: float | None = None
+        self._held_bpm = 0.0
+        self._held_regularity: float | None = None
         # Practice session: countdown → active → summary.
         self._practice_phase = "off"  # off | countdown | active | summary
         self._countdown_stop = threading.Event()
@@ -1079,6 +1147,63 @@ class EyeRhythmEngine:
         """Register a callback(bool) when always-on-top changes (for pywebview)."""
         self._ontop_listeners.append(callback)
 
+    def _sync_presence_hold(
+        self,
+        present: bool,
+        res: FrameResult,
+        ts_ms: int,
+    ) -> None:
+        """
+        Freeze blink rate and regularity while off-screen / no-face.
+
+        On return, shift only the 60s rate window so BPM continues from the
+        last on-screen value. Regularity keeps its last score (the pause is
+        not an inter-blink gap).
+        """
+        now = time.monotonic()
+        if present:
+            if not self._rate_present and self._rate_absent_mono is not None:
+                gap_ms = (now - self._rate_absent_mono) * 1000.0
+                if gap_ms > 250.0 and self._detector is not None:
+                    self._detector.hold_rate_across_gap(gap_ms)
+                    res.blinks_per_minute = self._detector.blinks_per_minute_at(
+                        ts_ms)
+            self._rate_present = True
+            self._rate_absent_mono = None
+            self._held_bpm = float(res.blinks_per_minute or 0.0)
+            if self._regularity.score is not None:
+                self._held_regularity = self._regularity.score
+            return
+        if self._rate_present:
+            self._rate_absent_mono = now
+            self._regularity.note_break()
+        self._rate_present = False
+
+    def _update_look_down_offscreen(self, res: FrameResult) -> bool:
+        """Hysteresis around LOOK_DOWN_OFFSCREEN_DEG. False when no face."""
+        if not res.face_found:
+            self._look_off_screen = False
+            return False
+        self._look_off_screen = look_down_offscreen(
+            res.face_pitch_deg,
+            currently_off=self._look_off_screen,
+            angle_deg=res.face_angle_deg,
+            direction=res.face_direction,
+        )
+        return self._look_off_screen
+
+    @staticmethod
+    def _ori_fields(bpm: float, regularity: float | None) -> dict:
+        """Ocular Rhythm Index fields for EngineSnapshot."""
+        reg = regularity
+        ori = ocular_rhythm_index(bpm, reg)
+        return {
+            "ocular_rhythm_index": ori,
+            "ocular_rhythm_full": (
+                ori is not None and reg is not None
+            ),
+        }
+
     # ---- internals ----------------------------------------------------
 
     def _publish(self, **kwargs) -> None:
@@ -1103,6 +1228,7 @@ class EyeRhythmEngine:
             self._snap.practice_result_regularity = self._practice_result_regularity
             self._snap.last_blink_at = self._last_blink_at
             self._snap.last_alert_beep_at = self._last_alert_beep_at
+            self._snap.off_screen = self._look_off_screen
             if self._practice_phase == "countdown" and self._countdown_ends is not None:
                 self._snap.practice_countdown_s = round(
                     max(0.0, self._countdown_ends - time.monotonic()), 1)
@@ -1324,20 +1450,33 @@ class EyeRhythmEngine:
                     read_fails += 1
                     pacer.note_no_signal()
                     self._screen_time.tick(False)
-                    self._alert.update(last_res.blinks_per_minute, False)
+                    self._sync_presence_hold(False, last_res, 0)
+                    self._alert.update(self._held_bpm, False)
+                    self._look_off_screen = False
+                    held_reg = (
+                        self._held_regularity
+                        if self._held_regularity is not None
+                        else self._regularity.score
+                    )
                     self._publish(
                         face_found=False,
                         camera_ok=False,
                         camera_message="reconnecting…" if read_fails >= 3
                         else "no signal",
-                        continuous_bpm=last_res.blinks_per_minute,
+                        continuous_bpm=round(self._held_bpm, 1),
                         average_bpm=self._screen_time.avg_blinks_per_minute,
+                        **self._ori_fields(self._held_bpm, held_reg),
                         screen_time=self._screen_time.formatted(),
                         screen_time_seconds=self._screen_time.seconds_today,
                         blinks_today=self._screen_time.blinks_today,
                         fps=round(fps, 1),
-                        regularity=self._regularity.score,
-                        regularity_ready=self._regularity.score is not None,
+                        regularity=self._held_regularity
+                        if self._held_regularity is not None
+                        else self._regularity.score,
+                        regularity_ready=(
+                            self._held_regularity is not None
+                            or self._regularity.score is not None
+                        ),
                         regularity_gaps=self._regularity.gap_count,
                         face_angle_deg=None,
                         face_yaw_deg=None,
@@ -1380,13 +1519,27 @@ class EyeRhythmEngine:
                 except Exception as exc:
                     _log(f"frame processing error (skipped): {exc}")
                     self._screen_time.tick(False)
-                    # Keep alert absence tracking honest during errors.
-                    self._alert.update(last_res.blinks_per_minute, False)
+                    self._sync_presence_hold(False, last_res, ts_ms)
+                    self._alert.update(self._held_bpm, False)
                     pacer.sleep_for_frame(loop_start)
                     continue
 
                 last_res = res
-                self._screen_time.tick(res.face_found)
+                off_screen = self._update_look_down_offscreen(res)
+                if (
+                    off_screen
+                    and res.blink_just_counted
+                    and self._detector is not None
+                ):
+                    self._detector.discard_last_blink()
+                    res.blink_just_counted = False
+                    res.blink_count = self._detector._blink_count
+                    res.blinks_per_minute = self._detector.blinks_per_minute_at(
+                        ts_ms)
+
+                present = bool(res.face_found) and not off_screen
+                self._sync_presence_hold(present, res, ts_ms)
+                self._screen_time.tick(present)
                 # Keep research hour buckets aligned with face-present time.
                 try:
                     self._interblink_hours.on_screen_seconds(
@@ -1429,7 +1582,15 @@ class EyeRhythmEngine:
                     blink_just_counted=res.blink_just_counted,
                 )
 
-                self._alert.update(res.blinks_per_minute, res.face_found)
+                live_bpm = (
+                    float(res.blinks_per_minute)
+                    if present
+                    else float(self._held_bpm)
+                )
+                live_reg = self._regularity.score
+                if not present and self._held_regularity is not None:
+                    live_reg = self._held_regularity
+                self._alert.update(live_bpm, present)
 
                 frames += 1
                 now = time.monotonic()
@@ -1440,15 +1601,15 @@ class EyeRhythmEngine:
                 if want_preview:
                     self._encode_preview(display_frame, res)
 
-                reg = self._regularity.score
                 self._publish(
-                    continuous_bpm=round(res.blinks_per_minute, 1),
+                    continuous_bpm=round(live_bpm, 1),
                     average_bpm=round(self._screen_time.avg_blinks_per_minute, 1),
+                    **self._ori_fields(live_bpm, live_reg),
                     screen_time=self._screen_time.formatted(),
                     screen_time_seconds=self._screen_time.seconds_today,
                     fps=round(fps, 1),
-                    regularity=reg,
-                    regularity_ready=reg is not None,
+                    regularity=live_reg,
+                    regularity_ready=live_reg is not None,
                     regularity_gaps=self._regularity.gap_count,
                     blinks_today=self._screen_time.blinks_today,
                     session_blinks=res.blink_count,
@@ -1464,6 +1625,7 @@ class EyeRhythmEngine:
                     face_yaw_deg=res.face_yaw_deg,
                     face_pitch_deg=res.face_pitch_deg,
                     face_direction=res.face_direction,
+                    off_screen=off_screen,
                     running=True,
                 )
 

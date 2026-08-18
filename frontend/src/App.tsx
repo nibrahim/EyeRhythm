@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { fetchPreferences, savePreferences, setToggle } from "./api";
-import { whenBridgeReady } from "./bridge";
+import {
+  measureCompactOuterHeight,
+  setCompactLayout,
+  whenBridgeReady,
+} from "./bridge";
 import { type AvatarId } from "./components/Avatar";
 import { ControlsBar } from "./components/ControlsBar";
 import { HeroPanel } from "./components/HeroPanel";
@@ -10,7 +14,7 @@ import { InfoQuoteCard } from "./components/InfoQuoteCard";
 import { PracticeScreen } from "./components/PracticeScreen";
 import { useEngineState } from "./hooks/useEngineState";
 import { useRateHistory } from "./hooks/useRateHistory";
-import { formatBpm, lookAngleTone, regularityTone, rateTone } from "./utils/format";
+import { formatBpm, lookAngleTone, oriTone, regularityTone, rateTone } from "./utils/format";
 
 const AVATARS: AvatarId[] = ["atlas", "lumen", "vesper", "lens", "graph"];
 
@@ -24,10 +28,12 @@ function asAvatarId(v: unknown): AvatarId {
 export default function App() {
   const { state, connected } = useEngineState();
   const [avatarId, setAvatarId] = useState<AvatarId>("atlas");
+  const [compact, setCompact] = useState(true);
   const [prefsReady, setPrefsReady] = useState(false);
 
   // Session-wide Trace history: starts at boot, survives avatar switches + minimize.
-  useRateHistory(state.continuous_bpm, state.face_found, state.regularity);
+  const present = state.face_found && !state.off_screen;
+  useRateHistory(state.continuous_bpm, present, state.regularity);
 
   useEffect(() => {
     void whenBridgeReady();
@@ -41,6 +47,11 @@ export default function App() {
         const prefs = await fetchPreferences();
         if (!cancelled) {
           setAvatarId(asAvatarId(prefs.avatar));
+          const nextCompact = prefs.compact !== false;
+          setCompact(nextCompact);
+          if (!nextCompact) {
+            void setCompactLayout(false);
+          }
         }
       } catch {
         /* keep default */
@@ -60,6 +71,34 @@ export default function App() {
     });
   }, []);
 
+  const persistCompact = useCallback((next: boolean) => {
+    setCompact(next);
+    void savePreferences({ compact: next }).catch(() => {
+      /* offline / restarting */
+    });
+    if (!next) {
+      void setCompactLayout(false);
+    }
+  }, []);
+
+  // Hug compact content so the gap under the buttons matches the gap
+  // between the title bar and the avatar card.
+  useLayoutEffect(() => {
+    if (!compact) return;
+    let cancelled = false;
+    const id = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        const height = measureCompactOuterHeight();
+        if (height) void setCompactLayout(true, height);
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(id);
+    };
+  }, [compact]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -70,16 +109,28 @@ export default function App() {
       else if (k === "a") void setToggle("alert");
       else if (k === "t") void setToggle("ontop");
       else if (k === "p") void setToggle("practice");
+      else if (k === "d") persistCompact(!compact);
       else if (k === "c") {
         persistAvatar(avatarId === "lens" ? "atlas" : "lens");
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [avatarId, persistAvatar]);
+  }, [avatarId, compact, persistAvatar, persistCompact]);
 
-  const bpmTone = rateTone(state.continuous_bpm, state.face_found);
-  const avgTone = rateTone(state.average_bpm, state.screen_time_seconds > 30);
+  const bpmTone = rateTone(state.continuous_bpm, present);
+  const oriValue =
+    state.ocular_rhythm_index !== null
+      ? Math.round(state.ocular_rhythm_index)
+      : "—";
+  const oriSub = !present
+    ? "no face"
+    : state.ocular_rhythm_index === null
+      ? "need a few blinks"
+      : state.ocular_rhythm_full
+        ? "70% rate · 30% rhythm"
+        : "rate only · rhythm warming up";
+  const oriCardTone = oriTone(state.ocular_rhythm_index, present);
   const regTone = regularityTone(state.regularity);
   const lookTone = lookAngleTone(state.face_angle_deg, state.face_found);
 
@@ -97,13 +148,17 @@ export default function App() {
     state.face_found && state.face_angle_deg !== null
       ? Math.round(state.face_angle_deg)
       : "—";
-  const lookSub =
-    state.face_found && state.face_direction
-      ? state.face_direction
-      : "no face";
+  const lookSub = !state.face_found
+    ? "no face"
+    : state.off_screen
+      ? "off-screen"
+      : state.face_direction || "straight";
 
   return (
-    <div className="app-shell" data-prefs-ready={prefsReady ? "1" : "0"}>
+    <div
+      className={`app-shell${compact ? " is-compact" : ""}`}
+      data-prefs-ready={prefsReady ? "1" : "0"}
+    >
       <header className="topbar">
         <div className="topbar__brand">
           <Logo size={30} />
@@ -139,14 +194,34 @@ export default function App() {
           onAvatarChange={persistAvatar}
         />
 
-        <div className="target-strip" role="note">
+        <button
+          type="button"
+          className="layout-toggle"
+          onClick={() => persistCompact(!compact)}
+          title={
+            compact
+              ? "Show rates, screen time and other cards (D)"
+              : "Hide extra cards and shrink the window (D)"
+          }
+        >
+          <span>{compact ? "More" : "Less"}</span>
+          <span className="layout-toggle__chevron" aria-hidden>
+            {compact ? "▾" : "▴"}
+          </span>
+        </button>
+
+        <div className="target-strip" role="note" hidden={compact}>
           <span className="target-strip__label">Target rhythm</span>
           <span className="target-strip__value">
             ≈ 15–20 blinks/min while working
           </span>
         </div>
 
-        <section className="metrics-grid" aria-label="Blink metrics">
+        <section
+          className="metrics-grid"
+          aria-label="Blink metrics"
+          hidden={compact}
+        >
           <MetricCard
             title="Continuous rate"
             value={formatBpm(state.continuous_bpm)}
@@ -156,11 +231,11 @@ export default function App() {
             palette="sage"
           />
           <MetricCard
-            title="Average rate"
-            value={formatBpm(state.average_bpm)}
-            unit="/min"
-            subtitle="today"
-            tone={avgTone}
+            title="Ocular Rhythm Index"
+            value={oriValue}
+            unit={state.ocular_rhythm_index !== null ? "/100" : undefined}
+            subtitle={oriSub}
+            tone={oriCardTone}
             palette="mint"
           />
           <MetricCard

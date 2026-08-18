@@ -13,6 +13,17 @@ export function regularityTone(score: number | null): "good" | "warn" | "bad" | 
   return "bad";
 }
 
+/** Colour band for Ocular Rhythm Index (ORI, 0–100 composite). */
+export function oriTone(
+  score: number | null,
+  facePresent: boolean,
+): "good" | "warn" | "bad" | "idle" {
+  if (!facePresent || score === null) return "idle";
+  if (score >= 70) return "good";
+  if (score >= 45) return "warn";
+  return "bad";
+}
+
 /** Colour band for face–camera look angle (0° = looking straight in). */
 export function lookAngleTone(
   angleDeg: number | null,
@@ -29,7 +40,12 @@ export function formatBpm(n: number): string {
   return n < 10 ? n.toFixed(1) : Math.round(n).toString();
 }
 
-export function eyesLabel(face: boolean, closed: boolean): string {
+export function eyesLabel(
+  face: boolean,
+  closed: boolean,
+  offScreen = false,
+): string {
   if (!face) return "No face";
+  if (offScreen) return "Off-screen";
   return closed ? "Eyes closed" : "Eyes open";
 }

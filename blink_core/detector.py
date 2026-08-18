@@ -619,6 +619,40 @@ class BlinkDetector:
         self._glasses_frame_i = 0
         self._last_has_glasses = False
 
+    def discard_last_blink(self) -> bool:
+        """
+        Undo the most recently counted blink (e.g. looking down / off-screen).
+
+        Does not change the open/closed state machine — only the count and
+        the 60s rate window. Returns True if a blink was removed.
+        """
+        if not self._blink_times_ms:
+            return False
+        self._blink_times_ms.pop()
+        self._blink_count = max(0, int(self._blink_count) - 1)
+        return True
+
+    def blinks_per_minute_at(self, timestamp_ms: float) -> float:
+        return self._bpm(timestamp_ms)
+
+    def hold_rate_across_gap(self, gap_ms: float) -> None:
+        """
+        Pause the 60s *rate window* across a look-down / no-face gap.
+
+        Only blink-history timestamps move. Open/closed clocks stay put so
+        detection is unchanged. After the gap, BPM matches where it left off.
+        """
+        try:
+            shift = float(gap_ms)
+        except (TypeError, ValueError):
+            return
+        if not math.isfinite(shift) or shift <= 0.0:
+            return
+        shifted: deque[float] = deque(maxlen=self._blink_times_ms.maxlen)
+        for t in self._blink_times_ms:
+            shifted.append(float(t) + shift)
+        self._blink_times_ms = shifted
+
     def close(self) -> None:
         """Release MediaPipe resources (call on app quit)."""
         self._landmarker.close()

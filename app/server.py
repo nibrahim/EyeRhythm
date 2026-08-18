@@ -95,6 +95,7 @@ class ToggleBody(BaseModel):
 
 class PreferencesPatch(BaseModel):
     avatar: str | None = None
+    compact: bool | None = None
     window_width: int | None = None
     window_height: int | None = None
     beep: bool | None = None

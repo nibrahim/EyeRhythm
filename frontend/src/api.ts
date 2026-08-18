@@ -2,6 +2,7 @@ import type { EngineState, ToggleName } from "./types";
 
 export interface Preferences {
   avatar: string;
+  compact: boolean;
   window_width: number;
   window_height: number;
   beep: boolean;

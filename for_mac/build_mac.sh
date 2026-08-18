@@ -34,39 +34,87 @@ if [ ! -f frontend/dist/index.html ]; then
     (cd frontend && npm install && npm run build)
 fi
 
+echo "Building app icon from assets/logo.svg..."
+chmod +x "$SCRIPT_DIR/make_app_icon.sh"
+"$SCRIPT_DIR/make_app_icon.sh"
+
 echo "Installing PyInstaller if needed..."
 python3 -m pip install -q pyinstaller
 
 echo
 echo "Building EyeRhythm (this can take a few minutes)..."
-python3 -m PyInstaller \
-  --noconfirm \
-  --clean \
-  --windowed \
-  --name EyeRhythm \
-  --add-data "models/face_landmarker.task:models" \
-  --add-data "assets:assets" \
-  --add-data "frontend/dist:frontend/dist" \
-  --add-data "quotes.json:." \
-  --collect-all mediapipe \
-  --collect-all cv2 \
-  --hidden-import=uvicorn.logging \
-  --hidden-import=uvicorn.loops \
-  --hidden-import=uvicorn.loops.auto \
-  --hidden-import=uvicorn.protocols \
-  --hidden-import=uvicorn.protocols.http \
-  --hidden-import=uvicorn.protocols.http.auto \
-  --hidden-import=uvicorn.protocols.websockets \
-  --hidden-import=uvicorn.protocols.websockets.auto \
-  --hidden-import=uvicorn.lifespan \
-  --hidden-import=uvicorn.lifespan.on \
-  run_app.py
+# Prefer the checked-in spec so macOS privacy keys (camera) are baked in.
+# Fall back to the equivalent CLI if the spec is missing.
+if [ -f "$ROOT/EyeRhythm.spec" ]; then
+    python3 -m PyInstaller --noconfirm --clean "$ROOT/EyeRhythm.spec"
+else
+    python3 -m PyInstaller \
+      --noconfirm \
+      --clean \
+      --windowed \
+      --osx-bundle-identifier com.eyerhythm.app \
+      --name EyeRhythm \
+      --add-data "models/face_landmarker.task:models" \
+      --add-data "assets:assets" \
+      --add-data "frontend/dist:frontend/dist" \
+      --add-data "quotes.json:." \
+      --collect-all mediapipe \
+      --collect-all cv2 \
+      --hidden-import=uvicorn.logging \
+      --hidden-import=uvicorn.loops \
+      --hidden-import=uvicorn.loops.auto \
+      --hidden-import=uvicorn.protocols \
+      --hidden-import=uvicorn.protocols.http \
+      --hidden-import=uvicorn.protocols.http.auto \
+      --hidden-import=uvicorn.protocols.websockets \
+      --hidden-import=uvicorn.protocols.websockets.auto \
+      --hidden-import=uvicorn.lifespan \
+      --hidden-import=uvicorn.lifespan.on \
+      run_app.py
+fi
+
+stamp_macos_camera_usage() {
+    # Double-clicking a .app is not the same as running from Terminal.
+    # macOS kills any app that opens the camera without this Info.plist key.
+    local app="$1"
+    local plist="$app/Contents/Info.plist"
+    local buddy="/usr/libexec/PlistBuddy"
+    local msg="EyeRhythm uses the camera to count your blinks. Video never leaves this Mac."
+    if [ ! -f "$plist" ]; then
+        return 0
+    fi
+    if "$buddy" -c "Print :NSCameraUsageDescription" "$plist" >/dev/null 2>&1; then
+        "$buddy" -c "Set :NSCameraUsageDescription $msg" "$plist"
+    else
+        "$buddy" -c "Add :NSCameraUsageDescription string $msg" "$plist"
+    fi
+    if "$buddy" -c "Print :CFBundleIdentifier" "$plist" >/dev/null 2>&1; then
+        "$buddy" -c "Set :CFBundleIdentifier com.eyerhythm.app" "$plist"
+    else
+        "$buddy" -c "Add :CFBundleIdentifier string com.eyerhythm.app" "$plist"
+    fi
+    local icns="$ROOT/assets/EyeRhythm.icns"
+    if [ -f "$icns" ]; then
+        mkdir -p "$app/Contents/Resources"
+        cp "$icns" "$app/Contents/Resources/EyeRhythm.icns"
+        cp "$icns" "$app/Contents/Resources/icon-windowed.icns"
+        if "$buddy" -c "Print :CFBundleIconFile" "$plist" >/dev/null 2>&1; then
+            "$buddy" -c "Set :CFBundleIconFile EyeRhythm" "$plist"
+        else
+            "$buddy" -c "Add :CFBundleIconFile string EyeRhythm" "$plist"
+        fi
+    fi
+    codesign --force --deep --sign - "$app" >/dev/null
+    xattr -cr "$app" 2>/dev/null || true
+}
 
 echo
 if [ -d "dist/EyeRhythm.app" ]; then
-  echo "SUCCESS:  dist/EyeRhythm.app"
+    stamp_macos_camera_usage "$ROOT/dist/EyeRhythm.app"
+    echo "SUCCESS:  dist/EyeRhythm.app"
+    echo "First open: right-click → Open, then Allow the camera."
 elif [ -f "dist/EyeRhythm/EyeRhythm" ]; then
-  echo "SUCCESS:  dist/EyeRhythm/EyeRhythm"
+    echo "SUCCESS:  dist/EyeRhythm/EyeRhythm"
 else
-  echo "Build finished - check the dist/ folder."
+    echo "Build finished - check the dist/ folder."
 fi

@@ -5,6 +5,11 @@
 
 export interface EyeRhythmBridge {
   set_camera_layout: (expanded: boolean) => Promise<void> | void;
+  /** Shrink to avatars + controls, or grow to the full dashboard. */
+  set_compact_layout?: (
+    compact: boolean,
+    height?: number,
+  ) => Promise<void> | void;
   /** Expand to fullscreen for Practice; restore on exit. */
   set_practice_fullscreen?: (enabled: boolean) => Promise<void> | void;
 }
@@ -30,6 +35,38 @@ export async function setCameraLayout(expanded: boolean): Promise<void> {
   } catch {
     /* browser / unsupported */
   }
+}
+
+/** Grow / shrink the native window for compact (Less) vs full dashboard. */
+export async function setCompactLayout(
+  compact: boolean,
+  height?: number,
+): Promise<void> {
+  const api = window.pywebview?.api;
+  if (!api?.set_compact_layout) return;
+  try {
+    if (height != null && Number.isFinite(height)) {
+      await api.set_compact_layout(compact, Math.round(height));
+    } else {
+      await api.set_compact_layout(compact);
+    }
+  } catch {
+    /* browser / unsupported */
+  }
+}
+
+/** Outer window height that hugs compact content with equal top/bottom inset. */
+export function measureCompactOuterHeight(): number | undefined {
+  const shell = document.querySelector(".app-shell");
+  const footer = document.querySelector(".shell-footer");
+  if (!(shell instanceof HTMLElement) || !(footer instanceof HTMLElement)) {
+    return undefined;
+  }
+  const padBot = parseFloat(getComputedStyle(shell).paddingBottom) || 0;
+  const inner = Math.ceil(footer.getBoundingClientRect().bottom + padBot);
+  if (inner < 200) return undefined;
+  const chrome = Math.max(0, Math.round(window.outerHeight - window.innerHeight));
+  return inner + (chrome || 28);
 }
 
 /**

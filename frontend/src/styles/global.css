@@ -97,6 +97,30 @@ button {
   pointer-events: auto;
 }
 
+/* Companion: avatars + Trace + the control row only. */
+.app-shell.is-compact {
+  justify-content: flex-start;
+  height: auto;
+  min-height: 0;
+  /* Same inset above the avatar card and below the control row. */
+  padding: 10px;
+}
+
+.app-shell.is-compact .topbar {
+  display: none;
+}
+
+.app-shell.is-compact .dashboard {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.app-shell.is-compact .shell-footer {
+  margin-top: 10px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 /* ---- top bar ------------------------------------------------------------ */
 
 .topbar {
@@ -182,7 +206,9 @@ button {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
+  width: 100%;
   margin-top: calc(var(--gap) * 0.75);
   padding-top: 2px;
   padding-bottom: 2px;
@@ -563,6 +589,37 @@ button {
   transition: transform 0.35s linear;
 }
 
+/* ---- More / Less — same width as the avatar card, same height as target */
+
+.layout-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(91, 159, 224, 0.28);
+  background: #e4eef8;
+  box-shadow: var(--shadow-soft);
+  font-size: 0.86em;
+  font-weight: 550;
+  color: var(--text);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.layout-toggle:hover {
+  border-color: rgba(91, 159, 224, 0.5);
+  background: #d8e8f6;
+}
+
+.layout-toggle__chevron {
+  font-size: 0.95em;
+  line-height: 1;
+  color: var(--text-soft);
+}
+
 /* ---- target rhythm strip (above metric cards) --------------------------- */
 
 .target-strip {
@@ -614,15 +671,47 @@ button {
   height: 100%;
 }
 
-.rate-graph__blink-dot {
-  /* Top-left of the card, above the plot so it never sits on Y labels */
+.rate-graph__chrome {
   position: absolute;
-  top: 8px;
+  top: 5px;
   left: 8px;
+  right: 8px;
   z-index: 3;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: 6px;
+  pointer-events: none;
+}
+
+.rate-graph__header-mid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.rate-graph__header-mid .rate-graph__blink-dot {
+  margin: 0 12px;
+}
+
+.rate-graph__swatch {
+  width: 14px;
+  height: 2.5px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  background: var(--blue);
+}
+
+.rate-graph__swatch--reg {
+  background: #f0a040;
+}
+
+.rate-graph__blink-dot {
   width: 9px;
   height: 9px;
   border-radius: 50%;
+  flex-shrink: 0;
   background: var(--blue);
   box-shadow: 0 0 0 3px rgba(91, 159, 224, 0.2);
   transition: background 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
@@ -639,53 +728,30 @@ button {
   transform: scale(1.45);
 }
 
-.rate-graph__legend {
-  position: absolute;
-  top: 7px;
-  left: 26px;
-  z-index: 2;
-  display: flex;
+.rate-graph__legend-item {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
   font-size: 0.6em;
   font-weight: 650;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--text-soft);
-  pointer-events: none;
-}
-
-.rate-graph__legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.rate-graph__legend-item::before {
-  content: "";
-  width: 12px;
-  height: 2.5px;
-  border-radius: 2px;
-  background: var(--blue);
-}
-
-.rate-graph__legend-item--reg::before {
-  background: #f0a040;
-}
-
-.rate-graph__legend-item.muted {
-  opacity: 0.4;
+  white-space: nowrap;
 }
 
 .rate-graph__live {
-  position: absolute;
-  top: 6px;
-  right: 10px;
-  z-index: 2;
   display: flex;
   align-items: baseline;
   gap: 2px;
-  pointer-events: none;
+  min-width: 0;
+}
+
+.rate-graph__live--rate {
+  justify-self: start;
+}
+
+.rate-graph__live--reg {
+  justify-self: end;
 }
 
 .rate-graph__live-value {
@@ -695,6 +761,10 @@ button {
   color: var(--blue-deep);
   font-variant-numeric: tabular-nums;
   line-height: 1;
+}
+
+.rate-graph__live--reg .rate-graph__live-value {
+  color: #c48420;
 }
 
 .rate-graph__live-unit {
@@ -759,12 +829,16 @@ button {
   stroke-linejoin: round;
 }
 
+.rate-graph__line--regularity-glow {
+  stroke: rgba(240, 160, 64, 0.35);
+  stroke-width: 5;
+}
+
 .rate-graph__line--regularity {
   stroke: #f0a040;
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.95;
 }
 
 .rate-graph__head {
@@ -878,6 +952,11 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--gap);
+}
+
+.metrics-grid[hidden],
+.target-strip[hidden] {
+  display: none !important;
 }
 
 @media (min-width: 720px) {
@@ -1091,7 +1170,9 @@ button {
   z-index: 20;
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
+  width: 100%;
   pointer-events: auto;
 }
 

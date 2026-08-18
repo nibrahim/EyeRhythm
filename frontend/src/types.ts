@@ -2,6 +2,10 @@
 export interface EngineState {
   continuous_bpm: number;
   average_bpm: number;
+  /** Ocular Rhythm Index — 70 % rate + 30 % regularity (0–100). */
+  ocular_rhythm_index: number | null;
+  /** True when both rate and regularity contribute to ORI. */
+  ocular_rhythm_full: boolean;
   screen_time: string;
   screen_time_seconds: number;
   fps: number;
@@ -27,6 +31,8 @@ export interface EngineState {
   face_pitch_deg: number | null;
   /** "straight" | "left" | "right-top" | … ; null when no face. */
   face_direction: string | null;
+  /** Looking down (bottom / left-bottom / right-bottom) with look-angle ≥ 20°. */
+  off_screen: boolean;
 
   beep: boolean;
   alert: boolean;
@@ -67,6 +73,8 @@ export interface EngineState {
 export const EMPTY_STATE: EngineState = {
   continuous_bpm: 0,
   average_bpm: 0,
+  ocular_rhythm_index: null,
+  ocular_rhythm_full: false,
   screen_time: "0m",
   screen_time_seconds: 0,
   fps: 0,
@@ -87,6 +95,7 @@ export const EMPTY_STATE: EngineState = {
   face_yaw_deg: null,
   face_pitch_deg: null,
   face_direction: null,
+  off_screen: false,
   beep: false,
   alert: false,
   ontop: false,

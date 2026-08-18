@@ -13,9 +13,12 @@
 
 export interface RateSample {
   t: number;
-  bpm: number;
-  /** Regularity 0–100, or null while warming up / unavailable. */
+  /** Null while no-face / looking down off-screen — a gap, not a drop to 0. */
+  bpm: number | null;
+  /** Regularity 0–100, or null while warming up / unavailable / away. */
   reg: number | null;
+  /** False = do not plot this instant. */
+  present: boolean;
 }
 
 /** Visible + retained time window (seconds). */
@@ -55,6 +58,8 @@ let smooth = 0;
 let targetBpm = 0;
 /** Latest engine regularity (0–100), held until the next reading. */
 let targetReg: number | null = null;
+/** On-screen (face found and not looking down off-screen). */
+let targetPresent = false;
 let lastSampleAt = 0;
 let lastNotifyAt = 0;
 let running = false;
@@ -77,6 +82,12 @@ function prune(now: number): void {
 
 /** Advance filters by one fixed sample step and push a sample. */
 function advanceOneStep(sampleT: number, dtS: number): void {
+  if (!targetPresent) {
+    samples.push({ t: sampleT, bpm: null, reg: null, present: false });
+    lastSampleAt = sampleT;
+    return;
+  }
+
   ema1 += (targetBpm - ema1) * EMA1;
   ema2 += (ema1 - ema2) * EMA2;
   ema3 += (ema2 - ema3) * EMA3;
@@ -89,7 +100,12 @@ function advanceOneStep(sampleT: number, dtS: number): void {
 
   if (smooth < 0.02 && targetBpm < 0.02) smooth = 0;
 
-  samples.push({ t: sampleT, bpm: smooth, reg: targetReg });
+  samples.push({
+    t: sampleT,
+    bpm: smooth,
+    reg: targetReg,
+    present: true,
+  });
   lastSampleAt = sampleT;
 }
 
@@ -123,7 +139,9 @@ function tick(): void {
   if (lag < SAMPLE_MS * 0.5) {
     // Too soon (spurious double-fire); just refresh the head.
     if (samples.length > 0) {
-      samples[samples.length - 1] = { t: now, bpm: smooth, reg: targetReg };
+      samples[samples.length - 1] = targetPresent
+        ? { t: now, bpm: smooth, reg: targetReg, present: true }
+        : { t: now, bpm: null, reg: null, present: false };
     }
     return;
   }
@@ -140,7 +158,9 @@ function tick(): void {
   }
   // Pin the latest sample exactly to now.
   if (samples.length > 0) {
-    samples[samples.length - 1] = { t: now, bpm: smooth, reg: targetReg };
+    samples[samples.length - 1] = targetPresent
+      ? { t: now, bpm: smooth, reg: targetReg, present: true }
+      : { t: now, bpm: null, reg: null, present: false };
     lastSampleAt = now;
   }
 
@@ -154,22 +174,32 @@ function tick(): void {
 
 /**
  * Feed the latest engine reading. Safe to call every websocket tick.
- * Always records the continuous rate (does not zero when face is lost)
- * so the trail stays continuous while the detector's 60s window ages out.
- * Regularity is stored alongside for the dual-axis Trace plot (0–100).
+ * When ``present`` is false (no-face or looking down off-screen) the
+ * trail records a gap — time still advances, the line cuts immediately.
  */
 export function setRateHistoryInput(
   continuousBpm: number,
-  _faceFound?: boolean,
+  present = true,
   regularity: number | null = null,
 ): void {
-  targetBpm = capGraph(Math.max(0, continuousBpm));
-  targetReg =
-    regularity !== null && Number.isFinite(regularity)
-      ? Math.min(100, Math.max(0, regularity))
-      : null;
-  // Ensure the clock is running as soon as the engine feeds us data.
+  const nextPresent = Boolean(present);
+  const dropped = targetPresent && !nextPresent;
+  targetPresent = nextPresent;
+  if (targetPresent) {
+    targetBpm = capGraph(Math.max(0, continuousBpm));
+    targetReg =
+      regularity !== null && Number.isFinite(regularity)
+        ? Math.min(100, Math.max(0, regularity))
+        : null;
+  }
   ensureRateHistoryRunning();
+  // Cut the trail on this tick — do not wait for the next 80ms sample.
+  if (dropped) {
+    const t = nowMs();
+    samples.push({ t, bpm: null, reg: null, present: false });
+    lastSampleAt = t;
+    notify();
+  }
 }
 
 /** Start the background sampler (idempotent). Keeps running for the session. */
@@ -179,7 +209,7 @@ export function ensureRateHistoryRunning(): void {
   lastSampleAt = 0;
   // Seed an immediate zero sample so Trace has a trail from t=0.
   const t0 = nowMs();
-  samples.push({ t: t0, bpm: 0, reg: null });
+  samples.push({ t: t0, bpm: null, reg: null, present: false });
   lastSampleAt = t0;
   // setInterval survives minimize/hide; rAF does not.
   intervalId = setInterval(tick, SAMPLE_MS);
@@ -224,6 +254,7 @@ export function _resetRateHistoryForTests(): void {
   samples.length = 0;
   ema1 = ema2 = ema3 = smooth = targetBpm = 0;
   targetReg = null;
+  targetPresent = false;
   lastSampleAt = lastNotifyAt = 0;
   listeners.clear();
 }

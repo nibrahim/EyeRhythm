@@ -100,6 +100,14 @@ face plane from outer eye corners + forehead + chin, takes the outward normal
 * Published on `EngineSnapshot` and shown in the **Look angle** metric card
   beside Regularity
 
+Looking **down** (``bottom`` / ``left-bottom`` / ``right-bottom``) when the
+Look-angle card is past ``LOOK_DOWN_OFFSCREEN_DEG`` (default **20°**) is
+**off-screen**. That uses the same combined angle the card shows, so a
+down-right glance of 25° counts even if pitch alone is less than 20°.
+Pure left/right (no down) stays on-screen. Off-screen blinks are not
+counted, regularity holds, Alert does not sample, and Trace **cuts the
+line immediately**. Tune the threshold in `app/engine.py`.
+
 ---
 
 ## Daily stats file

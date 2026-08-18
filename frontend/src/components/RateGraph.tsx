@@ -6,6 +6,8 @@
  * Thin blue stroke; multi-stage smoothing for a continuous glide.
  * Left Y-axis: blink rate 0–30 (marks every 10; red dotted line at 10).
  * Right Y-axis: regularity 0–100 (plotted simultaneously, orange stroke).
+ * Rate time runs now→−5m (now on the left). Regularity is the mirror
+ * (now on the right).
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -28,17 +30,48 @@ const Y_TICKS = [10, 20, 30] as const;
 const Y_REG_MAX = 100;
 const Y_REG_TICKS = [25, 50, 75, 100] as const;
 const LOW_RATE_LINE = 10;
-const PAD = { top: 28, right: 28, bottom: 20, left: 28 };
+const PAD = { top: 28, right: 28, bottom: 28, left: 28 };
 
 export interface RateGraphProps {
   faceFound: boolean;
   lastBlinkAt: number;
 }
 
+function isLiveSample(
+  s: RateSample | undefined,
+): s is RateSample & { bpm: number } {
+  return Boolean(s && s.present && s.bpm !== null && Number.isFinite(s.bpm));
+}
+
+function nearestSample(
+  arr: readonly RateSample[],
+  t: number,
+): RateSample | undefined {
+  if (arr.length === 0) return undefined;
+  if (t <= arr[0].t) return arr[0];
+  if (t >= arr[arr.length - 1].t) return arr[arr.length - 1];
+  let lo = 0;
+  let hi = arr.length - 1;
+  while (lo + 1 < hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid].t <= t) lo = mid;
+    else hi = mid;
+  }
+  return t - arr[lo].t <= arr[hi].t - t ? arr[lo] : arr[hi];
+}
+
+/** True when the trail should be cut at t (no-face or looking down). */
+function isAbsentAt(arr: readonly RateSample[], t: number): boolean {
+  const s = nearestSample(arr, t);
+  return !isLiveSample(s);
+}
+
 function bpmAt(arr: readonly RateSample[], t: number): number | null {
   if (arr.length === 0) return null;
-  if (t <= arr[0].t) return arr[0].bpm;
-  if (t >= arr[arr.length - 1].t) return arr[arr.length - 1].bpm;
+  if (t <= arr[0].t) return isLiveSample(arr[0]) ? arr[0].bpm : null;
+  if (t >= arr[arr.length - 1].t) {
+    return isLiveSample(arr[arr.length - 1]) ? arr[arr.length - 1].bpm : null;
+  }
 
   let lo = 0;
   let hi = arr.length - 1;
@@ -49,6 +82,7 @@ function bpmAt(arr: readonly RateSample[], t: number): number | null {
   }
   const a = arr[lo];
   const b = arr[hi];
+  if (!isLiveSample(a) || !isLiveSample(b)) return null;
   const span = b.t - a.t;
   if (span <= 0) return b.bpm;
   let u = (t - a.t) / span;
@@ -59,8 +93,10 @@ function bpmAt(arr: readonly RateSample[], t: number): number | null {
 /** Interpolate regularity; returns null when no sample near t has a score. */
 function regAt(arr: readonly RateSample[], t: number): number | null {
   if (arr.length === 0) return null;
-  if (t <= arr[0].t) return arr[0].reg;
-  if (t >= arr[arr.length - 1].t) return arr[arr.length - 1].reg;
+  if (t <= arr[0].t) return isLiveSample(arr[0]) ? arr[0].reg : null;
+  if (t >= arr[arr.length - 1].t) {
+    return isLiveSample(arr[arr.length - 1]) ? arr[arr.length - 1].reg : null;
+  }
 
   let lo = 0;
   let hi = arr.length - 1;
@@ -71,6 +107,7 @@ function regAt(arr: readonly RateSample[], t: number): number | null {
   }
   const a = arr[lo];
   const b = arr[hi];
+  if (!isLiveSample(a) || !isLiveSample(b)) return null;
   if (a.reg === null && b.reg === null) return null;
   if (a.reg === null) return b.reg;
   if (b.reg === null) return a.reg;
@@ -87,6 +124,7 @@ function averagedBpm(
   halfMs: number,
 ): number | null {
   if (arr.length === 0) return null;
+  if (bpmAt(arr, t) === null) return null;
   const t0 = t - halfMs;
   const t1 = t + halfMs;
   const sigma = halfMs / 2.2;
@@ -96,6 +134,7 @@ function averagedBpm(
   for (const s of arr) {
     if (s.t < t0) continue;
     if (s.t > t1) break;
+    if (!isLiveSample(s)) continue;
     const d = s.t - t;
     const w = Math.exp(-(d * d) / twoSigma2);
     sum += s.bpm * w;
@@ -148,7 +187,8 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   }
 
   // Prefer a reliable polyline when the x-span is tiny (early trail).
-  const xSpan = pts[pts.length - 1].x - pts[0].x;
+  // Rate is drawn right→left, so compare absolute span.
+  const xSpan = Math.abs(pts[pts.length - 1].x - pts[0].x);
   if (xSpan < 4) {
     let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
     for (let i = 1; i < pts.length; i++) {
@@ -227,72 +267,101 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
     const plotW = Math.max(1, w - PAD.left - PAD.right);
     const plotH = Math.max(1, h - PAD.top - PAD.bottom);
 
-    const xOf = (t: number) =>
-      PAD.left + ((t - tStart) / (RATE_WINDOW_S * 1000)) * plotW;
+    const uOf = (t: number) =>
+      Math.max(0, Math.min(1, (t - tStart) / (RATE_WINDOW_S * 1000)));
+    // Rate: now on the left. Regularity: now on the right (mirror).
+    const xOfRate = (t: number) => PAD.left + (1 - uOf(t)) * plotW;
+    const xOfReg = (t: number) => PAD.left + uOf(t) * plotW;
     const yOf = (bpm: number) =>
       PAD.top + plotH - (capRateForGraph(bpm) / Y_MAX) * plotH;
     const yOfReg = (reg: number) =>
       PAD.top + plotH - (capRegForGraph(reg) / Y_REG_MAX) * plotH;
 
-    const pts: { x: number; y: number }[] = [];
-    const regPts: { x: number; y: number }[] = [];
+    const rateSegs: { x: number; y: number }[][] = [];
+    const regSegs: { x: number; y: number }[][] = [];
 
     if (arr.length > 0) {
-      // First sample time (never left of −5m).
       const dataStart = Math.max(tStart, arr[0].t);
       const dataEnd = now;
-
-      // Always build a dense series from first sample → now so a trail exists.
       const spanMs = Math.max(1, dataEnd - dataStart);
       const n = Math.max(
         8,
         Math.min(DRAW_POINTS, Math.ceil(spanMs / 50) + 2),
       );
 
-      const xs: number[] = [];
-      const ys: number[] = [];
-      const regXs: number[] = [];
-      const regYs: number[] = [];
+      let rateRun: { x: number; y: number }[] = [];
+      let regRun: { x: number; y: number }[] = [];
+      const flushRate = () => {
+        if (rateRun.length > 0) {
+          const xs = rateRun.map((p) => p.x);
+          const ys = blurYs(
+            rateRun.map((p) => p.y),
+            GAUSS_RADIUS,
+          );
+          rateSegs.push(xs.map((x, i) => ({ x, y: ys[i] })));
+          rateRun = [];
+        }
+      };
+      const flushReg = () => {
+        if (regRun.length > 0) {
+          const xs = regRun.map((p) => p.x);
+          const ys = blurYs(
+            regRun.map((p) => p.y),
+            Math.min(GAUSS_RADIUS, 2),
+          );
+          regSegs.push(xs.map((x, i) => ({ x, y: ys[i] })));
+          regRun = [];
+        }
+      };
+
       for (let i = 0; i < n; i++) {
         const u = n === 1 ? 1 : i / (n - 1);
         const t = dataStart + u * spanMs;
-        // Prefer raw interp for the trail; light average keeps it smooth.
-        const v =
-          averagedBpm(arr, t, halfMs) ??
-          bpmAt(arr, t) ??
-          getRateEma();
-        const x = Math.max(PAD.left, Math.min(PAD.left + plotW, xOf(t)));
-        xs.push(x);
-        ys.push(yOf(v));
-
+        if (isAbsentAt(arr, t)) {
+          flushRate();
+          flushReg();
+          continue;
+        }
+        const at = bpmAt(arr, t);
+        const v = at === null ? null : (averagedBpm(arr, t, halfMs) ?? at);
+        if (v === null) {
+          flushRate();
+          flushReg();
+          continue;
+        }
+        rateRun.push({
+          x: Math.max(PAD.left, Math.min(PAD.left + plotW, xOfRate(t))),
+          y: yOf(v),
+        });
         const reg = regAt(arr, t);
         if (reg !== null) {
-          regXs.push(x);
-          regYs.push(yOfReg(reg));
+          regRun.push({
+            x: Math.max(PAD.left, Math.min(PAD.left + plotW, xOfReg(t))),
+            y: yOfReg(reg),
+          });
+        } else {
+          flushReg();
         }
       }
+      flushRate();
+      flushReg();
 
-      const smoothY = blurYs(ys, GAUSS_RADIUS);
-      for (let i = 0; i < xs.length; i++) {
-        pts.push({ x: xs[i], y: smoothY[i] });
-      }
-
-      // Pin head to live smoothed value at the right edge.
-      if (pts.length > 0) {
-        pts[pts.length - 1] = {
-          x: PAD.left + plotW,
-          y: yOf(getRateEma()),
-        };
-      }
-
-      if (regXs.length > 0) {
-        const smoothRegY = blurYs(regYs, Math.min(GAUSS_RADIUS, 2));
-        for (let i = 0; i < regXs.length; i++) {
-          regPts.push({ x: regXs[i], y: smoothRegY[i] });
+      const latest = arr[arr.length - 1];
+      const liveHead = faceFound && isLiveSample(latest);
+      if (liveHead && rateSegs.length > 0) {
+        const last = rateSegs[rateSegs.length - 1];
+        if (last.length > 0) {
+          last[last.length - 1] = {
+            x: PAD.left,
+            y: yOf(getRateEma()),
+          };
         }
+      }
+      if (liveHead && regSegs.length > 0) {
         const liveReg = getRateReg();
-        if (liveReg !== null && regPts.length > 0) {
-          regPts[regPts.length - 1] = {
+        const last = regSegs[regSegs.length - 1];
+        if (liveReg !== null && last.length > 0) {
+          last[last.length - 1] = {
             x: PAD.left + plotW,
             y: yOfReg(liveReg),
           };
@@ -301,12 +370,12 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
     }
 
     return {
-      pathD: smoothPath(pts),
-      regPathD: smoothPath(regPts),
+      pathD: rateSegs.map(smoothPath).filter(Boolean).join(" "),
+      regPathD: regSegs.map(smoothPath).filter(Boolean).join(" "),
       nowBpm: getRateEma(),
       nowReg: getRateReg(),
     };
-  }, [frame, size]);
+  }, [frame, size, faceFound]);
 
   const { w, h } = size;
   const plotW = Math.max(1, w - PAD.left - PAD.right);
@@ -319,10 +388,12 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
   const bandTop = yOf(20);
   const bandBot = yOf(15);
   const lowY = yOf(LOW_RATE_LINE);
-  const headX = PAD.left + plotW;
+  const rateHeadX = PAD.left;
+  const regHeadX = PAD.left + plotW;
   const headY = yOf(nowBpm);
   const regHeadY = nowReg !== null ? yOfReg(nowReg) : null;
   const displayBpm = capRateForGraph(nowBpm);
+  const displayReg = nowReg !== null ? capRegForGraph(nowReg) : null;
 
   return (
     <div
@@ -330,28 +401,31 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
       ref={wrapRef}
       aria-label="Continuous blink rate and regularity, last 5 minutes"
     >
-      <div
-        className={`rate-graph__blink-dot ${blinkFlash ? "is-flash" : ""} ${
-          faceFound ? "" : "is-idle"
-        }`}
-        title="Blink indicator"
-        aria-hidden
-      />
-
-      <div className="rate-graph__legend" aria-hidden>
-        <span className="rate-graph__legend-item rate-graph__legend-item--rate">
-          Rate
-        </span>
-        <span className="rate-graph__legend-item rate-graph__legend-item--reg">
-          Regularity
-        </span>
-      </div>
-
-      <div className="rate-graph__live" aria-live="polite">
-        <span className="rate-graph__live-value">
-          {faceFound ? displayBpm.toFixed(1) : "—"}
-        </span>
-        <span className="rate-graph__live-unit">/min</span>
+      <div className="rate-graph__chrome" aria-hidden>
+        <div className="rate-graph__live rate-graph__live--rate" aria-live="polite">
+          <span className="rate-graph__live-value">
+            {faceFound ? displayBpm.toFixed(1) : "—"}
+          </span>
+          <span className="rate-graph__live-unit">/min</span>
+        </div>
+        <div className="rate-graph__header-mid">
+          <span className="rate-graph__swatch rate-graph__swatch--rate" />
+          <span className="rate-graph__legend-item">Blink Rate</span>
+          <div
+            className={`rate-graph__blink-dot ${blinkFlash ? "is-flash" : ""} ${
+              faceFound ? "" : "is-idle"
+            }`}
+            title="Blink indicator"
+          />
+          <span className="rate-graph__legend-item">Regularity</span>
+          <span className="rate-graph__swatch rate-graph__swatch--reg" />
+        </div>
+        <div className="rate-graph__live rate-graph__live--reg" aria-live="polite">
+          <span className="rate-graph__live-value">
+            {faceFound && displayReg !== null ? displayReg.toFixed(0) : "—"}
+          </span>
+          <span className="rate-graph__live-unit">/100</span>
+        </div>
       </div>
 
       <svg
@@ -457,19 +531,26 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
         ) : null}
 
         {regPathD ? (
-          <path
-            d={regPathD}
-            fill="none"
-            className="rate-graph__line rate-graph__line--regularity"
-          />
+          <>
+            <path
+              d={regPathD}
+              fill="none"
+              className="rate-graph__line rate-graph__line--regularity-glow"
+            />
+            <path
+              d={regPathD}
+              fill="none"
+              className="rate-graph__line rate-graph__line--regularity"
+            />
+          </>
         ) : null}
 
         {faceFound ? (
-          <circle cx={headX} cy={headY} r={3} className="rate-graph__head" />
+          <circle cx={rateHeadX} cy={headY} r={3} className="rate-graph__head" />
         ) : null}
         {faceFound && regHeadY !== null ? (
           <circle
-            cx={headX}
+            cx={regHeadX}
             cy={regHeadY}
             r={2.5}
             className="rate-graph__head rate-graph__head--reg"
@@ -478,19 +559,35 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
 
         <text
           x={PAD.left}
-          y={h - 5}
-          className="rate-graph__axis-label"
+          y={h - 14}
+          className="rate-graph__axis-label rate-graph__axis-label--rate"
+          textAnchor="start"
+        >
+          now
+        </text>
+        <text
+          x={PAD.left}
+          y={h - 4}
+          className="rate-graph__axis-label rate-graph__axis-label--reg"
           textAnchor="start"
         >
           −5m
         </text>
         <text
           x={PAD.left + plotW}
-          y={h - 5}
-          className="rate-graph__axis-label"
+          y={h - 14}
+          className="rate-graph__axis-label rate-graph__axis-label--reg"
           textAnchor="end"
         >
           now
+        </text>
+        <text
+          x={PAD.left + plotW}
+          y={h - 4}
+          className="rate-graph__axis-label rate-graph__axis-label--rate"
+          textAnchor="end"
+        >
+          −5m
         </text>
       </svg>
 

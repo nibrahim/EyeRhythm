@@ -35,12 +35,16 @@ echo  Cleaning previous build...
 if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 
+set "ICON_FLAG="
+if exist "assets\EyeRhythm.ico" set "ICON_FLAG=--icon assets\EyeRhythm.ico"
+
 echo  Running PyInstaller...
 python -m PyInstaller ^
   --noconfirm ^
   --clean ^
   --windowed ^
   --name EyeRhythm ^
+  %ICON_FLAG% ^
   --add-data "models\face_landmarker.task;models" ^
   --add-data "assets;assets" ^
   --add-data "frontend\dist;frontend\dist" ^

@@ -57,6 +57,53 @@ class _WindowApi:
         # No-op: Lens avatar replaces the expandable camera panel.
         return None
 
+    def set_compact_layout(self, compact: bool, height=None) -> None:
+        """
+        Grow / shrink the desktop window for More / Less.
+
+        Compact keeps the last expanded height in preferences so expanding
+        restores the user's dashboard size instead of a stubby window.
+        ``height`` is the measured outer window size from the UI (optional).
+        """
+        window = self._window
+        want = bool(compact)
+        try:
+            preferences.set_compact(want)
+        except Exception:
+            pass
+        if window is None:
+            return
+        try:
+            w = int(getattr(window, "width", 0) or 0)
+            h = int(getattr(window, "height", 0) or 0)
+        except Exception:
+            w, h = 0, 0
+        if w < preferences.MIN_WIDTH:
+            w = preferences.DEFAULT_WIDTH
+        fit_h = None
+        if height is not None:
+            try:
+                fit_h = int(round(float(height)))
+            except (TypeError, ValueError):
+                fit_h = None
+        try:
+            if want:
+                if h >= preferences.MIN_EXPANDED_HEIGHT:
+                    preferences.set_window_size(w, h)
+                target = (
+                    fit_h
+                    if fit_h is not None and fit_h >= preferences.MIN_HEIGHT
+                    else preferences.COMPACT_HEIGHT
+                )
+                window.resize(w, target)
+            else:
+                _, stored_h = preferences.get_window_size()
+                if stored_h < preferences.MIN_EXPANDED_HEIGHT:
+                    stored_h = preferences.DEFAULT_HEIGHT
+                window.resize(w, stored_h)
+        except Exception as exc:
+            _log(f"compact layout toggle failed: {exc}")
+
     def set_practice_fullscreen(self, enabled: bool) -> None:
         """
         Expand the desktop window for Practice mode; restore on exit.
@@ -166,9 +213,9 @@ def _startup_console_checks(camera_index: int) -> list[str]:
 
 def _window_size_from_prefs() -> tuple[int, int]:
     try:
-        return preferences.get_window_size()
+        return preferences.launch_window_geometry()
     except Exception:
-        return DEFAULT_WIDTH, DEFAULT_HEIGHT
+        return DEFAULT_WIDTH, preferences.COMPACT_HEIGHT
 
 
 def _save_window_size(window) -> None:
@@ -176,16 +223,55 @@ def _save_window_size(window) -> None:
     try:
         w = int(getattr(window, "width", 0) or 0)
         h = int(getattr(window, "height", 0) or 0)
-        if w >= MIN_WIDTH and h >= MIN_HEIGHT:
-            preferences.set_window_size(w, h)
-            _log(f"saved window size {w}x{h}")
+        if w < MIN_WIDTH or h < MIN_HEIGHT:
+            return
+        # Compact height is fixed — do not overwrite the expanded size.
+        if preferences.get_compact():
+            preferences.save(window_width=w)
+            _log(f"saved compact window width {w}")
+            return
+        preferences.set_window_size(w, h)
+        _log(f"saved window size {w}x{h}")
     except Exception as exc:
         _log(f"could not save window size: {exc}")
+
+
+def _app_icon_path() -> Path | None:
+    """Brand mark used as the Dock / taskbar icon when running from source."""
+    for name in ("app_icon.png", "EyeRhythm.icns", "EyeRhythm.ico", "logo.svg"):
+        path = ROOT / "assets" / name
+        if path.is_file():
+            return path
+    return None
+
+
+def _apply_app_icon() -> None:
+    """
+    Running from source is a Python process, so macOS shows the Python icon
+    in the Dock unless we set the application image ourselves. The packaged
+    .app already has this icon in Info.plist.
+    """
+    icon = _app_icon_path()
+    if icon is None:
+        return
+    if platform.system() != "Darwin":
+        return
+    try:
+        from AppKit import NSApplication, NSImage  # type: ignore
+
+        image = NSImage.alloc().initWithContentsOfFile_(str(icon))
+        if image is None:
+            return
+        NSApplication.sharedApplication().setApplicationIconImage_(image)
+    except Exception as exc:
+        _log(f"could not set app icon: {exc}")
 
 
 def _open_webview(url: str, engine: EyeRhythmEngine) -> None:
     """Native desktop window via pywebview (macOS + Windows + Linux)."""
     import webview
+
+    _apply_app_icon()
 
     width, height = _window_size_from_prefs()
     prefs = preferences.load()

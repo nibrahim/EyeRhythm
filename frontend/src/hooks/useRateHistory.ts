@@ -15,7 +15,7 @@ import {
 
 export function useRateHistory(
   continuousBpm: number,
-  faceFound: boolean,
+  present: boolean,
   regularity: number | null = null,
 ): void {
   // Start the 5-minute ring buffer on first mount; never stop for the session.
@@ -23,8 +23,8 @@ export function useRateHistory(
     ensureRateHistoryRunning();
   }, []);
 
-  // Push every engine reading into the store (face flag kept for API stability).
+  // present = face found and not looking down off-screen. Gaps break Trace.
   useEffect(() => {
-    setRateHistoryInput(continuousBpm, faceFound, regularity);
-  }, [continuousBpm, faceFound, regularity]);
+    setRateHistoryInput(continuousBpm, present, regularity);
+  }, [continuousBpm, present, regularity]);
 }

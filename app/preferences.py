@@ -5,7 +5,8 @@ Persistent user preferences
 Stores the last session UI state so the next launch looks the same:
 
 * selected avatar
-* window width / height (if the user resized; else defaults)
+* compact / expanded dashboard
+* window width / height (expanded size is stored; compact uses a fixed height)
 * Beep / Alert / On top toggles
   (Practice is session-only and is never stored)
 
@@ -32,10 +33,15 @@ VALID_AVATARS = frozenset({"atlas", "lumen", "vesper", "lens", "graph"})
 DEFAULT_WIDTH = 480
 DEFAULT_HEIGHT = 840
 MIN_WIDTH = 400
-MIN_HEIGHT = 640
+# Floor for any window (compact companion). Expanded layout still prefers more.
+MIN_HEIGHT = 400
+MIN_EXPANDED_HEIGHT = 640
+# Fallback compact window height until the UI measures the real content.
+COMPACT_HEIGHT = 440
 
 _DEFAULTS: dict[str, Any] = {
     "avatar": "atlas",
+    "compact": True,
     "window_width": DEFAULT_WIDTH,
     "window_height": DEFAULT_HEIGHT,
     "beep": False,
@@ -71,6 +77,9 @@ def _sanitize(raw: dict[str, Any]) -> dict[str, Any]:
         data["window_width"], data["window_height"] = _clamp_size(w, h)
     except (TypeError, ValueError):
         pass
+
+    if "compact" in raw:
+        data["compact"] = bool(raw["compact"])
 
     for key in ("beep", "alert", "ontop"):
         if key in raw:
@@ -132,9 +141,34 @@ def set_avatar(avatar: str) -> dict[str, Any]:
     return save(avatar=avatar)
 
 
+def get_compact() -> bool:
+    return bool(load().get("compact", True))
+
+
+def set_compact(compact: bool) -> dict[str, Any]:
+    return save(compact=bool(compact))
+
+
 def get_window_size() -> tuple[int, int]:
     p = load()
     return int(p["window_width"]), int(p["window_height"])
+
+
+def launch_window_geometry() -> tuple[int, int]:
+    """
+    Size to open the desktop window with.
+
+    Compact mode uses a short companion height and keeps the last expanded
+    height stored for when the user clicks More.
+    """
+    p = load()
+    w = int(p["window_width"])
+    if bool(p.get("compact", True)):
+        return w, COMPACT_HEIGHT
+    h = int(p["window_height"])
+    if h < MIN_EXPANDED_HEIGHT:
+        h = DEFAULT_HEIGHT
+    return w, h
 
 
 def set_window_size(width: int, height: int) -> dict[str, Any]:
