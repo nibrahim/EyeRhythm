@@ -84,7 +84,7 @@ Open the Vite URL (proxies `/api` and `/ws` to the Python server).
 | Key | Action |
 |-----|--------|
 | **B** | Toggle beep on every counted blink |
-| **A** | Toggle low-rate alert (beeps while rate is very low) |
+| **A** | Toggle alert (beeps after ORI is below 50 for 3 min in the last 5 min) |
 | **T** | Toggle always-on-top (desktop window) |
 | **D** | More / Less (compact companion vs full dashboard) |
 | **C** | Expand / collapse camera preview |

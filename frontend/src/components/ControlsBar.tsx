@@ -1,3 +1,10 @@
+/**
+ * Bottom row of four switches: Beep, Alert, On top, Practice.
+ *
+ * Each chip flashes when something happens (orange on a counted blink,
+ * red on a low-ORI alert). Clicking a chip asks the Python engine to
+ * flip that flag. Keyboard letters (B / A / T / P) are shown as hints.
+ */
 import { useEffect, useRef, useState } from "react";
 import { setToggle } from "../api";
 import type { EngineState, ToggleName } from "../types";
@@ -7,10 +14,12 @@ interface Props {
 }
 
 export function ControlsBar({ state }: Props) {
+  // While a request is in flight, disable that chip so double-clicks do not
+  // send two flips and cancel each other.
   const [busy, setBusy] = useState<ToggleName | null>(null);
   /** Orange flash on Beep when beep-on-blink + a blink is counted. */
   const [beepPulse, setBeepPulse] = useState(false);
-  /** Red flash on Alert when low-rate alert emits a beep. */
+  /** Red flash on Alert when low-ORI alert emits a beep. */
   const [alertPulse, setAlertPulse] = useState(false);
   /** Orange flash on Practice when a blink is counted during practice. */
   const [practicePulse, setPracticePulse] = useState(false);
@@ -53,6 +62,7 @@ export function ControlsBar({ state }: Props) {
     if (busy) return;
     setBusy(name);
     try {
+      // Give the engine 4 seconds; if it is restarting, just give up quietly.
       await Promise.race([
         setToggle(name),
         new Promise((_, reject) =>
@@ -84,7 +94,7 @@ export function ControlsBar({ state }: Props) {
         pulse={alertPulse ? "red" : null}
         onClick={() => void flip("alert")}
         disabled={busy === "alert"}
-        title="Alert when current rate and last-5-min average are both below ~10/min (stops as soon as current rate recovers)"
+        title="Alert after ORI stays below 50 for 3 minutes in total over the last 5 minutes (stops as soon as ORI reaches 50)"
       />
       <ToggleChip
         label="On top"
@@ -107,6 +117,7 @@ export function ControlsBar({ state }: Props) {
   );
 }
 
+/** One pill-shaped button with an on/off dot and a keyboard hint. */
 function ToggleChip({
   label,
   hint,

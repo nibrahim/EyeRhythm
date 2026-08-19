@@ -8,6 +8,7 @@ interface Props {
   remainingS: number;
 }
 
+// Used if quotes.json cannot be loaded (offline / first-run edge case).
 const FALLBACK: QuoteItem[] = [
   {
     text: "Be yourself; everyone else is already taken.",
@@ -43,6 +44,7 @@ const FALLBACK: QuoteItem[] = [
   },
 ];
 
+// How long each quote stays on screen (30 seconds).
 const QUOTE_ROTATE_MS = 30_000;
 
 const PRACTICE_INSTRUCTION =
@@ -50,6 +52,11 @@ const PRACTICE_INSTRUCTION =
 
 /**
  * Full-width gray card: “Information & Quote”.
+ *
+ * Everyday mode shows three short tips (Beep / Alert / Practice).
+ * During Practice it swaps those tips for the coach instruction, a
+ * countdown or remaining-time label, and a thin progress bar.
+ * A famous quote rotates underneath in both modes.
  */
 export function InfoQuoteCard({
   practice,
@@ -60,6 +67,7 @@ export function InfoQuoteCard({
   const [quotes, setQuotes] = useState<QuoteItem[]>(FALLBACK);
   const [quoteIndex, setQuoteIndex] = useState(0);
 
+  // Practice has three acts: read instructions → 2-minute coach → results.
   const inCountdown = practice && practicePhase === "countdown";
   const inActive = practice && practicePhase === "active";
   const inSummary = practice && practicePhase === "summary";
@@ -83,11 +91,13 @@ export function InfoQuoteCard({
   }, []);
 
   useEffect(() => {
+    // New session or new quote list → pick a random starting quote.
     setQuoteIndex(Math.floor(Math.random() * Math.max(1, quotes.length)));
   }, [practice, quotes.length]);
 
   useEffect(() => {
     if (quotes.length === 0) return;
+    // Advance to the next quote every 30 seconds.
     const id = window.setInterval(() => {
       setQuoteIndex((i) => (i + 1) % quotes.length);
     }, QUOTE_ROTATE_MS);
@@ -142,7 +152,7 @@ export function InfoQuoteCard({
             <strong>Beep</strong> — sound on each blink
           </li>
           <li>
-            <strong>Alert</strong> — warn if rate stays low (~10/min, 5‑min trend)
+            <strong>Alert</strong> — warn if ORI stays below 50 for 3 min in the last 5
           </li>
           <li>
             <strong>Practice</strong> — 2‑min blink coach
@@ -171,6 +181,7 @@ export function InfoQuoteCard({
   );
 }
 
+/** Turn leftover seconds into `m:ss` (e.g. 95 → `1:35`). */
 function formatClock(remainingS: number): string {
   const secs = Math.max(0, Math.ceil(remainingS));
   const mm = Math.floor(secs / 60);

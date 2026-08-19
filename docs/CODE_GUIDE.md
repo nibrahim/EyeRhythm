@@ -8,8 +8,9 @@ How the project fits together after the React UI rewrite.
 
 1. Opens the **webcam** in the background  
 2. Detects **face + blinks** (MediaPipe)  
-3. Shows a **React dashboard** in a compact desktop window  
-4. Optionally **beeps** on blinks or very low rate  
+3. Shows a **launch splash** (ocular-comfort self-check + on-device notices),
+   then a **React dashboard** in a compact desktop window  
+4. Optionally **beeps** on blinks or when ORI stays below 50 for 3 min in the last 5 min  
 5. Saves **today’s** blink count and face-time to a local JSON file  
 
 Nothing is uploaded. Privacy is by design. Camera preview is collapsed by default.
@@ -88,6 +89,16 @@ Needs a few recent blinks before the UI shows a number.
 
 ---
 
+## Ocular Rhythm Index (ORI)
+
+Composite 0–100 = 70 % rate score + 30 % regularity. Trace plots this
+single series (not rate and regularity as separate lines). Alert beeps
+when ORI has been below **50** for **3 minutes in total** out of the last
+**5 minutes** (the Trace window). Beeps stop the instant current ORI
+reaches 50.
+
+---
+
 ## Look angle (face axis vs camera)
 
 Every face frame, `blink_core.detector.estimate_face_camera_pose` builds a 3D
@@ -157,6 +168,22 @@ History is kept across days in the same file.
 
 ---
 
+## Launch splash
+
+On every start, a same-theme overlay covers the dashboard until **Start** or
+**3 minutes**, whichever is first.
+
+1. Ocular-comfort self-check (comfortable / mild / moderate / marked /
+   prefer not to say). Stored only in local `preferences.json` as
+   `eye_comfort`.
+2. Three notices: on-device privacy, not a medical device, how ORI and
+   Alert work.
+
+Enter continues / starts. Dashboard shortcuts (B/A/T/P) are ignored until
+the splash closes. UI: `frontend/src/components/SplashScreen.tsx`.
+
+---
+
 ## Practice mode (full-screen coach)
 
 1. User toggles **Practice** → engine enters `countdown` for **20 s**.
@@ -178,7 +205,7 @@ Tunables in `app/engine.py`: `PRACTICE_COUNTDOWN_S`, `PRACTICE_INTERVAL_S`,
 | Key | Effect |
 |-----|--------|
 | B | Toggle beep on each counted blink |
-| A | Toggle low-rate alert |
+| A | Toggle low-ORI alert (3 min below 50 in last 5 min) |
 | T | Toggle always-on-top (desktop window) |
 | C | Expand / collapse camera panel |
 
@@ -210,7 +237,7 @@ Useful flags:
 
 * `blink_core` detection math and thresholds  
 * Daily screen-time / blink persistence  
-* Beep + low-rate alert behaviour  
+* Beep + low-ORI alert behaviour  
 * Camera reconnect after sleep/wake  
 * Offline-only design  
 

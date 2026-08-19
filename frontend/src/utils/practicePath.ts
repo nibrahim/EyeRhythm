@@ -53,10 +53,12 @@ const FADE_OUT_FRAC = 0.06;
 const FADE_IN_FRAC = 0.06;
 
 function clamp01(t: number): number {
+  // Keep a 0…1 progress value from wandering outside that range.
   return t < 0 ? 0 : t > 1 ? 1 : t;
 }
 
 function smootherstep(t: number): number {
+  // Gentle S-curve: slow at the start and end, faster in the middle.
   const u = clamp01(t);
   return u * u * u * (u * (u * 6 - 15) + 10);
 }
@@ -69,6 +71,7 @@ function throwEase(t: number): number {
   return smootherstep(t);
 }
 
+/** The four throw targets, inset so the 40 px ball never clips the edge. */
 function corners(mx: number, my: number): {
   topLeft: Point;
   bottomLeft: Point;
@@ -89,6 +92,7 @@ function throwArc(a: Point, b: Point, t: number): Point {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const len = Math.hypot(dx, dy) || 1;
+  // A sideways nudge so the path bows out instead of being a straight line.
   let px = -dy / len;
   let py = dx / len;
   const midX = a.x + dx * 0.5;
@@ -97,6 +101,7 @@ function throwArc(a: Point, b: Point, t: number): Point {
     px = -px;
     py = -py;
   }
+  // Peak loft in the middle of the throw; none at start or landing.
   const loft = THROW_LOFT * 4 * u * (1 - u);
   return {
     x: a.x + dx * u + px * loft,
@@ -150,6 +155,7 @@ export function ballPositionAt(
 ): BallSample {
   const iv = Math.max(0.05, intervalS);
   const t = Math.max(0, elapsedS);
+  // Which throw we are on (0–3 corners, 4 = spiral), looping forever.
   const totalSteps = Math.floor(t / iv);
   const segment = totalSteps % PRACTICE_CYCLE_STEPS;
   // Cap just below 1 so we never spill into the next segment early;

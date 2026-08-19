@@ -1,5 +1,5 @@
 /**
- * Keeps the session rate history warm for Trace for the whole app lifetime.
+ * Keeps the session ORI history warm for Trace for the whole app lifetime.
  *
  * Mount this once near the app root (not only when Trace is visible) so:
  * - sampling starts as soon as the UI boots
@@ -13,10 +13,10 @@ import {
   setRateHistoryInput,
 } from "./rateHistory";
 
+/** Feed the latest ORI into the 5-minute Trace history (call once from App). */
 export function useRateHistory(
-  continuousBpm: number,
+  ori: number | null,
   present: boolean,
-  regularity: number | null = null,
 ): void {
   // Start the 5-minute ring buffer on first mount; never stop for the session.
   useEffect(() => {
@@ -25,6 +25,6 @@ export function useRateHistory(
 
   // present = face found and not looking down off-screen. Gaps break Trace.
   useEffect(() => {
-    setRateHistoryInput(continuousBpm, present, regularity);
-  }, [continuousBpm, present, regularity]);
+    setRateHistoryInput(ori, present);
+  }, [ori, present]);
 }

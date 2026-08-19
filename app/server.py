@@ -35,6 +35,12 @@ if TYPE_CHECKING:
 
 
 def _project_root() -> Path:
+    """
+    Folder that holds `frontend/`, `quotes.json`, and the face model.
+
+    When packaged (PyInstaller), files live in a temporary extract folder
+    (`sys._MEIPASS`) instead of next to this source file.
+    """
     import sys
 
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
@@ -51,8 +57,10 @@ def _ui_dist() -> Path:
     return _project_root() / "frontend" / "dist"
 
 
+# Built dashboard folder (index.html + JS/CSS). Empty until `npm run build`.
 UI_DIST = _ui_dist()
 QUOTES_PATH = _project_root() / "quotes.json"
+# Quotes are tiny and never change at runtime — load once, reuse forever.
 _QUOTES_CACHE: list[dict[str, str]] | None = None
 
 
@@ -87,6 +95,7 @@ def _load_quotes() -> list[dict[str, str]]:
 
 
 class ToggleBody(BaseModel):
+    """JSON body for POST /api/toggles/{name}. Missing value = flip it."""
     value: bool | None = Field(
         default=None,
         description="If omitted, the toggle is flipped.",
@@ -94,6 +103,7 @@ class ToggleBody(BaseModel):
 
 
 class PreferencesPatch(BaseModel):
+    """Any subset of saved settings the dashboard may send back."""
     avatar: str | None = None
     compact: bool | None = None
     window_width: int | None = None
@@ -101,10 +111,18 @@ class PreferencesPatch(BaseModel):
     beep: bool | None = None
     alert: bool | None = None
     ontop: bool | None = None
+    eye_comfort: str | None = None
     # practice is accepted by toggle API but never stored in preferences
 
 
 def create_app(engine: "EyeRhythmEngine") -> FastAPI:
+    """
+    Build the tiny local website the dashboard uses.
+
+    Think of it as a receptionist: the React UI asks “what’s my blink rate?”
+    or “please turn Beep on”, and this file forwards that to the engine.
+    """
+    # Hide the auto-generated API docs — this is a private localhost app.
     app = FastAPI(title="EyeRhythm", version="2.0.0", docs_url=None, redoc_url=None)
 
     # Vite dev server may call from another port during development.
@@ -120,18 +138,22 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
 
     @app.get("/api/health")
     def health():
+        """“Is the local server alive?” — used by the UI / installers."""
         return {"ok": True, "service": "EyeRhythm"}
 
     @app.get("/api/state")
     def state():
+        """One-shot snapshot of every live number (blink rate, toggles, …)."""
         return engine.snapshot().to_dict()
 
     @app.get("/api/toggles")
     def get_toggles():
+        """Current Beep / Alert / On top / Practice flags."""
         return engine.get_toggles()
 
     @app.post("/api/toggles/{name}")
     def set_toggle(name: str, body: ToggleBody | None = None):
+        """Turn a named switch on or off (or flip it if no value is sent)."""
         name = name.lower().strip()
         if name not in ("beep", "alert", "ontop", "practice"):
             raise HTTPException(status_code=400, detail="unknown toggle")
@@ -187,16 +209,19 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
 
     @app.post("/api/preview/enable")
     def preview_enable():
+        """Ask the engine to start encoding camera JPEGs (Lens avatar)."""
         engine.set_preview_wanted(True)
         return {"preview": True}
 
     @app.post("/api/preview/disable")
     def preview_disable():
+        """Stop encoding preview frames — saves CPU when Lens is hidden."""
         engine.set_preview_wanted(False)
         return {"preview": False}
 
     @app.get("/api/preview")
     def preview():
+        """Latest camera still as a JPEG, or 204 if none is ready yet."""
         data = engine.latest_preview_jpeg()
         if not data:
             return Response(status_code=204)
@@ -204,6 +229,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
 
     @app.websocket("/ws/stats")
     async def ws_stats(ws: WebSocket):
+        """Live feed of metrics (~10 times a second) for the dashboard cards."""
         await ws.accept()
         try:
             while True:
@@ -220,6 +246,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
 
     @app.websocket("/ws/preview")
     async def ws_preview(ws: WebSocket):
+        """Stream camera JPEGs while a client is connected (optional path)."""
         await ws.accept()
         engine.set_preview_wanted(True)
         last: bytes | None = None
@@ -253,6 +280,8 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
             engine.set_preview_wanted(False)
 
     # ---- static React build -------------------------------------------
+    # After `npm run build`, serve the dashboard files so the desktop
+    # window can load http://127.0.0.1:8742/ without Vite.
     if UI_DIST.is_dir() and (UI_DIST / "index.html").is_file():
         assets = UI_DIST / "assets"
         if assets.is_dir():
@@ -260,10 +289,12 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
 
         @app.get("/")
         def index():
+            """The dashboard’s first page."""
             return FileResponse(UI_DIST / "index.html")
 
         @app.get("/{full_path:path}")
         def spa_fallback(full_path: str):
+            """Serve a real file if it exists; otherwise the same HTML page."""
             # Do not swallow API / WS.
             if full_path.startswith("api") or full_path.startswith("ws"):
                 raise HTTPException(status_code=404)

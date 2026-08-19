@@ -1,4 +1,10 @@
-/** Live engine snapshot (mirrors app.engine.EngineSnapshot). */
+/**
+ * Live numbers the dashboard displays.
+ *
+ * This is a TypeScript copy of the Python `EngineSnapshot`. Every ~0.1 s
+ * the local server sends a JSON object with these fields. `null` means
+ * “we do not have this value yet” (for example regularity before two blinks).
+ */
 export interface EngineState {
   continuous_bpm: number;
   average_bpm: number;
@@ -70,6 +76,7 @@ export interface EngineState {
   timestamp: number;
 }
 
+/** Placeholder shown before the first live message arrives from the engine. */
 export const EMPTY_STATE: EngineState = {
   continuous_bpm: 0,
   average_bpm: 0,
@@ -118,4 +125,5 @@ export const EMPTY_STATE: EngineState = {
   timestamp: 0,
 };
 
+/** The four switches on the bottom control bar. */
 export type ToggleName = "beep" | "alert" | "ontop" | "practice";

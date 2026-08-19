@@ -130,7 +130,8 @@ class ScreenTimeTracker:
             # Remember this moment so the next tick can measure the gap.
             self._last_tick = now
         else:
-            # Face gone: freeze the timer. Next face-present tick starts fresh.
+            # Face gone: freeze the timer. Next face-present tick starts fresh
+            # so we do not credit “away from desk” as screen time.
             self._last_tick = None
 
         # Periodically flush to disk (not every frame).

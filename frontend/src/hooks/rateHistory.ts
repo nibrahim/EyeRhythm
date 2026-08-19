@@ -1,5 +1,5 @@
 /**
- * Session-wide continuous-rate history for the Trace graph.
+ * Session-wide ORI history for the Trace graph.
  *
  * Lives at module scope so samples keep accumulating for the last 5 minutes
  * even when the user switches away from Trace to another avatar, and even
@@ -7,16 +7,15 @@
  * when the webview is hidden).
  *
  * Smoothing pipeline (ECG-style glide):
- *   engine bpm → triple EMA → slew limit → stored samples
- * Never snaps to the first non-zero reading (that caused a jump to 30).
+ *   engine ORI → triple EMA → slew limit → stored samples
+ * After a gap the filters seed to the new ORI so the trail does not climb
+ * from 0 (that would look like an alert-zone dip).
  */
 
 export interface RateSample {
   t: number;
-  /** Null while no-face / looking down off-screen — a gap, not a drop to 0. */
-  bpm: number | null;
-  /** Regularity 0–100, or null while warming up / unavailable / away. */
-  reg: number | null;
+  /** Null while no-face / looking down / ORI unavailable — a gap, not 0. */
+  ori: number | null;
   /** False = do not plot this instant. */
   present: boolean;
 }
@@ -35,9 +34,9 @@ const MAX_SAMPLES =
 const EMA1 = 0.18;
 const EMA2 = 0.22;
 const EMA3 = 0.28;
-/** Hard limit on how fast the plotted value may change (bpm per second). */
-const MAX_SLEW_BPM_PER_S = 5.5;
-const Y_CAP = 30;
+/** Hard limit on how fast the plotted ORI may change (points per second). */
+const MAX_SLEW_ORI_PER_S = 16;
+const Y_CAP = 100;
 /** How often UI subscribers are notified (ms). */
 const NOTIFY_MS = 50;
 /**
@@ -46,8 +45,9 @@ const NOTIFY_MS = 50;
  */
 const MAX_CATCHUP_MS = 5000;
 
-function capGraph(bpm: number): number {
-  return Math.min(Y_CAP, Math.max(0, bpm));
+function capGraph(ori: number): number {
+  // Never plot below 0 or above 100 (ORI’s published range).
+  return Math.min(Y_CAP, Math.max(0, ori));
 }
 
 const samples: RateSample[] = [];
@@ -55,11 +55,11 @@ let ema1 = 0;
 let ema2 = 0;
 let ema3 = 0;
 let smooth = 0;
-let targetBpm = 0;
-/** Latest engine regularity (0–100), held until the next reading. */
-let targetReg: number | null = null;
+let targetOri: number | null = null;
 /** On-screen (face found and not looking down off-screen). */
 let targetPresent = false;
+/** Filters hold a real ORI — false after a gap until the next live value. */
+let filtersLive = false;
 let lastSampleAt = 0;
 let lastNotifyAt = 0;
 let running = false;
@@ -80,30 +80,41 @@ function prune(now: number): void {
   }
 }
 
+function seedFilters(ori: number): void {
+  ema1 = ema2 = ema3 = smooth = ori;
+  filtersLive = true;
+}
+
+function gapHead(t: number): RateSample {
+  return { t, ori: null, present: false };
+}
+
 /** Advance filters by one fixed sample step and push a sample. */
 function advanceOneStep(sampleT: number, dtS: number): void {
-  if (!targetPresent) {
-    samples.push({ t: sampleT, bpm: null, reg: null, present: false });
+  if (!targetPresent || targetOri === null) {
+    samples.push(gapHead(sampleT));
     lastSampleAt = sampleT;
+    filtersLive = false;
     return;
   }
 
-  ema1 += (targetBpm - ema1) * EMA1;
-  ema2 += (ema1 - ema2) * EMA2;
-  ema3 += (ema2 - ema3) * EMA3;
+  if (!filtersLive) {
+    seedFilters(targetOri);
+  } else {
+    ema1 += (targetOri - ema1) * EMA1;
+    ema2 += (ema1 - ema2) * EMA2;
+    ema3 += (ema2 - ema3) * EMA3;
 
-  const maxStep = MAX_SLEW_BPM_PER_S * dtS;
-  const delta = ema3 - smooth;
-  if (delta > maxStep) smooth += maxStep;
-  else if (delta < -maxStep) smooth -= maxStep;
-  else smooth = ema3;
-
-  if (smooth < 0.02 && targetBpm < 0.02) smooth = 0;
+    const maxStep = MAX_SLEW_ORI_PER_S * dtS;
+    const delta = ema3 - smooth;
+    if (delta > maxStep) smooth += maxStep;
+    else if (delta < -maxStep) smooth -= maxStep;
+    else smooth = ema3;
+  }
 
   samples.push({
     t: sampleT,
-    bpm: smooth,
-    reg: targetReg,
+    ori: smooth,
     present: true,
   });
   lastSampleAt = sampleT;
@@ -139,9 +150,10 @@ function tick(): void {
   if (lag < SAMPLE_MS * 0.5) {
     // Too soon (spurious double-fire); just refresh the head.
     if (samples.length > 0) {
-      samples[samples.length - 1] = targetPresent
-        ? { t: now, bpm: smooth, reg: targetReg, present: true }
-        : { t: now, bpm: null, reg: null, present: false };
+      samples[samples.length - 1] =
+        targetPresent && targetOri !== null
+          ? { t: now, ori: smooth, present: true }
+          : gapHead(now);
     }
     return;
   }
@@ -158,9 +170,10 @@ function tick(): void {
   }
   // Pin the latest sample exactly to now.
   if (samples.length > 0) {
-    samples[samples.length - 1] = targetPresent
-      ? { t: now, bpm: smooth, reg: targetReg, present: true }
-      : { t: now, bpm: null, reg: null, present: false };
+    samples[samples.length - 1] =
+      targetPresent && targetOri !== null
+        ? { t: now, ori: smooth, present: true }
+        : gapHead(now);
     lastSampleAt = now;
   }
 
@@ -173,31 +186,28 @@ function tick(): void {
 }
 
 /**
- * Feed the latest engine reading. Safe to call every websocket tick.
+ * Feed the latest engine ORI. Safe to call every websocket tick.
  * When ``present`` is false (no-face or looking down off-screen) the
  * trail records a gap — time still advances, the line cuts immediately.
+ * ``ori === null`` (warming up / no usable rate) is also a gap.
  */
 export function setRateHistoryInput(
-  continuousBpm: number,
+  ori: number | null,
   present = true,
-  regularity: number | null = null,
 ): void {
   const nextPresent = Boolean(present);
+  const nextOri =
+    ori !== null && Number.isFinite(ori) ? capGraph(ori) : null;
   const dropped = targetPresent && !nextPresent;
   targetPresent = nextPresent;
-  if (targetPresent) {
-    targetBpm = capGraph(Math.max(0, continuousBpm));
-    targetReg =
-      regularity !== null && Number.isFinite(regularity)
-        ? Math.min(100, Math.max(0, regularity))
-        : null;
-  }
+  targetOri = targetPresent ? nextOri : null;
   ensureRateHistoryRunning();
   // Cut the trail on this tick — do not wait for the next 80ms sample.
   if (dropped) {
     const t = nowMs();
-    samples.push({ t, bpm: null, reg: null, present: false });
+    samples.push(gapHead(t));
     lastSampleAt = t;
+    filtersLive = false;
     notify();
   }
 }
@@ -207,9 +217,9 @@ export function ensureRateHistoryRunning(): void {
   if (running) return;
   running = true;
   lastSampleAt = 0;
-  // Seed an immediate zero sample so Trace has a trail from t=0.
+  // Seed an immediate gap so Trace has a trail from t=0.
   const t0 = nowMs();
-  samples.push({ t: t0, bpm: null, reg: null, present: false });
+  samples.push(gapHead(t0));
   lastSampleAt = t0;
   // setInterval survives minimize/hide; rAF does not.
   intervalId = setInterval(tick, SAMPLE_MS);
@@ -221,13 +231,10 @@ export function getRateSamples(): readonly RateSample[] {
   return samples;
 }
 
-export function getRateEma(): number {
+/** Latest smoothed ORI, or null while away / warming up. */
+export function getOriEma(): number | null {
+  if (!filtersLive || !targetPresent || targetOri === null) return null;
   return smooth;
-}
-
-/** Latest regularity target held by the sampler (0–100 or null). */
-export function getRateReg(): number | null {
-  return targetReg;
 }
 
 /** Subscribe to sample ticks (for Trace redraw). Returns unsubscribe. */
@@ -240,8 +247,8 @@ export function subscribeRateHistory(cb: () => void): () => void {
   };
 }
 
-export function capRateForGraph(bpm: number): number {
-  return capGraph(bpm);
+export function capOriForGraph(ori: number): number {
+  return capGraph(ori);
 }
 
 /** Test / hot-reload helper — not used in production UI. */
@@ -252,9 +259,10 @@ export function _resetRateHistoryForTests(): void {
   }
   running = false;
   samples.length = 0;
-  ema1 = ema2 = ema3 = smooth = targetBpm = 0;
-  targetReg = null;
+  ema1 = ema2 = ema3 = smooth = 0;
+  targetOri = null;
   targetPresent = false;
+  filtersLive = false;
   lastSampleAt = lastNotifyAt = 0;
   listeners.clear();
 }

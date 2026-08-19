@@ -2,7 +2,7 @@
 EyeRhythm processing engine (no UI)
 ===================================
 
-Owns the camera loop, blink detector, daily stats, beeps, and low-rate alerts.
+Owns the camera loop, blink detector, daily stats, beeps, and low-ORI alerts.
 Exposes a thread-safe snapshot of live metrics for the React UI via the API.
 
 Business logic matches the previous OpenCV-based main loop:
@@ -46,6 +46,12 @@ from app.frame_pacer import FACE_FPS, FramePacer, NO_FACE_FPS
 
 
 def resource_root() -> Path:
+    """
+    Folder that contains `models/` and `assets/`.
+
+    From source that is the project root. Inside a packaged .app / .exe,
+    PyInstaller unpacks those files into a temp folder (`sys._MEIPASS`).
+    """
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
         return Path(sys._MEIPASS)
     return Path(__file__).resolve().parents[1]
@@ -54,17 +60,19 @@ def resource_root() -> Path:
 ROOT = resource_root()
 MODEL_PATH = str(ROOT / "models" / "face_landmarker.task")
 
-# Low-rate alert (same behaviour as before)
-ALERT_BPM_THRESHOLD = 10.0
+# ORI alert: beep after enough time below this; stop at/above it.
+ALERT_ORI_THRESHOLD = 50.0
 ALERT_POLL_S = 0.5
-# After a fresh start (or face return after a long break), continuous BPM is
-# still filling its 60 s window and would look artificially low. Suppress
-# alert beeps for this long so we act on real data only.
+# After a fresh start (or face return after a long break), rate (and therefore
+# ORI) is still filling its 60 s window and would look artificially low.
+# Suppress alert beeps for this long so we act on real data only.
 ALERT_WARMUP_S = 60.0
 # Face absence longer than this restarts the alert warmup on re-detection.
 FACE_BREAK_S = 60.0
-# Rolling window used to judge low-rate *trend* (not a single instant dip).
-ALERT_TREND_WINDOW_S = 300.0  # last 5 minutes of face-present rate samples
+# Same span as Trace: judge low-ORI *duration* over the last 5 minutes.
+ALERT_TREND_WINDOW_S = 300.0
+# Beep only after this much of that window has been below threshold (in total).
+ALERT_LOW_DURATION_S = 180.0
 # Do not store a sample more often than this (keeps the deque small).
 ALERT_TREND_SAMPLE_S = 1.0
 
@@ -124,6 +132,7 @@ def look_down_offscreen(
     angle once the face is aimed downward (``bottom`` / ``left-bottom`` /
     ``right-bottom``). Pure left/right (no down) stays on-screen.
     """
+    # “bottom” in the direction label means the face is aimed downward.
     looking_down = isinstance(direction, str) and direction.endswith("bottom")
     if not looking_down:
         try:
@@ -135,6 +144,7 @@ def look_down_offscreen(
     if not looking_down:
         return False
 
+    # Prefer the same combined angle the Look-angle card shows.
     measure: float | None = None
     for raw in (angle_deg, pitch_deg):
         if raw is None:
@@ -151,11 +161,14 @@ def look_down_offscreen(
 
     limit = float(threshold_deg)
     if currently_off:
+        # Once off-screen, stay off until the angle comes a bit back up
+        # (stops the status flipping on every tiny head nod).
         limit = max(0.0, limit - float(hysteresis_deg))
     return measure >= limit
 
 
 def _log(msg: str) -> None:
+    """Write a diagnostic line. Silent if the terminal is already gone."""
     try:
         print(f"[EyeRhythm] {msg}", file=sys.stderr, flush=True)
     except Exception:
@@ -163,10 +176,12 @@ def _log(msg: str) -> None:
 
 
 def _frame_is_black(frame) -> bool:
+    """True if the camera handed us an empty / nearly-all-black picture."""
     return frame is None or float(frame.mean()) < 2.0
 
 
 def _release_camera(cap: cv2.VideoCapture | None) -> None:
+    """Politely close a webcam handle. Safe to call with None."""
     if cap is None:
         return
     try:
@@ -297,6 +312,12 @@ def _read_frame(cap: cv2.VideoCapture | None, *, drain: int = 0):
 
 def _reopen_camera(cap: cv2.VideoCapture | None, index: int,
                    attempt: int) -> cv2.VideoCapture | None:
+    """
+    Close a dead webcam and try again after a short wait.
+
+    Common after the laptop lid closes, the display sleeps, or Windows
+    steals the camera. Each attempt waits a little longer (backoff).
+    """
     _release_camera(cap)
     wait = min(REOPEN_BACKOFF_MAX_S,
                REOPEN_INITIAL_WAIT_S * (1.5 ** min(attempt, 8)))
@@ -321,22 +342,22 @@ def _reopen_camera(cap: cv2.VideoCapture | None, index: int,
 
 class AlertMonitor:
     """
-    Background beeps while face present and rate is low — with trend guard.
+    Background beeps while face present and ORI has been low enough, long enough.
 
     Beep only when **all** of these hold:
-      * face is present,
+      * face is present (and on-screen),
       * face-break / first-face warmup is finished,
-      * **current** continuous BPM is below ``ALERT_BPM_THRESHOLD`` (10)
-        but **not zero** (0 means no usable face / empty window — ignored),
-      * **average** continuous BPM over the last ``ALERT_TREND_WINDOW_S``
-        (5 minutes of **genuine** face-present, non-zero samples) is also
-        below that threshold.
+      * **current** Ocular Rhythm Index is below ``ALERT_ORI_THRESHOLD`` (50)
+        (None means no usable score yet — ignored, not treated as low),
+      * of the last ``ALERT_TREND_WINDOW_S`` (5 minutes, same as Trace),
+        ORI was below 50 for at least ``ALERT_LOW_DURATION_S`` (3 minutes)
+        **in total** (not necessarily consecutive). Gaps (no-face / looking
+        down / no usable ORI) do not count as low time.
 
-    Samples with BPM ≤ 0 are never stored in the trend and never count as
-    “low rate” (those are no-face / unusable readings, not genuine low blinking).
-
-    As soon as the **current** rate rises to ≥ threshold, beeps stop
-    immediately (even if the 5-minute average is still low).
+    As soon as the **current** ORI rises to ≥ threshold, beeps stop
+    immediately — even if the 5-minute window still has 3 minutes of low
+    history. They can resume if ORI dips below 50 again while that history
+    still qualifies.
 
     Alert beeps are also suppressed for ``ALERT_WARMUP_S`` (default 60 s) after:
       * construction / first face of the session, and
@@ -346,39 +367,49 @@ class AlertMonitor:
     def __init__(
         self,
         beeper: Beeper,
-        threshold: float = ALERT_BPM_THRESHOLD,
+        threshold: float = ALERT_ORI_THRESHOLD,
         poll_s: float = ALERT_POLL_S,
         on_alert_beep=None,
+        time_fn=time.monotonic,
     ):
         self._beeper = beeper
         self._threshold = threshold
         self._poll_s = poll_s
         self._on_alert_beep = on_alert_beep
+        self._time = time_fn
         self._lock = threading.Lock()
-        self._bpm = 0.0
+        self._ori: float | None = None
         self._face_found = False
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         # Fresh start: do not beep until one minute of data has accumulated.
-        self._suppress_until = time.monotonic() + ALERT_WARMUP_S
+        self._suppress_until = self._time() + ALERT_WARMUP_S
         # True while the latest update reported a face.
         self._face_present = False
         # Monotonic time when the current no-face stretch began (None if face
         # is present or we have not yet observed a loss after a face).
-        self._absent_since: float | None = time.monotonic()
+        self._absent_since: float | None = self._time()
         # Have we ever seen a face this process lifetime?
         self._ever_had_face = False
-        # Rolling 5-minute face-present rate history: (monotonic_t, bpm).
+        # Rolling 5-minute face-present ORI history: (monotonic_t, ori).
         self._trend: deque[tuple[float, float]] = deque()
-        self._last_trend_sample_at = 0.0
+        self._last_trend_sample_at: float | None = None
 
-    def update(self, bpm: float, face_found: bool) -> None:
+    def update(self, ori: float | None, face_found: bool) -> None:
         """
-        Feed latest detection. Safe to call every camera frame whether or not
+        Feed latest ORI. Safe to call every camera frame whether or not
         the alert thread is running (state is kept warm for face-break logic).
         """
         with self._lock:
-            now = time.monotonic()
+            now = self._time()
+            value: float | None = None
+            if ori is not None:
+                try:
+                    parsed = float(ori)
+                except (TypeError, ValueError):
+                    parsed = None
+                if parsed is not None and math.isfinite(parsed):
+                    value = parsed
             if face_found:
                 if not self._face_present:
                     # Rising edge: face just (re)appeared.
@@ -386,10 +417,10 @@ class AlertMonitor:
                 self._face_present = True
                 self._ever_had_face = True
                 self._absent_since = None
-                # Only genuine rates (BPM > 0). Zero is treated as no usable
-                # face / empty window — must not inflate “low rate” time.
-                if float(bpm) > 0.0:
-                    self._record_trend_sample(now, float(bpm))
+                # Genuine ORI only (including healthy values). None is a gap
+                # in the trail, not a low score — must not inflate low time.
+                if value is not None:
+                    self._record_trend_sample(now, value)
             else:
                 if self._face_present:
                     # Falling edge: start the absence clock exactly once.
@@ -398,29 +429,29 @@ class AlertMonitor:
                     # Never saw a face yet, or state was reset — count as absent.
                     self._absent_since = now
                 self._face_present = False
-            self._bpm = float(bpm)
+            self._ori = value
             self._face_found = bool(face_found)
             self._prune_trend(now)
 
-    def _record_trend_sample(self, now: float, bpm: float) -> None:
+    def _record_trend_sample(self, now: float, ori: float) -> None:
         """
-        Append a genuine face-present rate sample (throttled); caller holds lock.
+        Append a genuine face-present ORI sample (throttled); caller holds lock.
 
-        BPM must be > 0 — zeros are no-face / empty-window noise and must not
-        enter the 5-minute low-rate trend.
+        ``ori`` must be a real score — None/gaps are no-face / empty-window
+        noise and must not enter the 5-minute low-ORI duration.
         """
-        if bpm <= 0.0:
-            return
-        if (now - self._last_trend_sample_at) < ALERT_TREND_SAMPLE_S:
-            # Refresh the latest sample's bpm so the head stays current
-            # (only with a genuine non-zero reading).
+        if (
+            self._last_trend_sample_at is not None
+            and (now - self._last_trend_sample_at) < ALERT_TREND_SAMPLE_S
+        ):
+            # Refresh the latest sample's ori so the head stays current.
             if self._trend:
                 t0, _ = self._trend[-1]
                 if now - t0 < ALERT_TREND_SAMPLE_S * 1.5:
-                    self._trend[-1] = (t0, bpm)
+                    self._trend[-1] = (t0, ori)
                     return
             return
-        self._trend.append((now, bpm))
+        self._trend.append((now, ori))
         self._last_trend_sample_at = now
 
     def _prune_trend(self, now: float) -> None:
@@ -429,66 +460,54 @@ class AlertMonitor:
         while self._trend and self._trend[0][0] < cutoff:
             self._trend.popleft()
 
-    def _trend_average_bpm(self, now: float) -> float | None:
+    def _low_ori_duration_s(self, now: float) -> float:
         """
-        Time-weighted average of continuous BPM over the last 5 minutes.
+        Seconds in the last 5 minutes when ORI was below threshold.
 
-        Uses only genuine samples (BPM > 0). Zero-rate gaps are skipped so
-        no-face / empty-window zeros cannot drag the average down.
-        None if there is no usable history yet.
+        Time-weights consecutive genuine samples. Face-absent / unusable-ORI
+        holes are not filled — those gaps are not “low ORI”. Caller holds lock.
         """
         self._prune_trend(now)
-        # Keep only positive-rate samples (defensive if any zeros slipped in).
-        pts = [(t, v) for t, v in self._trend if v > 0.0]
+        pts = self._trend
         if not pts:
-            return None
-        # Time-weight consecutive genuine samples; do not bridge long gaps
-        # with a zero-rate span (those gaps are not “low blinking”).
-        total_w = 0.0
-        total_v = 0.0
-        max_bridge = ALERT_TREND_SAMPLE_S * 3.0  # ~3 s between samples
+            return 0.0
+        cutoff = now - ALERT_TREND_WINDOW_S
+        # ~3 s between samples is still “continuous”; larger is a trail gap.
+        max_bridge = ALERT_TREND_SAMPLE_S * 3.0
+        total = 0.0
+        n = len(pts)
         for i, (t, v) in enumerate(pts):
-            if i + 1 < len(pts):
-                t_next = pts[i + 1][0]
-                dt = max(0.0, t_next - t)
-                # Large hole = face/zero gap — do not count that empty time.
+            t_clamped = t if t >= cutoff else cutoff
+            if i + 1 < n:
+                dt = max(0.0, pts[i + 1][0] - t_clamped)
                 if dt > max_bridge:
                     dt = ALERT_TREND_SAMPLE_S
             else:
                 # Last sample: only extend a short tail to ``now`` if still live.
-                dt = min(max(0.0, now - t), ALERT_TREND_SAMPLE_S)
-            if dt <= 0:
-                continue
-            total_w += dt
-            total_v += v * dt
-        if total_w <= 0:
-            return float(pts[-1][1])
-        return total_v / total_w
+                dt = min(max(0.0, now - t_clamped), ALERT_TREND_SAMPLE_S)
+            if dt > 0 and v < self._threshold:
+                total += dt
+        return total
 
     def _should_beep_locked(self, now: float) -> bool:
         """
         Beep gate (caller holds lock):
-          current bpm is a genuine low rate (0 < bpm < threshold)
-          AND 5-min average of genuine samples < threshold
+          current ORI is a genuine score below threshold
+          AND at least 3 minutes of the last 5 were also below threshold
           AND face present  AND  not in face-break warmup.
-        Current rate ≥ threshold → False immediately (stop beeps).
-        Current rate ≤ 0 → False (not a genuine low-blink reading).
+        Current ORI ≥ threshold → False immediately (stop beeps).
+        Current ORI is None → False (not a genuine low-ORI reading).
         """
         if not self._face_found:
             return False
         if now < self._suppress_until:
             return False
-        # Zero is not a genuine low count (no-face / empty window).
-        if self._bpm <= 0.0:
+        if self._ori is None:
             return False
-        # Immediate stop when current rate is healthy again.
-        if self._bpm >= self._threshold:
+        # Immediate stop when current ORI is at/above the threshold again.
+        if self._ori >= self._threshold:
             return False
-        avg = self._trend_average_bpm(now)
-        if avg is None or avg <= 0.0:
-            return False
-        # Trend over last 5 minutes must also be below threshold.
-        return avg < self._threshold
+        return self._low_ori_duration_s(now) >= ALERT_LOW_DURATION_S
 
     def _on_face_reappeared(self, now: float) -> None:
         """Apply warmup after first face or after a long absence (caller holds lock)."""
@@ -507,7 +526,7 @@ class AlertMonitor:
         gap = now - self._absent_since
         if gap >= FACE_BREAK_S:
             # Long break: wait a full minute of face-present time before
-            # low-rate alerts can fire (BPM window was empty / stale).
+            # low-ORI alerts can fire (rate window was empty / stale).
             self._suppress_until = now + ALERT_WARMUP_S
             _log(
                 f"alert warmup {int(ALERT_WARMUP_S)}s "
@@ -526,11 +545,12 @@ class AlertMonitor:
             target=self._run, name="AlertMonitor", daemon=True)
         self._thread.start()
         with self._lock:
-            remaining = max(0.0, self._suppress_until - time.monotonic())
+            remaining = max(0.0, self._suppress_until - self._time())
         if remaining > 1.0:
             _log(f"alert started — warmup {remaining:.0f}s still active")
 
     def stop(self) -> None:
+        """Ask the beep thread to finish and wait a moment for it."""
         self._stop.set()
         t = self._thread
         if t is not None and t.is_alive():
@@ -539,16 +559,17 @@ class AlertMonitor:
 
     @property
     def running(self) -> bool:
+        """True while the background alert thread is still alive."""
         return self._thread is not None and self._thread.is_alive()
 
     def _run(self) -> None:
+        """Wake every half-second: beep if ORI is still low, otherwise rest."""
         while not self._stop.is_set():
             with self._lock:
-                now = time.monotonic()
-                # Keep trend head fresh even between sparse camera frames
-                # (genuine non-zero rates only).
-                if self._face_found and self._bpm > 0.0:
-                    self._record_trend_sample(now, self._bpm)
+                now = self._time()
+                # Keep trend head fresh even between sparse camera frames.
+                if self._face_found and self._ori is not None:
+                    self._record_trend_sample(now, self._ori)
                 should = self._should_beep_locked(now)
             if should:
                 self._beeper.beep()
@@ -599,6 +620,7 @@ class PracticeCoach:
         self._thread.start()
 
     def stop(self) -> None:
+        """Cancel the metronome immediately (user ended Practice early)."""
         self._stop.set()
         t = self._thread
         if t is not None and t.is_alive():
@@ -615,10 +637,12 @@ class PracticeCoach:
 
     @property
     def running(self) -> bool:
+        """True while the 3-second beep metronome is still running."""
         return self._thread is not None and self._thread.is_alive()
 
     @property
     def remaining_s(self) -> float:
+        """Seconds left in the 2-minute practice (0 if not running)."""
         if self._ends_at is None:
             return 0.0
         return max(0.0, self._ends_at - time.monotonic())
@@ -745,6 +769,7 @@ class EngineSnapshot:
     timestamp: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
+        """Turn this snapshot into plain JSON for the WebSocket / REST API."""
         return asdict(self)
 
 
@@ -841,6 +866,7 @@ class EyeRhythmEngine:
     # ---- public control -----------------------------------------------
 
     def start(self) -> None:
+        """Begin the background camera loop (no-op if already running)."""
         if self._thread is not None and self._thread.is_alive():
             return
         # Re-apply side-car monitors if they were on last time.
@@ -853,6 +879,7 @@ class EyeRhythmEngine:
         self._thread.start()
 
     def stop(self) -> None:
+        """Shut down camera, alerts, and Practice; save today’s diary files."""
         self._stop.set()
         self._alert.stop()
         self._stop_practice_session()
@@ -880,15 +907,18 @@ class EyeRhythmEngine:
             pass
 
     def snapshot(self) -> EngineSnapshot:
+        """Thread-safe copy of the latest numbers for the dashboard."""
         with self._lock:
             s = EngineSnapshot(**asdict(self._snap))
             return s
 
     def latest_preview_jpeg(self) -> bytes | None:
+        """Most recent Lens-avatar camera still, or None if not encoding."""
         with self._lock:
             return self._preview_jpeg
 
     def set_preview_wanted(self, wanted: bool) -> None:
+        """Turn camera-preview encoding on only while Lens is visible."""
         with self._lock:
             self._preview_wanted = bool(wanted)
             if not wanted:
@@ -910,6 +940,7 @@ class EyeRhythmEngine:
             new_val = self._states[name]
 
             if name == "alert":
+                # Alert is a background beep thread — start or stop it now.
                 if new_val:
                     self._alert.start()
                 else:
@@ -924,6 +955,7 @@ class EyeRhythmEngine:
                     pass
 
             if name == "ontop":
+                # Tell the desktop window to stay above (or stop staying above).
                 for cb in list(self._ontop_listeners):
                     try:
                         cb(new_val)
@@ -990,6 +1022,7 @@ class EyeRhythmEngine:
         _log(f"practice countdown {int(PRACTICE_COUNTDOWN_S)}s — read instructions")
 
     def _countdown_run(self) -> None:
+        """Tick the “read the instructions” clock, then start the 2-min coach."""
         while not self._countdown_stop.is_set():
             left = 0.0
             if self._countdown_ends is not None:
@@ -1024,6 +1057,7 @@ class EyeRhythmEngine:
         _log(f"practice active for {int(PRACTICE_DURATION_S)}s")
 
     def _stop_summary_thread(self) -> None:
+        """Cancel the 20-second results hold if it is still running."""
         self._summary_stop.set()
         t = self._summary_thread
         if t is not None and t.is_alive() and t is not threading.current_thread():
@@ -1134,12 +1168,13 @@ class EyeRhythmEngine:
             self._snap.last_blink_at = self._last_blink_at
 
     def _note_alert_beep(self) -> None:
-        """UI: red pulse on Alert dot when low-rate alert beeps."""
+        """UI: red pulse on Alert dot when low-ORI alert beeps."""
         with self._lock:
             self._last_alert_beep_at = time.time()
             self._snap.last_alert_beep_at = self._last_alert_beep_at
 
     def get_toggles(self) -> dict[str, bool]:
+        """Copy of Beep / Alert / On top / Practice (safe to read from the UI)."""
         with self._lock:
             return dict(self._states)
 
@@ -1163,6 +1198,8 @@ class EyeRhythmEngine:
         now = time.monotonic()
         if present:
             if not self._rate_present and self._rate_absent_mono is not None:
+                # Face just came back — slide the 60s window so BPM does not
+                # drop just because the person looked away for a bit.
                 gap_ms = (now - self._rate_absent_mono) * 1000.0
                 if gap_ms > 250.0 and self._detector is not None:
                     self._detector.hold_rate_across_gap(gap_ms)
@@ -1175,12 +1212,13 @@ class EyeRhythmEngine:
                 self._held_regularity = self._regularity.score
             return
         if self._rate_present:
+            # Just left the screen: remember the last good numbers.
             self._rate_absent_mono = now
             self._regularity.note_break()
         self._rate_present = False
 
     def _update_look_down_offscreen(self, res: FrameResult) -> bool:
-        """Hysteresis around LOOK_DOWN_OFFSCREEN_DEG. False when no face."""
+        """Remember whether the person is looking down off the screen."""
         if not res.face_found:
             self._look_off_screen = False
             return False
@@ -1194,7 +1232,7 @@ class EyeRhythmEngine:
 
     @staticmethod
     def _ori_fields(bpm: float, regularity: float | None) -> dict:
-        """Ocular Rhythm Index fields for EngineSnapshot."""
+        """Ocular Rhythm Index for the snapshot (full once regularity is ready)."""
         reg = regularity
         ori = ocular_rhythm_index(bpm, reg)
         return {
@@ -1207,6 +1245,12 @@ class EyeRhythmEngine:
     # ---- internals ----------------------------------------------------
 
     def _publish(self, **kwargs) -> None:
+        """
+        Copy the latest metrics into `_snap` so the WebSocket can send them.
+
+        Extra kwargs overwrite matching snapshot fields. Practice timers and
+        toggle flags are always refreshed from the live session state.
+        """
         with self._lock:
             for k, v in kwargs.items():
                 if hasattr(self._snap, k):
@@ -1440,18 +1484,22 @@ class EyeRhythmEngine:
         )
 
         try:
+            # Forever, until stop() is called: grab a frame, detect blinks,
+            # update daily stats, then sleep according to the CPU pacer.
             while not self._stop.is_set():
                 loop_start = time.monotonic()
                 # In no-face mode the camera may buffer many frames; drain a few.
                 drain = 3 if pacer.should_drain_buffer() else 0
                 ok, frame = _read_frame(cap, drain=drain)
 
+                # Camera glitch / lid closed / black frame: hold last numbers
+                # and try to reopen after a few failures in a row.
                 if not ok or _frame_is_black(frame):
                     read_fails += 1
                     pacer.note_no_signal()
                     self._screen_time.tick(False)
                     self._sync_presence_hold(False, last_res, 0)
-                    self._alert.update(self._held_bpm, False)
+                    self._alert.update(None, False)
                     self._look_off_screen = False
                     held_reg = (
                         self._held_regularity
@@ -1520,7 +1568,7 @@ class EyeRhythmEngine:
                     _log(f"frame processing error (skipped): {exc}")
                     self._screen_time.tick(False)
                     self._sync_presence_hold(False, last_res, ts_ms)
-                    self._alert.update(self._held_bpm, False)
+                    self._alert.update(None, False)
                     pacer.sleep_for_frame(loop_start)
                     continue
 
@@ -1537,6 +1585,7 @@ class EyeRhythmEngine:
                     res.blinks_per_minute = self._detector.blinks_per_minute_at(
                         ts_ms)
 
+                # On-screen = a face is found and the person is not looking down.
                 present = bool(res.face_found) and not off_screen
                 self._sync_presence_hold(present, res, ts_ms)
                 self._screen_time.tick(present)
@@ -1547,6 +1596,7 @@ class EyeRhythmEngine:
                 except Exception:
                     pass
 
+                # A complete blink just finished (eyes opened again).
                 if res.blink_just_counted:
                     self._screen_time.add_blink()
                     blink_mono = time.monotonic()
@@ -1590,7 +1640,8 @@ class EyeRhythmEngine:
                 live_reg = self._regularity.score
                 if not present and self._held_regularity is not None:
                     live_reg = self._held_regularity
-                self._alert.update(live_bpm, present)
+                live_ori = ocular_rhythm_index(live_bpm, live_reg)
+                self._alert.update(live_ori if present else None, present)
 
                 frames += 1
                 now = time.monotonic()

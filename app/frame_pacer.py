@@ -104,11 +104,13 @@ class FramePacer:
         ``BlinkDetector.process_frame`` (and after blink-side effects).
         """
         if face_found:
+            # Face is back — run at full 30 fps again.
             self.face_absent_streak = 0
             self._interval_s = FACE_INTERVAL_S
         else:
             self.face_absent_streak += 1
             if self.face_absent_streak >= NO_FACE_GRACE_FRAMES:
+                # Nobody in view for a few frames — drop to 1 fps to save CPU.
                 self._interval_s = NO_FACE_INTERVAL_S
 
         # One-shot rest after a counted blink while face is present.

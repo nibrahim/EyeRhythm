@@ -633,6 +633,7 @@ class BlinkDetector:
         return True
 
     def blinks_per_minute_at(self, timestamp_ms: float) -> float:
+        """How many counted blinks fall in the last 60 seconds at this time."""
         return self._bpm(timestamp_ms)
 
     def hold_rate_across_gap(self, gap_ms: float) -> None:

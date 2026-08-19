@@ -28,6 +28,9 @@ STORAGE_DIR = Path.home() / ".eyerhythm_blinkcounter"
 PREFS_FILE = STORAGE_DIR / "preferences.json"
 
 VALID_AVATARS = frozenset({"atlas", "lumen", "vesper", "lens", "graph"})
+VALID_EYE_COMFORT = frozenset(
+    {"comfortable", "mild", "moderate", "marked", "decline"}
+)
 
 # Defaults match app.main compact window.
 DEFAULT_WIDTH = 480
@@ -39,6 +42,7 @@ MIN_EXPANDED_HEIGHT = 640
 # Fallback compact window height until the UI measures the real content.
 COMPACT_HEIGHT = 440
 
+# First-launch values if the JSON file is missing or broken.
 _DEFAULTS: dict[str, Any] = {
     "avatar": "atlas",
     "compact": True,
@@ -47,13 +51,17 @@ _DEFAULTS: dict[str, Any] = {
     "beep": False,
     "alert": False,
     "ontop": False,
+    # Last splash ocular-comfort self-check (empty = never answered).
+    "eye_comfort": "",
 }
 
+# One lock + in-memory copy so the UI and engine can read/write safely.
 _lock = threading.RLock()
 _cache: dict[str, Any] | None = None
 
 
 def _clamp_size(width: int, height: int) -> tuple[int, int]:
+    """Keep a saved window size inside a sane range (not tiny, not huge)."""
     w = max(MIN_WIDTH, int(width))
     h = max(MIN_HEIGHT, int(height))
     # Soft upper bound so a huge multi-monitor size does not break layout.
@@ -63,6 +71,12 @@ def _clamp_size(width: int, height: int) -> tuple[int, int]:
 
 
 def _sanitize(raw: dict[str, Any]) -> dict[str, Any]:
+    """
+    Copy only values we understand from a preference file.
+
+    Unknown keys, bad types, or an old “practice” flag are ignored so a
+    hand-edited or outdated file cannot crash the next launch.
+    """
     data = deepcopy(_DEFAULTS)
     if not isinstance(raw, dict):
         return data
@@ -85,6 +99,12 @@ def _sanitize(raw: dict[str, Any]) -> dict[str, Any]:
         if key in raw:
             data[key] = bool(raw[key])
     # Ignore legacy "practice" key if present in old preference files.
+
+    comfort = raw.get("eye_comfort", data["eye_comfort"])
+    if isinstance(comfort, str) and comfort in VALID_EYE_COMFORT:
+        data["eye_comfort"] = comfort
+    elif comfort == "":
+        data["eye_comfort"] = ""
 
     return data
 
@@ -134,22 +154,27 @@ def save(partial: dict[str, Any] | None = None, **kwargs: Any) -> dict[str, Any]
 
 
 def get_avatar() -> str:
+    """Which face / Trace view the user last picked (atlas, lumen, …)."""
     return str(load()["avatar"])
 
 
 def set_avatar(avatar: str) -> dict[str, Any]:
+    """Remember the chosen avatar for the next launch."""
     return save(avatar=avatar)
 
 
 def get_compact() -> bool:
+    """True = companion window (avatar + buttons only, no metric cards)."""
     return bool(load().get("compact", True))
 
 
 def set_compact(compact: bool) -> dict[str, Any]:
+    """Remember whether More (full dashboard) or Less (compact) was last used."""
     return save(compact=bool(compact))
 
 
 def get_window_size() -> tuple[int, int]:
+    """Last saved expanded width × height (pixels)."""
     p = load()
     return int(p["window_width"]), int(p["window_height"])
 
@@ -177,6 +202,7 @@ def set_window_size(width: int, height: int) -> dict[str, Any]:
 
 
 def get_toggles() -> dict[str, bool]:
+    """Last session’s Beep / Alert / On top (Practice is never stored)."""
     p = load()
     return {
         "beep": bool(p["beep"]),
@@ -186,6 +212,7 @@ def get_toggles() -> dict[str, bool]:
 
 
 def set_toggles(**flags: bool) -> dict[str, Any]:
+    """Save only the durable switches; unknown names are ignored."""
     allowed = {
         k: bool(v)
         for k, v in flags.items()

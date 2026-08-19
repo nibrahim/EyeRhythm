@@ -1,3 +1,12 @@
+/**
+ * Vite build settings for the React dashboard
+ * ===========================================
+ *
+ * * `npm run dev`  — hot-reload UI on port 5173. `/api` and `/ws` are
+ *   forwarded to the Python engine on 8742 so you do not need two origins.
+ * * `npm run build` — writes a static site into `frontend/dist`, which the
+ *   packaged desktop app then serves.
+ */
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 

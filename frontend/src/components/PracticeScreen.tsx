@@ -1,9 +1,16 @@
 /**
- * Full-screen Practice experience.
+ * Full-screen Practice experience
+ * ===============================
  *
- * * Countdown — instructions + timer
- * * Active — ball + string thrown from center to extremes (fade fully out)
- * * Summary — session blink rate + regularity for 20s, then auto-close
+ * Three acts, driven by the engine (not by this file’s timers):
+ *
+ * * Countdown — read the instructions; big number counts down
+ * * Active — a ball + string is thrown from the centre to each corner
+ *   (and a spiral), fading out on each beep
+ * * Summary — session blink rate + regularity for ~20 s, then auto-close
+ *
+ * Escape (or End practice) tells the engine to stop. The native window
+ * is taken fullscreen while this overlay is visible.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -37,6 +44,7 @@ export function PracticeScreen({ state }: Props) {
   const startWallRef = useRef(0);
 
   useEffect(() => {
+    // Grow the desktop window (or use the browser Fullscreen API).
     if (active) {
       void setPracticeFullscreen(true);
       return () => {
@@ -47,6 +55,8 @@ export function PracticeScreen({ state }: Props) {
   }, [active]);
 
   useEffect(() => {
+    // Lock our animation clock to the engine’s start time so the ball
+    // arrives at a corner at the same instant the beep plays.
     if (isActive && state.practice_active_started_at > 0) {
       const wallMs = state.practice_active_started_at * 1000;
       startWallRef.current = wallMs;
@@ -82,6 +92,7 @@ export function PracticeScreen({ state }: Props) {
   }, [active, isSummary]);
 
   const endPractice = useCallback(() => {
+    // Same as turning the Practice chip off — engine cancels countdown/coach.
     void setToggle("practice", false);
   }, []);
 
@@ -97,7 +108,7 @@ export function PracticeScreen({ state }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [active, endPractice]);
 
-  // Active throw animation only.
+  // Active throw animation only — redraws every screen refresh.
   useEffect(() => {
     if (!isActive || !active) return;
     const canvas = canvasRef.current;
@@ -380,6 +391,7 @@ export function PracticeScreen({ state }: Props) {
   );
 }
 
+/** Leftover seconds as `m:ss` for the top-right timer. */
 function formatClock(remainingS: number): string {
   const secs = Math.max(0, Math.ceil(remainingS));
   const mm = Math.floor(secs / 60);

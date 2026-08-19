@@ -13,13 +13,20 @@ interface Props {
 
 /**
  * Hero: single avatar stage (fixed height for every mode).
- * - Eyes status pill: centered on the top of the head (hidden for Trace)
- * - Blinks today: top-right (avatar modes only — hidden in Trace)
- * - Picker: Atlas / Lumen / Vesper / Lens / Trace
- * - Rate history is owned at App root (useRateHistory) so Trace always
- *   has the last 5 minutes, even after avatar switches / minimize.
+ *
+ * What you see
+ * ------------
+ * * Eyes status pill — centered on the top of the head (hidden for Trace)
+ * * Blinks today — top-right (avatar modes only — hidden in Trace)
+ * * Picker — Atlas / Lumen / Vesper / Lens / Trace
+ *
+ * ORI history is owned at App root (`useRateHistory`) so Trace always
+ * has the last 5 minutes, even after avatar switches / minimize.
+ *
+ * Lens asks the engine for JPEG stills only while it is selected.
  */
 export function HeroPanel({ state, avatarId, onAvatarChange }: Props) {
+  // “Present” means a face is found *and* the person is not looking down.
   const present = state.face_found && !state.off_screen;
   const tone = rateTone(state.continuous_bpm, present);
   const label = eyesLabel(state.face_found, state.eyes_closed, state.off_screen);
@@ -32,6 +39,7 @@ export function HeroPanel({ state, avatarId, onAvatarChange }: Props) {
       setFrameUrl(null);
       return;
     }
+    // Start/stop camera-still polling when Lens is chosen / left.
     return startPreviewPolling(setFrameUrl);
   }, [isLens]);
 

@@ -1,3 +1,18 @@
+/**
+ * The whole dashboard lives in this one component.
+ *
+ * Layout (top → bottom):
+ *   1. Title bar with a Live / Connecting light
+ *   2. Hero: blinking avatar (or live camera / Trace graph)
+ *   3. More / Less — hide extra cards in the compact companion window
+ *   4. Six metric cards + the Information & Quote strip
+ *   5. Beep / Alert / On top / Practice buttons
+ *   6. Full-screen Practice overlay when that mode is on
+ *
+ * Live numbers arrive from the Python engine via a WebSocket
+ * (`useEngineState`). Last-session avatar and compact/full layout are
+ * restored from local preferences.
+ */
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { fetchPreferences, savePreferences, setToggle } from "./api";
 import {
@@ -12,6 +27,7 @@ import { Logo } from "./components/Logo";
 import { MetricCard } from "./components/MetricCard";
 import { InfoQuoteCard } from "./components/InfoQuoteCard";
 import { PracticeScreen } from "./components/PracticeScreen";
+import { SplashScreen } from "./components/SplashScreen";
 import { useEngineState } from "./hooks/useEngineState";
 import { useRateHistory } from "./hooks/useRateHistory";
 import { formatBpm, lookAngleTone, oriTone, regularityTone, rateTone } from "./utils/format";
@@ -19,6 +35,7 @@ import { formatBpm, lookAngleTone, oriTone, regularityTone, rateTone } from "./u
 const AVATARS: AvatarId[] = ["atlas", "lumen", "vesper", "lens", "graph"];
 
 function asAvatarId(v: unknown): AvatarId {
+  // Unknown / corrupted preference → fall back to Atlas (the default face).
   if (typeof v === "string" && (AVATARS as string[]).includes(v)) {
     return v as AvatarId;
   }
@@ -26,16 +43,21 @@ function asAvatarId(v: unknown): AvatarId {
 }
 
 export default function App() {
+  // Live blink numbers + whether the local engine is connected.
   const { state, connected } = useEngineState();
   const [avatarId, setAvatarId] = useState<AvatarId>("atlas");
+  // Compact = small companion (avatar + buttons). Expanded = full dashboard.
   const [compact, setCompact] = useState(true);
   const [prefsReady, setPrefsReady] = useState(false);
+  // Launch splash: comfort check + notices, until Start or 3 minutes.
+  const [splashOpen, setSplashOpen] = useState(true);
 
   // Session-wide Trace history: starts at boot, survives avatar switches + minimize.
   const present = state.face_found && !state.off_screen;
-  useRateHistory(state.continuous_bpm, present, state.regularity);
+  useRateHistory(state.ocular_rhythm_index, present);
 
   useEffect(() => {
+    // Wait for the desktop window to inject its resize/fullscreen helpers.
     void whenBridgeReady();
   }, []);
 
@@ -65,6 +87,7 @@ export default function App() {
   }, []);
 
   const persistAvatar = useCallback((id: AvatarId) => {
+    // Update the picture immediately, then remember it for next launch.
     setAvatarId(id);
     void savePreferences({ avatar: id }).catch(() => {
       /* offline / restarting */
@@ -77,6 +100,7 @@ export default function App() {
       /* offline / restarting */
     });
     if (!next) {
+      // Expanding: grow the native window to last session’s dashboard height.
       void setCompactLayout(false);
     }
   }, []);
@@ -84,7 +108,7 @@ export default function App() {
   // Hug compact content so the gap under the buttons matches the gap
   // between the title bar and the avatar card.
   useLayoutEffect(() => {
-    if (!compact) return;
+    if (!compact || splashOpen) return;
     let cancelled = false;
     const id = window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
@@ -97,12 +121,14 @@ export default function App() {
       cancelled = true;
       window.cancelAnimationFrame(id);
     };
-  }, [compact]);
+  }, [compact, splashOpen]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (same letters shown on the bottom buttons).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (splashOpen) return;
       const t = e.target as HTMLElement | null;
+      // Do not steal keys while someone is typing in a field.
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
       const k = e.key.toLowerCase();
       if (k === "b") void setToggle("beep");
@@ -116,9 +142,11 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [avatarId, compact, persistAvatar, persistCompact]);
+  }, [avatarId, compact, persistAvatar, persistCompact, splashOpen]);
 
+  // Colour of each card: good / warn / bad / idle based on the live number.
   const bpmTone = rateTone(state.continuous_bpm, present);
+  // “—” means we do not have a number yet (no face, or still warming up).
   const oriValue =
     state.ocular_rhythm_index !== null
       ? Math.round(state.ocular_rhythm_index)
@@ -159,6 +187,7 @@ export default function App() {
       className={`app-shell${compact ? " is-compact" : ""}`}
       data-prefs-ready={prefsReady ? "1" : "0"}
     >
+      {/* Brand + camera status light (hidden in compact companion mode). */}
       <header className="topbar">
         <div className="topbar__brand">
           <Logo size={30} />
@@ -188,12 +217,14 @@ export default function App() {
       </header>
 
       <main className="dashboard">
+        {/* Avatar / Lens / Trace plus the blinks-today chip. */}
         <HeroPanel
           state={state}
           avatarId={avatarId}
           onAvatarChange={persistAvatar}
         />
 
+        {/* Compact ↔ full dashboard. “D” on the keyboard does the same. */}
         <button
           type="button"
           className="layout-toggle"
@@ -217,6 +248,7 @@ export default function App() {
           </span>
         </div>
 
+        {/* Six live tiles + the quote card. Hidden while compact. */}
         <section
           className="metrics-grid"
           aria-label="Blink metrics"
@@ -286,6 +318,10 @@ export default function App() {
 
       {/* Full-screen practice: countdown + ball/string visual coach */}
       <PracticeScreen state={state} />
+
+      {splashOpen ? (
+        <SplashScreen onDone={() => setSplashOpen(false)} />
+      ) : null}
     </div>
   );
 }

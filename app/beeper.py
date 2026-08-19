@@ -83,6 +83,7 @@ class Beeper:
         """
         with self._lock:
             if self._worker_active:
+                # Already playing: remember this extra blink for later.
                 if self._pending < _MAX_PENDING:
                     self._pending += 1
                 return

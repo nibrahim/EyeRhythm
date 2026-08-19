@@ -245,6 +245,7 @@ class InterBlinkHourTracker:
     # ============================================================ internals
 
     def _has_open_data(self) -> bool:
+        """True if today’s unfinished hour has anything worth saving."""
         return (
             self._hour_start_wall is not None
             or len(self._gaps) > 0
@@ -253,16 +254,19 @@ class InterBlinkHourTracker:
         )
 
     def _seconds_in_current_hour(self, end_screen_s: float | None = None) -> float:
+        """How many face-present seconds sit in the open hour bucket."""
         end = self._screen_seconds if end_screen_s is None else end_screen_s
         return max(0.0, float(end) - self._hour_start_screen_s)
 
     def _find_open_record(self, day: str) -> dict[str, Any] | None:
+        """Most recent incomplete hour row for this calendar day, if any."""
         for r in reversed(self._records):
             if r.get("date") == day and r.get("complete") is False:
                 return r
         return None
 
     def _find_record_index(self, day: str, hour_index: int) -> int | None:
+        """Where in the list this day’s Nth screen-hour already lives."""
         for i, r in enumerate(self._records):
             if r.get("date") == day and int(r.get("hour_index", -1)) == hour_index:
                 return i

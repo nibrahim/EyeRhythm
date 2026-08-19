@@ -1,4 +1,9 @@
-/** EyeRhythm mark — solid brand blue (no gradients). */
+/**
+ * Tiny EyeRhythm mark used in the title bar.
+ *
+ * A rounded blue square with a simple eye. Drawn as SVG so it stays
+ * sharp at any size; no image file is needed.
+ */
 export function Logo({ size = 28 }: { size?: number }) {
   return (
     <svg

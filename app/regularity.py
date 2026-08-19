@@ -37,11 +37,13 @@ class RegularityTracker:
             min_gaps = 2
         self._max_gaps = max(min_gaps, max_gaps)
         self._min_gaps = min_gaps
+        # Rolling list of recent “seconds between blinks”.
         self._gaps: deque[float] = deque(maxlen=self._max_gaps)
         self._last_blink_s: float | None = None
         self._score: float | None = None
         self._last_cv: float | None = None
         self._practice_mode = False
+        # During Practice this is 3.0 s (the beep cadence).
         self._target_interval: float | None = None
 
     def record_blink(
@@ -95,18 +97,23 @@ class RegularityTracker:
 
     @property
     def score(self) -> float | None:
+        """0–100 regularity, or None until we have at least two blink gaps."""
         return self._score
 
     @property
     def gap_count(self) -> int:
+        """How many inter-blink gaps are in the rolling window."""
         return len(self._gaps)
 
     @property
     def coefficient_of_variation(self) -> float | None:
+        """Raw CV (spread ÷ average gap). Lower = more even rhythm."""
         return self._last_cv
 
     def _recompute(self) -> None:
+        """Turn the recent blink-gap list into a 0–100 regularity score."""
         if len(self._gaps) < self._min_gaps:
+            # Need at least two gaps (three blinks) before a score exists.
             self._score = None
             self._last_cv = None
             return
@@ -118,6 +125,8 @@ class RegularityTracker:
             self._last_cv = None
             return
 
+        # CV = “how spread out are the gaps?” ÷ “average gap”.
+        # 0 means every blink was the same distance apart.
         std = statistics.stdev(gaps)
         cv = std / mean
         self._last_cv = cv

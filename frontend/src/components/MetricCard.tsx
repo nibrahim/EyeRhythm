@@ -1,3 +1,9 @@
+/**
+ * One coloured tile on the dashboard (rate, ORI, screen time, …).
+ *
+ * The *numbers* come from the parent. This file only decides how they look:
+ * title, big value, unit, small subtitle, and a pastel colour family.
+ */
 import type { ReactNode } from "react";
 
 /** Distinct pastel palettes matching the reference health dashboard. */

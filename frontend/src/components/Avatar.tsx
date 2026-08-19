@@ -1,6 +1,12 @@
 /**
- * Decorative blinking avatars + live camera “Lens” + rate “Trace” graph.
- * Labels are neutral product names.
+ * Decorative blinking avatars + live camera “Lens”
+ * ================================================
+ *
+ * Atlas, Lumen and Vesper are drawn faces. Their eyelids close when the
+ * engine reports a blink. Lens is your real webcam still. Trace (the
+ * graph) is a separate component; this file only draws the faces.
+ *
+ * Product names are on purpose — not “camera” / “graph” in the picker.
  */
 
 export type AvatarId = "atlas" | "lumen" | "vesper" | "lens" | "graph";
@@ -33,7 +39,10 @@ export function Avatar({
   cameraOk,
   cameraMessage,
 }: Props) {
+  // Close the drawn lids on a counted close *or* a high closure score
+  // (so the face feels in sync even before the state machine commits).
   const lid = eyesClosed || blinkScore > 0.45;
+  // Dim the cartoon faces when nobody is in front of the camera.
   const opacity = id === "lens" ? 1 : faceFound ? 1 : 0.45;
 
   return (
@@ -52,6 +61,7 @@ export function Avatar({
   );
 }
 
+/** Live camera crop (or a placeholder while the first JPEG is on its way). */
 function LensView({
   frameUrl,
   cameraOk,
@@ -77,6 +87,7 @@ function LensView({
   );
 }
 
+/** Tiny camera icon in the corner of the Lens preview. */
 function CameraGlyph() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -90,6 +101,7 @@ function CameraGlyph() {
   );
 }
 
+/** Warm-toned portrait. `lid` true = eyes drawn as thin closed slits. */
 function Atlas({ lid }: { lid: boolean }) {
   return (
     <svg viewBox="0 0 220 280" className="avatar__svg" preserveAspectRatio="xMidYMid meet">
@@ -129,6 +141,7 @@ function Atlas({ lid }: { lid: boolean }) {
   );
 }
 
+/** Lighter portrait with a dark hair silhouette. */
 function Lumen({ lid }: { lid: boolean }) {
   return (
     <svg viewBox="0 0 220 280" className="avatar__svg" preserveAspectRatio="xMidYMid meet">
@@ -180,6 +193,7 @@ function Lumen({ lid }: { lid: boolean }) {
   );
 }
 
+/** Cool blue portrait with a small accent sparkle. */
 function Vesper({ lid }: { lid: boolean }) {
   return (
     <svg viewBox="0 0 220 280" className="avatar__svg" preserveAspectRatio="xMidYMid meet">
@@ -240,6 +254,7 @@ function Vesper({ lid }: { lid: boolean }) {
   );
 }
 
+/** Pair of ellipses that flatten when `lid` is true (a blink). */
 function Eyes({
   left,
   right,
@@ -293,6 +308,7 @@ interface PickerProps {
   onChange: (id: AvatarId) => void;
 }
 
+/** Five equal chips under the hero: pick Atlas / Lumen / Vesper / Lens / Trace. */
 export function AvatarPicker({ value, onChange }: PickerProps) {
   return (
     <div className="avatar-picker" role="radiogroup" aria-label="Avatar style">

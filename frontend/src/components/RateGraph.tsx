@@ -1,36 +1,36 @@
 /**
- * Live continuous-rate chart for the “Trace” avatar option.
+ * Live Ocular Rhythm Index chart for the “Trace” avatar option.
  *
- * Renders the last 5 minutes from the session-wide rate history store
+ * Renders the last 5 minutes from the session-wide ORI history store
  * (so switching avatars does not reset the plot).
  * Thin blue stroke; multi-stage smoothing for a continuous glide.
- * Left Y-axis: blink rate 0–30 (marks every 10; red dotted line at 10).
- * Right Y-axis: regularity 0–100 (plotted simultaneously, orange stroke).
- * Rate time runs now→−5m (now on the left). Regularity is the mirror
- * (now on the right).
+ * Y-axis: ORI 0–100 (marks every 25; red dotted line at the alert 50).
+ * Time runs now→−5m (now on the left). The line cuts on no-face / off-screen.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   RATE_WINDOW_S,
-  capRateForGraph,
-  getRateEma,
-  getRateReg,
+  capOriForGraph,
+  getOriEma,
   getRateSamples,
   subscribeRateHistory,
   type RateSample,
 } from "../hooks/rateHistory";
 
+// How far (seconds) each plotted point averages neighbouring samples.
 const AVG_HALF_S = 2.4;
+// Maximum dots we sample across the 5-minute window (keeps drawing cheap).
 const DRAW_POINTS = 240;
 const GAUSS_RADIUS = 4;
 const TENSION = 0.14;
-const Y_MAX = 30;
-const Y_TICKS = [10, 20, 30] as const;
-const Y_REG_MAX = 100;
-const Y_REG_TICKS = [25, 50, 75, 100] as const;
-const LOW_RATE_LINE = 10;
-const PAD = { top: 28, right: 28, bottom: 28, left: 28 };
+// Vertical scale is ORI 0 at the bottom, 100 at the top.
+const Y_MAX = 100;
+const Y_TICKS = [25, 50, 75, 100] as const;
+const ALERT_ORI_LINE = 50;
+const GOOD_ORI_MIN = 70;
+// Empty margin so axis labels are not clipped.
+const PAD = { top: 28, right: 14, bottom: 28, left: 28 };
 
 export interface RateGraphProps {
   faceFound: boolean;
@@ -39,14 +39,16 @@ export interface RateGraphProps {
 
 function isLiveSample(
   s: RateSample | undefined,
-): s is RateSample & { bpm: number } {
-  return Boolean(s && s.present && s.bpm !== null && Number.isFinite(s.bpm));
+): s is RateSample & { ori: number } {
+  // A “live” sample has a real ORI and a face looking at the screen.
+  return Boolean(s && s.present && s.ori !== null && Number.isFinite(s.ori));
 }
 
 function nearestSample(
   arr: readonly RateSample[],
   t: number,
 ): RateSample | undefined {
+  // Binary search: the history is always sorted by time.
   if (arr.length === 0) return undefined;
   if (t <= arr[0].t) return arr[0];
   if (t >= arr[arr.length - 1].t) return arr[arr.length - 1];
@@ -60,17 +62,18 @@ function nearestSample(
   return t - arr[lo].t <= arr[hi].t - t ? arr[lo] : arr[hi];
 }
 
-/** True when the trail should be cut at t (no-face or looking down). */
+/** True when the trail should be cut at t (no-face, looking down, or no ORI). */
 function isAbsentAt(arr: readonly RateSample[], t: number): boolean {
   const s = nearestSample(arr, t);
   return !isLiveSample(s);
 }
 
-function bpmAt(arr: readonly RateSample[], t: number): number | null {
+/** ORI at time `t`, smoothly blended between the two nearest live samples. */
+function oriAt(arr: readonly RateSample[], t: number): number | null {
   if (arr.length === 0) return null;
-  if (t <= arr[0].t) return isLiveSample(arr[0]) ? arr[0].bpm : null;
+  if (t <= arr[0].t) return isLiveSample(arr[0]) ? arr[0].ori : null;
   if (t >= arr[arr.length - 1].t) {
-    return isLiveSample(arr[arr.length - 1]) ? arr[arr.length - 1].bpm : null;
+    return isLiveSample(arr[arr.length - 1]) ? arr[arr.length - 1].ori : null;
   }
 
   let lo = 0;
@@ -84,47 +87,20 @@ function bpmAt(arr: readonly RateSample[], t: number): number | null {
   const b = arr[hi];
   if (!isLiveSample(a) || !isLiveSample(b)) return null;
   const span = b.t - a.t;
-  if (span <= 0) return b.bpm;
+  if (span <= 0) return b.ori;
   let u = (t - a.t) / span;
   u = u * u * (3 - 2 * u);
-  return a.bpm + (b.bpm - a.bpm) * u;
+  return a.ori + (b.ori - a.ori) * u;
 }
 
-/** Interpolate regularity; returns null when no sample near t has a score. */
-function regAt(arr: readonly RateSample[], t: number): number | null {
-  if (arr.length === 0) return null;
-  if (t <= arr[0].t) return isLiveSample(arr[0]) ? arr[0].reg : null;
-  if (t >= arr[arr.length - 1].t) {
-    return isLiveSample(arr[arr.length - 1]) ? arr[arr.length - 1].reg : null;
-  }
-
-  let lo = 0;
-  let hi = arr.length - 1;
-  while (lo + 1 < hi) {
-    const mid = (lo + hi) >> 1;
-    if (arr[mid].t <= t) lo = mid;
-    else hi = mid;
-  }
-  const a = arr[lo];
-  const b = arr[hi];
-  if (!isLiveSample(a) || !isLiveSample(b)) return null;
-  if (a.reg === null && b.reg === null) return null;
-  if (a.reg === null) return b.reg;
-  if (b.reg === null) return a.reg;
-  const span = b.t - a.t;
-  if (span <= 0) return b.reg;
-  let u = (t - a.t) / span;
-  u = u * u * (3 - 2 * u);
-  return a.reg + (b.reg - a.reg) * u;
-}
-
-function averagedBpm(
+/** Weighted average of nearby samples so the line glides instead of stepping. */
+function averagedOri(
   arr: readonly RateSample[],
   t: number,
   halfMs: number,
 ): number | null {
   if (arr.length === 0) return null;
-  if (bpmAt(arr, t) === null) return null;
+  if (oriAt(arr, t) === null) return null;
   const t0 = t - halfMs;
   const t1 = t + halfMs;
   const sigma = halfMs / 2.2;
@@ -137,17 +113,14 @@ function averagedBpm(
     if (!isLiveSample(s)) continue;
     const d = s.t - t;
     const w = Math.exp(-(d * d) / twoSigma2);
-    sum += s.bpm * w;
+    sum += s.ori * w;
     wsum += w;
   }
   if (wsum > 0) return sum / wsum;
-  return bpmAt(arr, t);
+  return oriAt(arr, t);
 }
 
-function capRegForGraph(reg: number): number {
-  return Math.min(Y_REG_MAX, Math.max(0, reg));
-}
-
+/** Soften a list of Y positions so the stroke does not look jagged. */
 function blurYs(ys: number[], radius: number): number[] {
   if (ys.length < 3 || radius < 1) return ys;
   const out = new Array<number>(ys.length);
@@ -187,7 +160,6 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   }
 
   // Prefer a reliable polyline when the x-span is tiny (early trail).
-  // Rate is drawn right→left, so compare absolute span.
   const xSpan = Math.abs(pts[pts.length - 1].x - pts[0].x);
   if (xSpan < 4) {
     let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
@@ -216,6 +188,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
 export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 320, h: 200 });
+  // Bumped on every history tick so React redraws the SVG.
   const [frame, setFrame] = useState(0);
   const [blinkFlash, setBlinkFlash] = useState(false);
   const prevBlinkAt = useRef(0);
@@ -243,12 +216,14 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
   }, []);
 
   useEffect(() => {
+    // Redraw whenever the 5-minute history adds a new sample.
     return subscribeRateHistory(() => {
       setFrame((n) => (n + 1) % 1_000_000);
     });
   }, []);
 
   useEffect(() => {
+    // Flash the small blink dot when a blink is counted.
     if (!lastBlinkAt || lastBlinkAt === prevBlinkAt.current) return;
     prevBlinkAt.current = lastBlinkAt;
     setBlinkFlash(true);
@@ -256,7 +231,7 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
     return () => window.clearTimeout(id);
   }, [lastBlinkAt]);
 
-  const { pathD, regPathD, nowBpm, nowReg } = useMemo(() => {
+  const { pathD, nowOri } = useMemo(() => {
     void frame;
     const now = performance.now();
     const arr = getRateSamples();
@@ -269,16 +244,12 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
 
     const uOf = (t: number) =>
       Math.max(0, Math.min(1, (t - tStart) / (RATE_WINDOW_S * 1000)));
-    // Rate: now on the left. Regularity: now on the right (mirror).
-    const xOfRate = (t: number) => PAD.left + (1 - uOf(t)) * plotW;
-    const xOfReg = (t: number) => PAD.left + uOf(t) * plotW;
-    const yOf = (bpm: number) =>
-      PAD.top + plotH - (capRateForGraph(bpm) / Y_MAX) * plotH;
-    const yOfReg = (reg: number) =>
-      PAD.top + plotH - (capRegForGraph(reg) / Y_REG_MAX) * plotH;
+    // ORI: now on the left, −5m on the right.
+    const xOf = (t: number) => PAD.left + (1 - uOf(t)) * plotW;
+    const yOf = (ori: number) =>
+      PAD.top + plotH - (capOriForGraph(ori) / Y_MAX) * plotH;
 
-    const rateSegs: { x: number; y: number }[][] = [];
-    const regSegs: { x: number; y: number }[][] = [];
+    const segs: { x: number; y: number }[][] = [];
 
     if (arr.length > 0) {
       const dataStart = Math.max(tStart, arr[0].t);
@@ -289,28 +260,17 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
         Math.min(DRAW_POINTS, Math.ceil(spanMs / 50) + 2),
       );
 
-      let rateRun: { x: number; y: number }[] = [];
-      let regRun: { x: number; y: number }[] = [];
-      const flushRate = () => {
-        if (rateRun.length > 0) {
-          const xs = rateRun.map((p) => p.x);
+      // One “run” is a continuous line; a gap (no face) starts a new run.
+      let run: { x: number; y: number }[] = [];
+      const flush = () => {
+        if (run.length > 0) {
+          const xs = run.map((p) => p.x);
           const ys = blurYs(
-            rateRun.map((p) => p.y),
+            run.map((p) => p.y),
             GAUSS_RADIUS,
           );
-          rateSegs.push(xs.map((x, i) => ({ x, y: ys[i] })));
-          rateRun = [];
-        }
-      };
-      const flushReg = () => {
-        if (regRun.length > 0) {
-          const xs = regRun.map((p) => p.x);
-          const ys = blurYs(
-            regRun.map((p) => p.y),
-            Math.min(GAUSS_RADIUS, 2),
-          );
-          regSegs.push(xs.map((x, i) => ({ x, y: ys[i] })));
-          regRun = [];
+          segs.push(xs.map((x, i) => ({ x, y: ys[i] })));
+          run = [];
         }
       };
 
@@ -318,114 +278,79 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
         const u = n === 1 ? 1 : i / (n - 1);
         const t = dataStart + u * spanMs;
         if (isAbsentAt(arr, t)) {
-          flushRate();
-          flushReg();
+          flush();
           continue;
         }
-        const at = bpmAt(arr, t);
-        const v = at === null ? null : (averagedBpm(arr, t, halfMs) ?? at);
+        const at = oriAt(arr, t);
+        const v = at === null ? null : (averagedOri(arr, t, halfMs) ?? at);
         if (v === null) {
-          flushRate();
-          flushReg();
+          flush();
           continue;
         }
-        rateRun.push({
-          x: Math.max(PAD.left, Math.min(PAD.left + plotW, xOfRate(t))),
+        run.push({
+          x: Math.max(PAD.left, Math.min(PAD.left + plotW, xOf(t))),
           y: yOf(v),
         });
-        const reg = regAt(arr, t);
-        if (reg !== null) {
-          regRun.push({
-            x: Math.max(PAD.left, Math.min(PAD.left + plotW, xOfReg(t))),
-            y: yOfReg(reg),
-          });
-        } else {
-          flushReg();
-        }
       }
-      flushRate();
-      flushReg();
+      flush();
 
       const latest = arr[arr.length - 1];
-      const liveHead = faceFound && isLiveSample(latest);
-      if (liveHead && rateSegs.length > 0) {
-        const last = rateSegs[rateSegs.length - 1];
+      const live = getOriEma();
+      const liveHead = faceFound && isLiveSample(latest) && live !== null;
+      if (liveHead && segs.length > 0) {
+        const last = segs[segs.length - 1];
         if (last.length > 0) {
           last[last.length - 1] = {
             x: PAD.left,
-            y: yOf(getRateEma()),
-          };
-        }
-      }
-      if (liveHead && regSegs.length > 0) {
-        const liveReg = getRateReg();
-        const last = regSegs[regSegs.length - 1];
-        if (liveReg !== null && last.length > 0) {
-          last[last.length - 1] = {
-            x: PAD.left + plotW,
-            y: yOfReg(liveReg),
+            y: yOf(live),
           };
         }
       }
     }
 
     return {
-      pathD: rateSegs.map(smoothPath).filter(Boolean).join(" "),
-      regPathD: regSegs.map(smoothPath).filter(Boolean).join(" "),
-      nowBpm: getRateEma(),
-      nowReg: getRateReg(),
+      pathD: segs.map(smoothPath).filter(Boolean).join(" "),
+      nowOri: getOriEma(),
     };
   }, [frame, size, faceFound]);
 
   const { w, h } = size;
   const plotW = Math.max(1, w - PAD.left - PAD.right);
   const plotH = Math.max(1, h - PAD.top - PAD.bottom);
-  const yOf = (bpm: number) =>
-    PAD.top + plotH - (capRateForGraph(bpm) / Y_MAX) * plotH;
-  const yOfReg = (reg: number) =>
-    PAD.top + plotH - (capRegForGraph(reg) / Y_REG_MAX) * plotH;
+  const yOf = (ori: number) =>
+    PAD.top + plotH - (capOriForGraph(ori) / Y_MAX) * plotH;
 
-  const bandTop = yOf(20);
-  const bandBot = yOf(15);
-  const lowY = yOf(LOW_RATE_LINE);
-  const rateHeadX = PAD.left;
-  const regHeadX = PAD.left + plotW;
-  const headY = yOf(nowBpm);
-  const regHeadY = nowReg !== null ? yOfReg(nowReg) : null;
-  const displayBpm = capRateForGraph(nowBpm);
-  const displayReg = nowReg !== null ? capRegForGraph(nowReg) : null;
+  const bandTop = yOf(Y_MAX);
+  const bandBot = yOf(GOOD_ORI_MIN);
+  const alertY = yOf(ALERT_ORI_LINE);
+  const headX = PAD.left;
+  const headY = nowOri !== null ? yOf(nowOri) : null;
+  const displayOri = nowOri !== null ? capOriForGraph(nowOri) : null;
 
   return (
     <div
       className="rate-graph"
       ref={wrapRef}
-      aria-label="Continuous blink rate and regularity, last 5 minutes"
+      aria-label="Ocular Rhythm Index, last 5 minutes"
     >
       <div className="rate-graph__chrome" aria-hidden>
         <div className="rate-graph__live rate-graph__live--rate" aria-live="polite">
           <span className="rate-graph__live-value">
-            {faceFound ? displayBpm.toFixed(1) : "—"}
+            {faceFound && displayOri !== null ? displayOri.toFixed(0) : "—"}
           </span>
-          <span className="rate-graph__live-unit">/min</span>
+          <span className="rate-graph__live-unit">/100</span>
         </div>
         <div className="rate-graph__header-mid">
           <span className="rate-graph__swatch rate-graph__swatch--rate" />
-          <span className="rate-graph__legend-item">Blink Rate</span>
+          <span className="rate-graph__legend-item">ORI</span>
           <div
             className={`rate-graph__blink-dot ${blinkFlash ? "is-flash" : ""} ${
               faceFound ? "" : "is-idle"
             }`}
             title="Blink indicator"
           />
-          <span className="rate-graph__legend-item">Regularity</span>
-          <span className="rate-graph__swatch rate-graph__swatch--reg" />
         </div>
-        <div className="rate-graph__live rate-graph__live--reg" aria-live="polite">
-          <span className="rate-graph__live-value">
-            {faceFound && displayReg !== null ? displayReg.toFixed(0) : "—"}
-          </span>
-          <span className="rate-graph__live-unit">/100</span>
-        </div>
+        <div />
       </div>
 
       <svg
@@ -474,35 +399,11 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
           0
         </text>
 
-        {/* Right axis: regularity 0–100 */}
-        {Y_REG_TICKS.map((v) => {
-          const y = yOfReg(v);
-          return (
-            <text
-              key={`reg-${v}`}
-              x={PAD.left + plotW + 5}
-              y={y + 3}
-              textAnchor="start"
-              className="rate-graph__axis-label rate-graph__axis-label--reg"
-            >
-              {v}
-            </text>
-          );
-        })}
-        <text
-          x={PAD.left + plotW + 5}
-          y={PAD.top + plotH + 3}
-          textAnchor="start"
-          className="rate-graph__axis-label rate-graph__axis-label--reg"
-        >
-          0
-        </text>
-
         <line
           x1={PAD.left}
-          y1={lowY}
+          y1={alertY}
           x2={PAD.left + plotW}
-          y2={lowY}
+          y2={alertY}
           className="rate-graph__low-line"
         />
 
@@ -530,60 +431,21 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
           </>
         ) : null}
 
-        {regPathD ? (
-          <>
-            <path
-              d={regPathD}
-              fill="none"
-              className="rate-graph__line rate-graph__line--regularity-glow"
-            />
-            <path
-              d={regPathD}
-              fill="none"
-              className="rate-graph__line rate-graph__line--regularity"
-            />
-          </>
-        ) : null}
-
-        {faceFound ? (
-          <circle cx={rateHeadX} cy={headY} r={3} className="rate-graph__head" />
-        ) : null}
-        {faceFound && regHeadY !== null ? (
-          <circle
-            cx={regHeadX}
-            cy={regHeadY}
-            r={2.5}
-            className="rate-graph__head rate-graph__head--reg"
-          />
+        {faceFound && headY !== null ? (
+          <circle cx={headX} cy={headY} r={3} className="rate-graph__head" />
         ) : null}
 
         <text
           x={PAD.left}
-          y={h - 14}
+          y={h - 8}
           className="rate-graph__axis-label rate-graph__axis-label--rate"
           textAnchor="start"
         >
           now
         </text>
         <text
-          x={PAD.left}
-          y={h - 4}
-          className="rate-graph__axis-label rate-graph__axis-label--reg"
-          textAnchor="start"
-        >
-          −5m
-        </text>
-        <text
           x={PAD.left + plotW}
-          y={h - 14}
-          className="rate-graph__axis-label rate-graph__axis-label--reg"
-          textAnchor="end"
-        >
-          now
-        </text>
-        <text
-          x={PAD.left + plotW}
-          y={h - 4}
+          y={h - 8}
           className="rate-graph__axis-label rate-graph__axis-label--rate"
           textAnchor="end"
         >

@@ -1,6 +1,11 @@
 /**
- * Optional bridge to the pywebview desktop shell.
- * When running in a browser, these calls are no-ops.
+ * Optional bridge to the pywebview desktop shell
+ * ==============================================
+ *
+ * Inside the packaged window, Python exposes a few helpers on
+ * `window.pywebview.api` (resize, fullscreen). In a normal browser
+ * those helpers do not exist, so every function here quietly does
+ * nothing — the page still works, it just cannot change the OS window.
  */
 
 export interface EyeRhythmBridge {
@@ -12,6 +17,8 @@ export interface EyeRhythmBridge {
   ) => Promise<void> | void;
   /** Expand to fullscreen for Practice; restore on exit. */
   set_practice_fullscreen?: (enabled: boolean) => Promise<void> | void;
+  /** Grow a compact window for the launch splash; restore on dismiss. */
+  set_splash_layout?: (enabled: boolean) => Promise<void> | void;
 }
 
 declare global {
@@ -22,6 +29,7 @@ declare global {
   }
 }
 
+/** True when we are inside the native EyeRhythm window, not a browser tab. */
 export function isDesktopShell(): boolean {
   return Boolean(window.pywebview?.api);
 }
@@ -57,6 +65,8 @@ export async function setCompactLayout(
 
 /** Outer window height that hugs compact content with equal top/bottom inset. */
 export function measureCompactOuterHeight(): number | undefined {
+  // How tall the native window should be so the compact layout has even
+  // padding above the avatar and below the buttons.
   const shell = document.querySelector(".app-shell");
   const footer = document.querySelector(".shell-footer");
   if (!(shell instanceof HTMLElement) || !(footer instanceof HTMLElement)) {
@@ -94,6 +104,17 @@ export async function setPracticeFullscreen(enabled: boolean): Promise<void> {
     }
   } catch {
     /* permission / unsupported */
+  }
+}
+
+/** Grow the native window for the launch splash; restore on dismiss. */
+export async function setSplashLayout(enabled: boolean): Promise<void> {
+  const api = window.pywebview?.api;
+  if (!api?.set_splash_layout) return;
+  try {
+    await api.set_splash_layout(enabled);
+  } catch {
+    /* browser / unsupported */
   }
 }
 

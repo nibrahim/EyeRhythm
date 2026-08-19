@@ -17,10 +17,13 @@ component alone so the card is usable immediately.
 
 from __future__ import annotations
 
+# How much each ingredient counts in the 0–100 Ocular Rhythm Index.
 RATE_WEIGHT = 0.70
 REGULARITY_WEIGHT = 0.30
 
+# Below this blink rate the “rate” part of ORI sits in the alert half (0–50).
 ALERT_BPM = 10.0
+# At/above this rate the “rate” part is a perfect 100.
 HEALTHY_BPM_MAX = 20.0
 
 

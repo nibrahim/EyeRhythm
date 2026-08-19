@@ -1,3 +1,13 @@
+/**
+ * Small helpers that turn raw numbers into colours and labels
+ * ==========================================================
+ *
+ * Cards use a “tone”:
+ *   good  — healthy range (green-ish)
+ *   warn  — getting low / high (amber)
+ *   bad   — outside the target (rose)
+ *   idle  — no face / no data yet (grey)
+ */
 /** Colour band for continuous blink rate (healthy ~15–20). */
 export function rateTone(bpm: number, faceFound: boolean): "good" | "warn" | "bad" | "idle" {
   if (!faceFound) return "idle";
@@ -35,11 +45,13 @@ export function lookAngleTone(
   return "bad";
 }
 
+/** Pretty blinks-per-minute: one decimal under 10, whole number after. */
 export function formatBpm(n: number): string {
   if (!Number.isFinite(n)) return "—";
   return n < 10 ? n.toFixed(1) : Math.round(n).toString();
 }
 
+/** Status pill on the avatar: “Eyes open”, “Eyes closed”, “No face”, … */
 export function eyesLabel(
   face: boolean,
   closed: boolean,
