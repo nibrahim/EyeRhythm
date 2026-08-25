@@ -82,6 +82,8 @@ ALERT_TREND_SAMPLE_S = 1.0
 # Looking down this far (bottom / left-bottom / right-bottom) is off-screen.
 # Pitch is negative when looking down. Change this one number to retune.
 LOOK_DOWN_OFFSCREEN_DEG = 20.0
+# Looking left/right this far (yaw) is off-screen, same treatment as looking down.
+LOOK_SIDE_OFFSCREEN_DEG = 50.0
 # Stay off-screen until pitch rises this many degrees back toward level.
 LOOK_DOWN_OFFSCREEN_HYSTERESIS_DEG = 1.5
 
@@ -133,7 +135,7 @@ def look_down_offscreen(
     down-left / down-right glance can be 25° on the card while pitch is
     only −12°, which used to miss off-screen. We now use that same card
     angle once the face is aimed downward (``bottom`` / ``left-bottom`` /
-    ``right-bottom``). Pure left/right (no down) stays on-screen.
+    ``right-bottom``). Pure left/right uses ``look_side_offscreen``.
     """
     # “bottom” in the direction label means the face is aimed downward.
     looking_down = isinstance(direction, str) and direction.endswith("bottom")
@@ -166,6 +168,43 @@ def look_down_offscreen(
     if currently_off:
         # Once off-screen, stay off until the angle comes a bit back up
         # (stops the status flipping on every tiny head nod).
+        limit = max(0.0, limit - float(hysteresis_deg))
+    return measure >= limit
+
+
+def look_side_offscreen(
+    yaw_deg: float | None,
+    *,
+    currently_off: bool,
+    direction: str | None = None,
+    threshold_deg: float = LOOK_SIDE_OFFSCREEN_DEG,
+    hysteresis_deg: float = LOOK_DOWN_OFFSCREEN_HYSTERESIS_DEG,
+) -> bool:
+    """
+    True when the face is turned left or right past ``threshold_deg`` (50°).
+
+    Uses yaw (left/right), not the combined Look-angle card. A 55° glance
+    at a side monitor counts even if pitch is near zero. Same hysteresis
+    as looking down so the status does not flicker on the boundary.
+    """
+    looking_side = False
+    if isinstance(direction, str):
+        looking_side = direction.startswith("left") or direction.startswith("right")
+    if not looking_side:
+        try:
+            looking_side = yaw_deg is not None and abs(float(yaw_deg)) >= 8.0
+        except (TypeError, ValueError):
+            looking_side = False
+    if not looking_side:
+        return False
+    try:
+        measure = abs(float(yaw_deg))
+    except (TypeError, ValueError):
+        return False
+    if not math.isfinite(measure):
+        return False
+    limit = float(threshold_deg)
+    if currently_off:
         limit = max(0.0, limit - float(hysteresis_deg))
     return measure >= limit
 
@@ -743,6 +782,7 @@ class EngineSnapshot:
     # Live Settings dock (also persisted). Frontend Trace uses ori_threshold.
     ori_threshold: float = ALERT_ORI_THRESHOLD
     writing_angle_deg: float = LOOK_DOWN_OFFSCREEN_DEG
+    turn_angle_deg: float = LOOK_SIDE_OFFSCREEN_DEG
     close_delta: float = 0.18
 
     # Toggles
@@ -812,6 +852,9 @@ class EyeRhythmEngine:
         self._writing_angle_deg = float(
             saved_prefs.get("writing_angle_deg", LOOK_DOWN_OFFSCREEN_DEG)
         )
+        self._turn_angle_deg = float(
+            saved_prefs.get("turn_angle_deg", LOOK_SIDE_OFFSCREEN_DEG)
+        )
         self._close_delta = float(saved_prefs.get("close_delta", 0.18))
 
         self._beeper = Beeper()
@@ -871,6 +914,7 @@ class EyeRhythmEngine:
             ontop=self._states["ontop"],
             ori_threshold=self._ori_threshold,
             writing_angle_deg=self._writing_angle_deg,
+            turn_angle_deg=self._turn_angle_deg,
             close_delta=self._close_delta,
             practice=False,
             practice_phase="off",
@@ -960,6 +1004,7 @@ class EyeRhythmEngine:
             return {
                 "ori_threshold": float(self._ori_threshold),
                 "writing_angle_deg": float(self._writing_angle_deg),
+                "turn_angle_deg": float(self._turn_angle_deg),
                 "close_delta": float(self._close_delta),
             }
 
@@ -972,6 +1017,7 @@ class EyeRhythmEngine:
         labels = {
             "ori_threshold": "ORI threshold",
             "writing_angle_deg": "Writing angle",
+            "turn_angle_deg": "Turn angle",
             "close_delta": "Blink sensitivity",
         }
         changed: list[tuple[str, float, float]] = []
@@ -995,6 +1041,15 @@ class EyeRhythmEngine:
                 if abs(v - old) >= 0.05:
                     self._writing_angle_deg = v
                     changed.append(("writing_angle_deg", old, v))
+            if patch.get("turn_angle_deg") is not None:
+                v = max(
+                    preferences.TURN_ANGLE_MIN,
+                    min(preferences.TURN_ANGLE_MAX, float(patch["turn_angle_deg"])),
+                )
+                old = float(self._turn_angle_deg)
+                if abs(v - old) >= 0.05:
+                    self._turn_angle_deg = v
+                    changed.append(("turn_angle_deg", old, v))
             if patch.get("close_delta") is not None:
                 v = max(
                     preferences.CLOSE_DELTA_MIN,
@@ -1009,10 +1064,12 @@ class EyeRhythmEngine:
                 preferences.save(
                     ori_threshold=self._ori_threshold,
                     writing_angle_deg=self._writing_angle_deg,
+                    turn_angle_deg=self._turn_angle_deg,
                     close_delta=self._close_delta,
                 )
                 self._snap.ori_threshold = float(self._ori_threshold)
                 self._snap.writing_angle_deg = float(self._writing_angle_deg)
+                self._snap.turn_angle_deg = float(self._turn_angle_deg)
                 self._snap.close_delta = float(self._close_delta)
         for key, old, new in changed:
             try:
@@ -1346,19 +1403,28 @@ class EyeRhythmEngine:
         self._rate_present = False
 
     def _update_look_down_offscreen(self, res: FrameResult) -> bool:
-        """Remember whether the person is looking down off the screen."""
+        """Off-screen: looking down past writing angle, or left/right past turn angle."""
         if not res.face_found:
             self._look_off_screen = False
             return False
         with self._lock:
-            angle = float(self._writing_angle_deg)
-        self._look_off_screen = look_down_offscreen(
+            down_lim = float(self._writing_angle_deg)
+            side_lim = float(self._turn_angle_deg)
+        currently = self._look_off_screen
+        looking_down = look_down_offscreen(
             res.face_pitch_deg,
-            currently_off=self._look_off_screen,
+            currently_off=currently,
             angle_deg=res.face_angle_deg,
             direction=res.face_direction,
-            threshold_deg=angle,
+            threshold_deg=down_lim,
         )
+        looking_side = look_side_offscreen(
+            res.face_yaw_deg,
+            currently_off=currently,
+            direction=res.face_direction,
+            threshold_deg=side_lim,
+        )
+        self._look_off_screen = looking_down or looking_side
         return self._look_off_screen
 
     @staticmethod
@@ -1406,6 +1472,7 @@ class EyeRhythmEngine:
             self._snap.off_screen = self._look_off_screen
             self._snap.ori_threshold = float(self._ori_threshold)
             self._snap.writing_angle_deg = float(self._writing_angle_deg)
+            self._snap.turn_angle_deg = float(self._turn_angle_deg)
             self._snap.close_delta = float(self._close_delta)
             if self._practice_phase == "countdown" and self._countdown_ends is not None:
                 self._snap.practice_countdown_s = round(

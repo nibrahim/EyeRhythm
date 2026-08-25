@@ -116,6 +116,7 @@ class PreferencesPatch(BaseModel):
     dock: bool | None = None
     ori_threshold: float | None = None
     writing_angle_deg: float | None = None
+    turn_angle_deg: float | None = None
     close_delta: float | None = None
     # practice is accepted by toggle API but never stored in preferences
 
@@ -124,6 +125,7 @@ class SettingsPatch(BaseModel):
     """Live Settings-dock knobs. Any subset is applied immediately."""
     ori_threshold: float | None = None
     writing_angle_deg: float | None = None
+    turn_angle_deg: float | None = None
     close_delta: float | None = None
 
 
@@ -206,7 +208,12 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         # update live and the change is audited.
         setting_keys = {
             k: patch.pop(k)
-            for k in ("ori_threshold", "writing_angle_deg", "close_delta")
+            for k in (
+                "ori_threshold",
+                "writing_angle_deg",
+                "turn_angle_deg",
+                "close_delta",
+            )
             if k in patch
         }
         if setting_keys:

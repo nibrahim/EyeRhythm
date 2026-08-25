@@ -26,12 +26,14 @@ export interface Preferences {
   dock?: boolean;
   ori_threshold?: number;
   writing_angle_deg?: number;
+  turn_angle_deg?: number;
   close_delta?: number;
 }
 
 export interface LiveSettings {
   ori_threshold: number;
   writing_angle_deg: number;
+  turn_angle_deg: number;
   close_delta: number;
 }
 

@@ -37,12 +37,14 @@ export interface EngineState {
   face_pitch_deg: number | null;
   /** "straight" | "left" | "right-top" | … ; null when no face. */
   face_direction: string | null;
-  /** Looking down (bottom / left-bottom / right-bottom) with look-angle ≥ writing_angle_deg. */
+  /** Looking down past writing_angle_deg, or left/right past turn_angle_deg. */
   off_screen: boolean;
   /** Alert / Trace low-ORI line (default 50). */
   ori_threshold: number;
   /** Downward look (°) treated as off-screen (default 20). */
   writing_angle_deg: number;
+  /** Left/right yaw (°) treated as off-screen (default 50). */
+  turn_angle_deg: number;
   /** Blink close delta (default 0.18). */
   close_delta: number;
 
@@ -111,6 +113,7 @@ export const EMPTY_STATE: EngineState = {
   off_screen: false,
   ori_threshold: 50,
   writing_angle_deg: 20,
+  turn_angle_deg: 50,
   close_delta: 0.18,
   beep: false,
   alert: false,

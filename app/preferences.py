@@ -49,6 +49,8 @@ ORI_THRESHOLD_MIN = 20.0
 ORI_THRESHOLD_MAX = 80.0
 WRITING_ANGLE_MIN = 10.0
 WRITING_ANGLE_MAX = 40.0
+TURN_ANGLE_MIN = 20.0
+TURN_ANGLE_MAX = 80.0
 CLOSE_DELTA_MIN = 0.10
 CLOSE_DELTA_MAX = 0.30
 
@@ -66,6 +68,7 @@ _DEFAULTS: dict[str, Any] = {
     "dock": False,
     "ori_threshold": 50.0,
     "writing_angle_deg": 20.0,
+    "turn_angle_deg": 50.0,
     "close_delta": 0.18,
 }
 
@@ -134,6 +137,12 @@ def _sanitize(raw: dict[str, Any]) -> dict[str, Any]:
         WRITING_ANGLE_MIN,
         WRITING_ANGLE_MAX,
         20.0,
+    )
+    data["turn_angle_deg"] = _clamp_float(
+        raw.get("turn_angle_deg", data["turn_angle_deg"]),
+        TURN_ANGLE_MIN,
+        TURN_ANGLE_MAX,
+        50.0,
     )
     data["close_delta"] = _clamp_float(
         raw.get("close_delta", data["close_delta"]),

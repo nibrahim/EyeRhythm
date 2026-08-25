@@ -112,12 +112,12 @@ face plane from outer eye corners + forehead + chin, takes the outward normal
   beside Regularity
 
 Looking **down** (``bottom`` / ``left-bottom`` / ``right-bottom``) when the
-Look-angle card is past ``LOOK_DOWN_OFFSCREEN_DEG`` (default **20°**) is
-**off-screen**. That uses the same combined angle the card shows, so a
-down-right glance of 25° counts even if pitch alone is less than 20°.
-Pure left/right (no down) stays on-screen. Off-screen blinks are not
-counted, regularity holds, Alert does not sample, and Trace **cuts the
-line immediately**. Tune the threshold in `app/engine.py`.
+Look-angle card is past the writing-angle setting (default **20°**) is
+**off-screen**. Looking **left or right** when yaw is past the turn-angle
+setting (default **50°**) is also off-screen, with the same treatment.
+Off-screen blinks are not counted, regularity holds, Alert does not
+sample, and Trace **cuts the line immediately**. Both limits are live
+Settings-dock knobs.
 
 ---
 
@@ -173,8 +173,9 @@ History is kept across days in the same file.
 **Dock** (or **W**) grows the window sideways. **More / Less** still owns height.
 
 * **Settings** — live ORI threshold (Trace red line + Alert), writing angle
-  (10–40°, off-screen look-down), blink close sensitivity. Changes apply
-  immediately and are appended to `~/.eyerhythm_blinkcounter/audit.json`.
+  (10–40°, off-screen look-down), turn angle (20–80°, default 50°, off-screen
+  left/right), blink close sensitivity. Changes apply immediately and are
+  appended to `~/.eyerhythm_blinkcounter/audit.json`.
 * **Reports** — ORI history in `ori_history.json` (5-minute bins). Daily line
   (24 h), weekly bars (Mon–Sun), monthly daily line. Choose the period in the
   dock.

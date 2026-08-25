@@ -15,6 +15,7 @@ import {
 const DEFAULTS: LiveSettings = {
   ori_threshold: 50,
   writing_angle_deg: 20,
+  turn_angle_deg: 50,
   close_delta: 0.18,
 };
 
@@ -117,6 +118,30 @@ export function SettingsPanel() {
           counting, regularity, and Alert, and cuts Trace. Lower (10–15°) is
           stricter for close keyboard work; higher (30–40°) keeps counting while
           you look at notes.
+        </p>
+      </label>
+
+      <label className="settings__field">
+        <div className="settings__row">
+          <span className="settings__name">Turn angle</span>
+          <span className="settings__value">
+            {Math.round(values.turn_angle_deg)}°
+          </span>
+        </div>
+        <input
+          type="range"
+          min={20}
+          max={80}
+          step={1}
+          value={values.turn_angle_deg}
+          onChange={(e) => setNum("turn_angle_deg", Number(e.target.value))}
+        />
+        <p className="settings__help">
+          Left or right look treated as off-screen. At the default 50°, turning
+          past 50° yaw pauses blink counting, regularity, and Alert, and cuts
+          Trace — the same as looking down past the writing angle. Lower is
+          stricter (a smaller head turn counts as away); higher allows a wider
+          side glance.
         </p>
       </label>
 
