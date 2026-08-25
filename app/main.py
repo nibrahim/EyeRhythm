@@ -445,16 +445,25 @@ def main() -> None:
             _log("pywebview not installed — falling back to browser")
             use_browser = True
 
+    def _run_browser() -> None:
+        # Developer / fallback path: the OS browser, not a native window.
+        webbrowser.open(url)
+        _log("running in browser mode — press Ctrl+C to quit")
+        while True:
+            time.sleep(0.5)
+
     try:
         if use_browser:
-            # Developer / fallback path: the OS browser, not a native window.
-            webbrowser.open(url)
-            _log("running in browser mode — press Ctrl+C to quit")
-            while True:
-                time.sleep(0.5)
+            _run_browser()
         else:
             # Normal path: a compact desktop window wrapping the same UI.
-            _open_webview(url, engine)
+            # On Windows a freeze can miss WebView2 / pythonnet; keep the
+            # dashboard reachable in the system browser instead of dying.
+            try:
+                _open_webview(url, engine)
+            except Exception as exc:
+                _log(f"desktop window failed ({exc}) — falling back to browser")
+                _run_browser()
     except KeyboardInterrupt:
         _log("interrupted")
     finally:

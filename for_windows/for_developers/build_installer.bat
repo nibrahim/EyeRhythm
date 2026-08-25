@@ -21,12 +21,13 @@ echo.
 
 REM ---------- Step 1: PyInstaller ----------
 echo  [1/2] Building standalone executable...
-call "%~dp0build_exe.bat"
+set "EYERHYTHM_NOPAUSE=1"
+call "%~dp0build_exe.bat" --no-pause
 if not exist "dist\EyeRhythm\EyeRhythm.exe" (
     echo.
     echo  ERROR: PyInstaller did not produce dist\EyeRhythm\EyeRhythm.exe
     echo  Fix the errors above and try again.
-    pause
+    if not defined GITHUB_ACTIONS pause
     exit /b 1
 )
 
@@ -53,7 +54,7 @@ if "%ISCC%"=="" (
     echo.
     echo  After installation, re-run this script.
     echo  (You already have a working standalone folder in dist\EyeRhythm)
-    pause
+    if not defined GITHUB_ACTIONS pause
     exit /b 1
 )
 
@@ -62,7 +63,7 @@ echo  Using: %ISCC%
 if errorlevel 1 (
     echo.
     echo  Inno Setup compilation failed.
-    pause
+    if not defined GITHUB_ACTIONS pause
     exit /b 1
 )
 
@@ -74,7 +75,9 @@ echo.
 echo  Installer created:
 echo    for_windows\for_developers\Output\EyeRhythm-Setup.exe
 echo.
-echo  Upload this single file to GitHub Releases.
-echo  End users only need to download and run it.
+echo  Share either:
+echo    dist\EyeRhythm\                 ^(zip this folder^)
+echo    for_windows\for_developers\Output\EyeRhythm-Setup.exe
 echo.
-pause
+if not defined GITHUB_ACTIONS pause
+exit /b 0

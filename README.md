@@ -56,13 +56,13 @@ To stop opening at login: `./for_mac/uninstall_autostart.sh`.
 
 ### Windows
 
+Share **`EyeRhythm-Windows.zip`** (built by GitHub Actions or `for_windows/for_developers/build_exe.bat`). Recipients unzip and double-click `EyeRhythm.exe` — no Python or Node.
+
 All Windows helpers live under **[`for_windows/`](for_windows/)**.
 
-* **Non-developers** → [`for_windows/just_use_for_nondevelopers/`](for_windows/just_use_for_nondevelopers/)  
-  Install Python (tick “Add to PATH”) and Node.js once, then double-click `EyeRhythm_Launch.bat`.
-
-* **Developers** → [`for_windows/for_developers/`](for_windows/for_developers/)  
-  Build a standalone `.exe` after `frontend/dist` exists.
+* **Share / use the app** → unzip `EyeRhythm-Windows.zip` and run `EyeRhythm.exe`. Details in [`for_windows/`](for_windows/).
+* **From source** → [`for_windows/just_use_for_nondevelopers/`](for_windows/just_use_for_nondevelopers/) (needs Python once).
+* **Rebuild the zip / installer** → [`for_windows/for_developers/`](for_windows/for_developers/) or **Actions → Build Windows app**.
 
 ### Developer (UI hot reload)
 

@@ -1,101 +1,94 @@
-# How to rebuild the Windows installer after code changes
+# How to rebuild the Windows app after code changes
 
-This document is for maintainers. Follow these steps whenever you update the application and want to publish a new version for non-technical users.
+This document is for maintainers. Follow these steps whenever you update the application and want a new zip / installer for people who should not install Python.
 
 ---
 
 ## Why this pipeline?
 
 - **Git repository** stays small (source only).
-- **GitHub Releases** hosts the large binary (`EyeRhythm-Setup.exe` ≈ 80–120 MB).
-- End users get a classic Windows experience: next-next-finish installer, Program Files, Desktop shortcut, uninstaller.
-- Rebuild is fully automatic once the tools are installed on a Windows machine.
+- Recipients get a freeze: unzip `EyeRhythm-Windows.zip` or run `EyeRhythm-Setup.exe`.
+- You cannot produce that freeze on a Mac. Use **GitHub Actions** or a Windows PC.
 
 ---
 
-## One-time setup on the maintainer’s Windows PC
+## Path A — GitHub Actions (works from a Mac)
+
+1. Commit and push the code you want inside the Windows app (uncommitted files are **not** included).
+2. On GitHub: **Actions → Build Windows app → Run workflow**.
+3. When it finishes, download:
+   - `EyeRhythm-Windows-zip` → `EyeRhythm-Windows.zip`
+   - `EyeRhythm-Windows-setup` → `EyeRhythm-Setup.exe`
+4. Send the zip (or the Setup.exe) to the other person.
+
+Tag `v1.0.0` (or any `v*`) to attach both files to a GitHub Release. The repo is private, so you still download and forward the files yourself.
+
+Typical runtime: 10–20 minutes. Python is pinned to **3.11**.
+
+---
+
+## Path B — Windows PC
+
+### One-time setup
 
 1. Clone the repository.
-2. Create and activate the virtual environment:
+2. Create and activate the virtual environment with **Python 3.11**:
    ```bat
    python -m venv EyeRhythm
    EyeRhythm\Scripts\activate
    pip install -r requirements.txt
    pip install pyinstaller
    ```
-3. Install **Inno Setup 6** (free):  
-   https://jrsoftware.org/isinfo.php  
-   Use the default installation path so `ISCC.exe` is easy to find.
+3. For the installer only, install **Inno Setup 6**:  
+   https://jrsoftware.org/isinfo.php
 
----
+### Every time you want a new freeze
 
-## Every time you want a new release
-
-1. Make your code changes and test them:
+1. Test from source:
    ```bat
    python -m app.main
    ```
 
-2. Bump the version number inside the Inno Setup script:
-   ```
-   for_windows\for_developers\EyeRhythm.iss
-   ```
-   Change the line:
+2. If you ship Setup.exe, bump the version in `EyeRhythm.iss`:
    ```iss
    #define MyAppVersion "1.0.0"
    ```
-   to the new version (e.g. `"1.1.0"`).
 
-3. From the project root, with the venv activated, run:
+3. From the project root, with the venv activated:
+   ```bat
+   for_windows\for_developers\build_exe.bat
+   ```
+   Portable app: `dist\EyeRhythm\` — zip that folder.
+
+   Or the full installer:
    ```bat
    for_windows\for_developers\build_installer.bat
    ```
+   Output: `for_windows\for_developers\Output\EyeRhythm-Setup.exe`
 
-4. The script will:
-   - Clean previous builds
-   - Run PyInstaller (creates `dist\EyeRhythm\`)
-   - Compile the Inno Setup script
-   - Place the finished installer at:
-     ```
-     for_windows\for_developers\Output\EyeRhythm-Setup.exe
-     ```
-
-5. Test the installer on a clean Windows machine (or a VM):
-   - Run `EyeRhythm-Setup.exe`
-   - Confirm it appears in Start Menu and (if chosen) on Desktop
-   - Launch the app and check camera permission + blink counting
-   - Uninstall via Windows Settings → Apps and confirm clean removal
-
-6. Upload `EyeRhythm-Setup.exe` to the GitHub repository’s **Releases** page.  
-   Tag it with the same version number you put in the `.iss` file.
+4. Test on a Windows machine:
+   - Unzip / run Setup
+   - Launch, allow camera, confirm blink counting
+   - For Setup.exe: uninstall via Windows Settings → Apps
 
 ---
 
 ## What the end user experiences
 
-1. Downloads `EyeRhythm-Setup.exe` from Releases.
-2. Double-clicks it.
-3. Clicks through the wizard (optional desktop icon).
-4. App is installed under `C:\Program Files\EyeRhythm`.
-5. Starts from Desktop / Start Menu.
-6. First launch asks for camera permission → Allow.
-7. Can uninstall later from Windows Settings.
+1. Receives `EyeRhythm-Windows.zip` (or Setup.exe).
+2. Unzips (or clicks through the wizard).
+3. Double-clicks `EyeRhythm.exe`.
+4. If SmartScreen appears → **More info → Run anyway**.
+5. Allows camera permission.
+6. Uses the same dashboard as the Mac app.
 
 No Python, no Command Prompt, no extra downloads.
 
----
+Crash log if it dies on start:
 
-## Portable alternative (no installer)
-
-If you only need a zip that users can extract and run:
-
-```bat
-for_windows\for_developers\build_exe.bat
 ```
-
-Then zip the folder `dist\EyeRhythm` and distribute that.  
-Users unzip → double-click `EyeRhythm.exe`.  
-This is useful for testing or for users who prefer portable apps.
+%LOCALAPPDATA%\EyeRhythm\crash.log
+```
 
 ---
 
@@ -105,9 +98,10 @@ This is useful for testing or for users who prefer portable apps.
 |---------|-----|
 | `pyinstaller` not found | `pip install pyinstaller` inside the activated venv |
 | Inno Setup not found | Install from https://jrsoftware.org/isinfo.php and re-run |
-| Missing DLLs / mediapipe errors at runtime | Always use `--collect-all mediapipe --collect-all cv2` (already in the bat) |
+| Missing DLLs / mediapipe errors at runtime | Use `EyeRhythm.spec` (already has `--collect-all mediapipe` / `cv2`) |
+| Blank window / no UI | WebView2 missing — Edge on Windows 10/11 usually provides it; the app falls back to the system browser |
 | Camera fails after install | Normal – Windows asks for permission on first use |
-| Large file size | Expected (MediaPipe + OpenCV). Compresses well with LZMA in Inno Setup |
+| Large file size | Expected (MediaPipe + OpenCV) |
 
 ---
 
@@ -115,9 +109,9 @@ This is useful for testing or for users who prefer portable apps.
 
 ```
 code change
-    → edit version in EyeRhythm.iss
-    → run build_installer.bat
-    → upload Output\EyeRhythm-Setup.exe to GitHub Releases
+    → push
+    → Actions → Build Windows app
+    → send EyeRhythm-Windows.zip
 ```
 
-That is the complete, repeatable process for shipping updated Windows builds to non-developer users.
+Or on a Windows PC: `build_exe.bat` → zip `dist\EyeRhythm`.

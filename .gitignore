@@ -20,6 +20,8 @@ build/
 # PyInstaller
 *.manifest
 *.spec
+!EyeRhythm.spec
+for_windows/for_developers/Output/
 
 # IDE / editor
 .vscode/

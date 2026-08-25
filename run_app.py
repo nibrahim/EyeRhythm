@@ -21,6 +21,7 @@ re-raise so the process still exits with an error code.
 
 Where is the crash log?
 -----------------------
+* Windows: ``%LOCALAPPDATA%\\EyeRhythm\\crash.log``
 * macOS: ``~/Library/Logs/EyeRhythm_crash.log`` (if that Logs folder exists)
 * otherwise: ``~/EyeRhythm_crash.log``
 
@@ -32,6 +33,7 @@ will still kill the process without a Python traceback.
 
 from __future__ import annotations
 
+import os
 import sys
 import traceback
 from pathlib import Path
@@ -41,9 +43,14 @@ def _log_path() -> Path:
     """
     Choose a sensible place to write a crash report.
 
-    Prefer the standard macOS user log directory when present; otherwise
-    fall back to the home folder so Windows/Linux still get a file.
+    * Windows: ``%LOCALAPPDATA%\\EyeRhythm\\crash.log``
+    * macOS: ``~/Library/Logs/EyeRhythm_crash.log`` when that folder exists
+    * otherwise: ``~/EyeRhythm_crash.log``
     """
+    if sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA")
+        root = Path(base) if base else Path.home() / "AppData" / "Local"
+        return root / "EyeRhythm" / "crash.log"
     home = Path.home()
     logs = home / "Library" / "Logs"
     if logs.is_dir():

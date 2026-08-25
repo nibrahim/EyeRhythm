@@ -4,7 +4,9 @@ This folder contains everything needed to:
 
 1. Run the app from source while developing
 2. Build a standalone `EyeRhythm.exe` (no Python required on the end-user machine)
-3. Produce a professional Windows installer (`EyeRhythm-Setup.exe`) that installs into Program Files and creates Desktop + Start Menu shortcuts
+3. Produce a Windows installer (`EyeRhythm-Setup.exe`) that installs per-user and creates Start Menu + optional Desktop shortcuts
+
+You **cannot** freeze a Windows exe on a Mac. Use GitHub Actions (see below) or a Windows PC with **Python 3.11**.
 
 ---
 
@@ -31,12 +33,14 @@ python -m app.main --skip-checks
 
 ## 2. Build the standalone executable
 
+From a Windows PC, at the project root, with the venv activated:
+
 ```bat
-cd path\to\EyeRhythm
-EyeRhythm\Scripts\activate          REM if not already active
 pip install pyinstaller
 for_windows\for_developers\build_exe.bat
 ```
+
+This uses the same `EyeRhythm.spec` as the Mac `.app` build (model, React UI, MediaPipe, OpenCV, pywebview).
 
 Result:
 
@@ -44,14 +48,25 @@ Result:
 dist\EyeRhythm\EyeRhythm.exe
 ```
 
-You can zip the whole `dist\EyeRhythm` folder and give it to users.  
-They only need to unzip and double-click the `.exe` (camera permission still required on first run).
+Zip the whole `dist\EyeRhythm` folder and give it to users. They unzip and double-click the `.exe` (camera permission still required on first run). SmartScreen may warn because the binary is unsigned → **More info → Run anyway**.
 
 ---
 
-## 3. Build a proper Windows installer (recommended for releases)
+## 3. GitHub Actions (from a Mac)
 
-The fully automatic pipeline is:
+The workflow **Build Windows app** (`.github/workflows/build-windows.yml`):
+
+1. Builds the React UI
+2. Freezes `dist\EyeRhythm` with PyInstaller
+3. Uploads `EyeRhythm-Windows.zip`
+4. Builds `EyeRhythm-Setup.exe` with Inno Setup
+
+Run it: GitHub → **Actions → Build Windows app → Run workflow**.  
+A tag `v1.0.0` also attaches both files to the GitHub Release.
+
+---
+
+## 4. Build a Windows installer (optional)
 
 ```
 Source code
@@ -61,13 +76,12 @@ Standalone folder (dist\EyeRhythm)
 EyeRhythm-Setup.exe
 ```
 
-### Prerequisites (one-time on the maintainer’s Windows machine)
+### Prerequisites (one-time on a Windows machine)
 
-1. Python 3.10–3.12 + the project’s virtual environment
+1. Python 3.11 + the project’s virtual environment
 2. PyInstaller (`pip install pyinstaller`)
 3. **Inno Setup 6** (free) → https://jrsoftware.org/isinfo.php  
-   Install with the default options. The compiler `ISCC.exe` will be on PATH or in  
-   `C:\Program Files (x86)\Inno Setup 6\`.
+   Default install path is fine (`ISCC.exe` under `C:\Program Files (x86)\Inno Setup 6\`).
 
 ### One-command rebuild
 
@@ -80,16 +94,15 @@ for_windows\for_developers\build_installer.bat
 This script:
 
 1. Builds a fresh `dist\EyeRhythm` with PyInstaller
-2. Compiles the Inno Setup script (`EyeRhythm.iss`)
+2. Compiles `EyeRhythm.iss`
 3. Produces `for_windows\for_developers\Output\EyeRhythm-Setup.exe`
 
-You can then upload that single file to GitHub Releases.  
-End users download it, run it, and get:
+End users who run Setup.exe get:
 
-- Installation into `%ProgramFiles%\EyeRhythm`
-- Desktop shortcut
+- Installation into `%LOCALAPPDATA%\EyeRhythm` (no admin)
 - Start Menu entry
-- Clean uninstaller via Windows “Apps & features”
+- Optional Desktop shortcut
+- Uninstaller via Windows “Apps & features”
 
 ---
 
@@ -97,10 +110,9 @@ End users download it, run it, and get:
 
 | File | Purpose |
 |------|---------|
-| `build_exe.bat` | PyInstaller → standalone folder |
+| `build_exe.bat` | PyInstaller via `EyeRhythm.spec` → `dist\EyeRhythm` |
 | `build_installer.bat` | Full pipeline (exe + Setup.exe) |
 | `EyeRhythm.iss` | Inno Setup script (edit version number here) |
-| `BUILD_INSTALLER.md` | Detailed explanation of every step |
+| `BUILD_INSTALLER.md` | Release checklist |
 
-When you change the application code, just re-run `build_installer.bat`.  
-New users who download the updated Setup.exe automatically receive the new features.
+When you change the application code, re-run Actions or `build_installer.bat`.
