@@ -7,7 +7,7 @@
 name: Build Windows app
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
   push:
     tags:
       - "v*"
@@ -80,8 +80,8 @@ jobs:
         shell: pwsh
         run: |
           $candidates = @(
-            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
-            "${env:ProgramFiles}\Inno Setup 6\ISCC.exe"
+            'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
+            'C:\Program Files\Inno Setup 6\ISCC.exe'
           )
           $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
           if (-not $iscc) { throw "ISCC.exe not found after installing Inno Setup" }
