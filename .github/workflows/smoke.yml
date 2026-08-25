@@ -1,6 +1,5 @@
 name: smoke
-on:
-  workflow_dispatch: {}
+on: [push]
 jobs:
   t:
     runs-on: ubuntu-latest
