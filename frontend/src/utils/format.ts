@@ -27,10 +27,11 @@ export function regularityTone(score: number | null): "good" | "warn" | "bad" | 
 export function oriTone(
   score: number | null,
   facePresent: boolean,
+  threshold = 50,
 ): "good" | "warn" | "bad" | "idle" {
   if (!facePresent || score === null) return "idle";
   if (score >= 70) return "good";
-  if (score >= 45) return "warn";
+  if (score >= threshold) return "warn";
   return "bad";
 }
 

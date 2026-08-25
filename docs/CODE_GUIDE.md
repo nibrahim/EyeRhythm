@@ -168,6 +168,19 @@ History is kept across days in the same file.
 
 ---
 
+## Settings / Reports dock
+
+**Dock** (or **W**) grows the window sideways. **More / Less** still owns height.
+
+* **Settings** — live ORI threshold (Trace red line + Alert), writing angle
+  (10–40°, off-screen look-down), blink close sensitivity. Changes apply
+  immediately and are appended to `~/.eyerhythm_blinkcounter/audit.json`.
+* **Reports** — ORI history in `ori_history.json` (5-minute bins). Daily line
+  (24 h), weekly bars (Mon–Sun), monthly daily line. Choose the period in the
+  dock.
+
+---
+
 ## Launch splash
 
 On every start, a same-theme overlay covers the dashboard until **Start** or

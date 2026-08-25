@@ -19,6 +19,8 @@ export interface EyeRhythmBridge {
   set_practice_fullscreen?: (enabled: boolean) => Promise<void> | void;
   /** Grow a compact window for the launch splash; restore on dismiss. */
   set_splash_layout?: (enabled: boolean) => Promise<void> | void;
+  /** Grow / shrink horizontally for the Settings / Reports dock. */
+  set_dock_layout?: (docked: boolean) => Promise<void> | void;
 }
 
 declare global {
@@ -66,13 +68,16 @@ export async function setCompactLayout(
 /** Outer window height that hugs compact content with equal top/bottom inset. */
 export function measureCompactOuterHeight(): number | undefined {
   // How tall the native window should be so the compact layout has even
-  // padding above the avatar and below the buttons.
+  // padding above the graph and below the control buttons (same inset).
   const shell = document.querySelector(".app-shell");
   const footer = document.querySelector(".shell-footer");
   if (!(shell instanceof HTMLElement) || !(footer instanceof HTMLElement)) {
     return undefined;
   }
-  const padBot = parseFloat(getComputedStyle(shell).paddingBottom) || 0;
+  const styles = getComputedStyle(shell);
+  const padTop = parseFloat(styles.paddingTop) || 0;
+  const padBot = parseFloat(styles.paddingBottom) || padTop;
+  // Footer bottom is in viewport coords; add the same inset used above the graph.
   const inner = Math.ceil(footer.getBoundingClientRect().bottom + padBot);
   if (inner < 200) return undefined;
   const chrome = Math.max(0, Math.round(window.outerHeight - window.innerHeight));
@@ -104,6 +109,17 @@ export async function setPracticeFullscreen(enabled: boolean): Promise<void> {
     }
   } catch {
     /* permission / unsupported */
+  }
+}
+
+/** Grow / shrink the native window for the Settings / Reports side dock. */
+export async function setDockLayout(docked: boolean): Promise<void> {
+  const api = window.pywebview?.api;
+  if (!api?.set_dock_layout) return;
+  try {
+    await api.set_dock_layout(docked);
+  } catch {
+    /* browser / unsupported */
   }
 }
 

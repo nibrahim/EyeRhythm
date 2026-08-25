@@ -94,7 +94,7 @@ export function ControlsBar({ state }: Props) {
         pulse={alertPulse ? "red" : null}
         onClick={() => void flip("alert")}
         disabled={busy === "alert"}
-        title="Alert after ORI stays below 50 for 3 minutes in total over the last 5 minutes (stops as soon as ORI reaches 50)"
+        title={`Alert after ORI stays below ${Math.round(state.ori_threshold ?? 50)} for 3 minutes in total over the last 5 minutes`}
       />
       <ToggleChip
         label="On top"

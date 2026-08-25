@@ -23,6 +23,53 @@ export interface Preferences {
   ontop: boolean;
   /** Last splash self-check: comfortable | mild | moderate | marked | decline */
   eye_comfort?: string;
+  dock?: boolean;
+  ori_threshold?: number;
+  writing_angle_deg?: number;
+  close_delta?: number;
+}
+
+export interface LiveSettings {
+  ori_threshold: number;
+  writing_angle_deg: number;
+  close_delta: number;
+}
+
+export interface AuditEntry {
+  at: string;
+  setting: string;
+  from: number | string;
+  to: number | string;
+  label?: string;
+}
+
+export interface ReportPoint {
+  date?: string;
+  label?: string;
+  t?: string;
+  i?: number;
+  ori: number | null;
+  screen_s: number;
+  blinks: number;
+}
+
+export interface ReportPayload {
+  kind: "daily" | "weekly" | "monthly";
+  ori_threshold: number;
+  date?: string;
+  week_start?: string;
+  week_end?: string;
+  year?: number;
+  month?: number;
+  bin_minutes?: number;
+  points?: ReportPoint[];
+  days?: ReportPoint[];
+  summary: {
+    mean_ori: number | null;
+    screen_s: number;
+    blinks: number;
+    days_with_data: number;
+  };
 }
 
 /** One famous quote shown on the Information card. */
@@ -132,6 +179,56 @@ export function connectStatsSocket(
     closed = true;
     ws?.close();
   };
+}
+
+export async function fetchSettings(): Promise<LiveSettings> {
+  const res = await fetch("/api/settings", { cache: "no-store" });
+  if (!res.ok) throw new Error("settings fetch failed");
+  return res.json();
+}
+
+export async function saveSettings(
+  patch: Partial<LiveSettings>,
+): Promise<LiveSettings> {
+  const res = await fetch("/api/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error("settings save failed");
+  return res.json();
+}
+
+export async function fetchAudit(limit = 24): Promise<AuditEntry[]> {
+  const res = await fetch(`/api/audit?limit=${limit}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("audit fetch failed");
+  const data = await res.json();
+  return Array.isArray(data.entries) ? data.entries : [];
+}
+
+export async function fetchReportIndex(): Promise<{
+  today: string;
+  days: string[];
+  ori_threshold: number;
+}> {
+  const res = await fetch("/api/reports?kind=index", { cache: "no-store" });
+  if (!res.ok) throw new Error("reports index failed");
+  return res.json();
+}
+
+export async function fetchReport(params: {
+  kind: "daily" | "weekly" | "monthly";
+  date?: string;
+  year?: number;
+  month?: number;
+}): Promise<ReportPayload> {
+  const q = new URLSearchParams({ kind: params.kind });
+  if (params.date) q.set("date", params.date);
+  if (params.year != null) q.set("year", String(params.year));
+  if (params.month != null) q.set("month", String(params.month));
+  const res = await fetch(`/api/reports?${q.toString()}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("report fetch failed");
+  return res.json();
 }
 
 /** Turn Beep / Alert / On top / Practice on or off (omit value = flip). */

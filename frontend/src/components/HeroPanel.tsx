@@ -61,6 +61,7 @@ export function HeroPanel({ state, avatarId, onAvatarChange }: Props) {
             <RateGraph
               faceFound={present}
               lastBlinkAt={state.last_blink_at}
+              alertOri={state.ori_threshold}
             />
           ) : (
             <Avatar

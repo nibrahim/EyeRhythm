@@ -32,20 +32,30 @@ VALID_EYE_COMFORT = frozenset(
     {"comfortable", "mild", "moderate", "marked", "decline"}
 )
 
-# Defaults match app.main compact window.
+# Canonical “default GUI”: More + Undock. Dock is exactly 2× this width.
 DEFAULT_WIDTH = 480
-DEFAULT_HEIGHT = 840
+DEFAULT_HEIGHT = 1000
 MIN_WIDTH = 400
 # Floor for any window (compact companion). Expanded layout still prefers more.
 MIN_HEIGHT = 400
 MIN_EXPANDED_HEIGHT = 640
 # Fallback compact window height until the UI measures the real content.
 COMPACT_HEIGHT = 440
+# Side dock: window becomes 2× the undocked companion width (50 / 50 split).
+DOCK_WIDTH = 400  # unused for sizing; kept so older comments still resolve
+
+# Live detection / alert knobs (also stored here so they survive relaunch).
+ORI_THRESHOLD_MIN = 20.0
+ORI_THRESHOLD_MAX = 80.0
+WRITING_ANGLE_MIN = 10.0
+WRITING_ANGLE_MAX = 40.0
+CLOSE_DELTA_MIN = 0.10
+CLOSE_DELTA_MAX = 0.30
 
 # First-launch values if the JSON file is missing or broken.
 _DEFAULTS: dict[str, Any] = {
     "avatar": "atlas",
-    "compact": True,
+    "compact": False,
     "window_width": DEFAULT_WIDTH,
     "window_height": DEFAULT_HEIGHT,
     "beep": False,
@@ -53,6 +63,10 @@ _DEFAULTS: dict[str, Any] = {
     "ontop": False,
     # Last splash ocular-comfort self-check (empty = never answered).
     "eye_comfort": "",
+    "dock": False,
+    "ori_threshold": 50.0,
+    "writing_angle_deg": 20.0,
+    "close_delta": 0.18,
 }
 
 # One lock + in-memory copy so the UI and engine can read/write safely.
@@ -95,6 +109,9 @@ def _sanitize(raw: dict[str, Any]) -> dict[str, Any]:
     if "compact" in raw:
         data["compact"] = bool(raw["compact"])
 
+    if "dock" in raw:
+        data["dock"] = bool(raw["dock"])
+
     for key in ("beep", "alert", "ontop"):
         if key in raw:
             data[key] = bool(raw[key])
@@ -106,7 +123,36 @@ def _sanitize(raw: dict[str, Any]) -> dict[str, Any]:
     elif comfort == "":
         data["eye_comfort"] = ""
 
+    data["ori_threshold"] = _clamp_float(
+        raw.get("ori_threshold", data["ori_threshold"]),
+        ORI_THRESHOLD_MIN,
+        ORI_THRESHOLD_MAX,
+        50.0,
+    )
+    data["writing_angle_deg"] = _clamp_float(
+        raw.get("writing_angle_deg", data["writing_angle_deg"]),
+        WRITING_ANGLE_MIN,
+        WRITING_ANGLE_MAX,
+        20.0,
+    )
+    data["close_delta"] = _clamp_float(
+        raw.get("close_delta", data["close_delta"]),
+        CLOSE_DELTA_MIN,
+        CLOSE_DELTA_MAX,
+        0.18,
+    )
+
     return data
+
+
+def _clamp_float(value: Any, lo: float, hi: float, fallback: float) -> float:
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return float(fallback)
+    if v != v:  # NaN
+        return float(fallback)
+    return max(float(lo), min(float(hi), v))
 
 
 def load() -> dict[str, Any]:
@@ -179,26 +225,44 @@ def get_window_size() -> tuple[int, int]:
     return int(p["window_width"]), int(p["window_height"])
 
 
-def launch_window_geometry() -> tuple[int, int]:
-    """
-    Size to open the desktop window with.
+def default_gui_size() -> tuple[int, int]:
+    """More + Undock — the window every launch and splash use."""
+    return DEFAULT_WIDTH, DEFAULT_HEIGHT
 
-    Compact mode uses a short companion height and keeps the last expanded
-    height stored for when the user clicks More.
-    """
-    p = load()
-    w = int(p["window_width"])
-    if bool(p.get("compact", True)):
-        return w, COMPACT_HEIGHT
-    h = int(p["window_height"])
-    if h < MIN_EXPANDED_HEIGHT:
-        h = DEFAULT_HEIGHT
-    return w, h
+
+def docked_gui_size() -> tuple[int, int]:
+    """More + Dock — twice the default width, same default height."""
+    return DEFAULT_WIDTH * 2, DEFAULT_HEIGHT
+
+
+def launch_window_geometry() -> tuple[int, int]:
+    """Always open as the default GUI (More, undocked)."""
+    return default_gui_size()
 
 
 def set_window_size(width: int, height: int) -> dict[str, Any]:
     w, h = _clamp_size(width, height)
     return save(window_width=w, window_height=h)
+
+
+def get_dock() -> bool:
+    """True when the Settings / Reports side dock is open."""
+    return bool(load().get("dock", False))
+
+
+def docked_window_width(_content_w: int | None = None) -> int:
+    """Outer width when the Settings/Reports dock is open (2× default GUI)."""
+    return DEFAULT_WIDTH * 2
+
+
+def undocked_window_width(_outer_w: int | None = None) -> int:
+    """Companion / left-panel width (the default GUI width)."""
+    return DEFAULT_WIDTH
+
+
+def content_width(window_width: int) -> int:
+    """Left-panel width. Dock never changes this — it is always default GUI."""
+    return DEFAULT_WIDTH
 
 
 def get_toggles() -> dict[str, bool]:

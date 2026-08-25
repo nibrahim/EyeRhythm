@@ -20,6 +20,7 @@ import platform
 import sys
 import threading
 import time
+from datetime import date as date_cls
 from collections import deque
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -32,8 +33,10 @@ from blink_core import BlinkDetector, FrameResult
 from blink_core.screentime import ScreenTimeTracker
 from blink_core.interblink_hours import InterBlinkHourTracker
 from app.beeper import Beeper
+from app import audit
 from app import preferences
 from app.eye_score import ocular_rhythm_index
+from app.ori_log import OriHistory
 from app.regularity import RegularityTracker
 # Blink-gated CPU pacing (30 fps + post-blink rest / 1 fps no-face).
 # Easy rollback: remove this import and restore the previous FACE_FPS=17 /
@@ -549,6 +552,11 @@ class AlertMonitor:
         if remaining > 1.0:
             _log(f"alert started — warmup {remaining:.0f}s still active")
 
+    def set_threshold(self, value: float) -> None:
+        """Live-update the low-ORI line (caller already clamped)."""
+        with self._lock:
+            self._threshold = float(value)
+
     def stop(self) -> None:
         """Ask the beep thread to finish and wait a moment for it."""
         self._stop.set()
@@ -732,6 +740,10 @@ class EngineSnapshot:
     face_direction: str | None = None
     # Looking down past LOOK_DOWN_OFFSCREEN_DEG (bottom / left-bottom / right-bottom).
     off_screen: bool = False
+    # Live Settings dock (also persisted). Frontend Trace uses ori_threshold.
+    ori_threshold: float = ALERT_ORI_THRESHOLD
+    writing_angle_deg: float = LOOK_DOWN_OFFSCREEN_DEG
+    close_delta: float = 0.18
 
     # Toggles
     beep: bool = False
@@ -793,11 +805,22 @@ class EyeRhythmEngine:
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
+        saved_prefs = preferences.load()
+        self._ori_threshold = float(
+            saved_prefs.get("ori_threshold", ALERT_ORI_THRESHOLD)
+        )
+        self._writing_angle_deg = float(
+            saved_prefs.get("writing_angle_deg", LOOK_DOWN_OFFSCREEN_DEG)
+        )
+        self._close_delta = float(saved_prefs.get("close_delta", 0.18))
+
         self._beeper = Beeper()
         self._alert = AlertMonitor(
             self._beeper,
+            threshold=self._ori_threshold,
             on_alert_beep=self._note_alert_beep,
         )
+        self._ori_log = OriHistory()
         self._practice = PracticeCoach(
             self._beeper,
             on_finished=self._on_practice_finished,
@@ -846,6 +869,9 @@ class EyeRhythmEngine:
             beep=self._states["beep"],
             alert=self._states["alert"],
             ontop=self._states["ontop"],
+            ori_threshold=self._ori_threshold,
+            writing_angle_deg=self._writing_angle_deg,
+            close_delta=self._close_delta,
             practice=False,
             practice_phase="off",
             practice_countdown_s=0.0,
@@ -895,6 +921,10 @@ class EyeRhythmEngine:
             self._interblink_hours.save()
         except Exception:
             pass
+        try:
+            self._ori_log.save(force=True)
+        except Exception:
+            pass
         # Persist durable toggles only (not practice).
         try:
             tgl = self.get_toggles()
@@ -923,6 +953,104 @@ class EyeRhythmEngine:
             self._preview_wanted = bool(wanted)
             if not wanted:
                 self._preview_jpeg = None
+
+    def get_settings(self) -> dict[str, float]:
+        """Live detection / alert knobs (ORI line, writing angle, blink close)."""
+        with self._lock:
+            return {
+                "ori_threshold": float(self._ori_threshold),
+                "writing_angle_deg": float(self._writing_angle_deg),
+                "close_delta": float(self._close_delta),
+            }
+
+    def apply_settings(self, patch: dict[str, Any]) -> dict[str, float]:
+        """
+        Apply Settings-dock changes immediately, persist, and audit.
+
+        Unknown keys are ignored. Values are clamped to the documented ranges.
+        """
+        labels = {
+            "ori_threshold": "ORI threshold",
+            "writing_angle_deg": "Writing angle",
+            "close_delta": "Blink sensitivity",
+        }
+        changed: list[tuple[str, float, float]] = []
+        with self._lock:
+            if patch.get("ori_threshold") is not None:
+                v = max(
+                    preferences.ORI_THRESHOLD_MIN,
+                    min(preferences.ORI_THRESHOLD_MAX, float(patch["ori_threshold"])),
+                )
+                old = float(self._ori_threshold)
+                if abs(v - old) >= 0.05:
+                    self._ori_threshold = v
+                    self._alert.set_threshold(v)
+                    changed.append(("ori_threshold", old, v))
+            if patch.get("writing_angle_deg") is not None:
+                v = max(
+                    preferences.WRITING_ANGLE_MIN,
+                    min(preferences.WRITING_ANGLE_MAX, float(patch["writing_angle_deg"])),
+                )
+                old = float(self._writing_angle_deg)
+                if abs(v - old) >= 0.05:
+                    self._writing_angle_deg = v
+                    changed.append(("writing_angle_deg", old, v))
+            if patch.get("close_delta") is not None:
+                v = max(
+                    preferences.CLOSE_DELTA_MIN,
+                    min(preferences.CLOSE_DELTA_MAX, float(patch["close_delta"])),
+                )
+                old = float(self._close_delta)
+                if abs(v - old) >= 0.0005:
+                    self._close_delta = v
+                    self._apply_close_delta_locked()
+                    changed.append(("close_delta", old, v))
+            if changed:
+                preferences.save(
+                    ori_threshold=self._ori_threshold,
+                    writing_angle_deg=self._writing_angle_deg,
+                    close_delta=self._close_delta,
+                )
+                self._snap.ori_threshold = float(self._ori_threshold)
+                self._snap.writing_angle_deg = float(self._writing_angle_deg)
+                self._snap.close_delta = float(self._close_delta)
+        for key, old, new in changed:
+            try:
+                audit.record(key, old, new, label=labels.get(key, key))
+            except Exception:
+                pass
+        return self.get_settings()
+
+    def _apply_close_delta_locked(self) -> None:
+        """Push blink close/open deltas onto the live detector (caller holds lock)."""
+        det = self._detector
+        if det is None:
+            return
+        d = float(self._close_delta)
+        det.config.close_delta = d
+        det.config.open_delta = max(0.06, d - 0.06)
+
+    def reports_index(self) -> dict[str, Any]:
+        return {
+            "today": date_cls.today().isoformat(),
+            "days": self._ori_log.available_days(),
+            "ori_threshold": self.get_settings()["ori_threshold"],
+        }
+
+    def report_daily(self, day: str) -> dict[str, Any]:
+        pack = self._ori_log.daily(day)
+        pack["ori_threshold"] = self.get_settings()["ori_threshold"]
+        return pack
+
+    def report_weekly(self, day: str) -> dict[str, Any]:
+        pack = self._ori_log.weekly(day)
+        pack["ori_threshold"] = self.get_settings()["ori_threshold"]
+        return pack
+
+    def report_monthly(self, year: int, month: int) -> dict[str, Any]:
+        pack = self._ori_log.monthly(year, month)
+        pack["ori_threshold"] = self.get_settings()["ori_threshold"]
+        return pack
 
     def set_toggle(self, name: str, value: bool | None = None) -> dict[str, bool]:
         """
@@ -1222,11 +1350,14 @@ class EyeRhythmEngine:
         if not res.face_found:
             self._look_off_screen = False
             return False
+        with self._lock:
+            angle = float(self._writing_angle_deg)
         self._look_off_screen = look_down_offscreen(
             res.face_pitch_deg,
             currently_off=self._look_off_screen,
             angle_deg=res.face_angle_deg,
             direction=res.face_direction,
+            threshold_deg=angle,
         )
         return self._look_off_screen
 
@@ -1273,6 +1404,9 @@ class EyeRhythmEngine:
             self._snap.last_blink_at = self._last_blink_at
             self._snap.last_alert_beep_at = self._last_alert_beep_at
             self._snap.off_screen = self._look_off_screen
+            self._snap.ori_threshold = float(self._ori_threshold)
+            self._snap.writing_angle_deg = float(self._writing_angle_deg)
+            self._snap.close_delta = float(self._close_delta)
             if self._practice_phase == "countdown" and self._countdown_ends is not None:
                 self._snap.practice_countdown_s = round(
                     max(0.0, self._countdown_ends - time.monotonic()), 1)
@@ -1450,6 +1584,8 @@ class EyeRhythmEngine:
         # Detector may fail if model missing — surface that to UI.
         try:
             self._detector = BlinkDetector(self.model_path)
+            with self._lock:
+                self._apply_close_delta_locked()
         except Exception as exc:
             _log(f"detector init failed: {exc}")
             self._publish(
@@ -1642,6 +1778,14 @@ class EyeRhythmEngine:
                     live_reg = self._held_regularity
                 live_ori = ocular_rhythm_index(live_bpm, live_reg)
                 self._alert.update(live_ori if present else None, present)
+                try:
+                    self._ori_log.sample(
+                        live_ori if present else None,
+                        present,
+                        blinks=1 if res.blink_just_counted else 0,
+                    )
+                except Exception:
+                    pass
 
                 frames += 1
                 now = time.monotonic()
@@ -1693,6 +1837,10 @@ class EyeRhythmEngine:
                 pass
             try:
                 self._interblink_hours.save()
+            except Exception:
+                pass
+            try:
+                self._ori_log.save(force=True)
             except Exception:
                 pass
             if self._detector is not None:

@@ -18,10 +18,12 @@ import { fetchPreferences, savePreferences, setToggle } from "./api";
 import {
   measureCompactOuterHeight,
   setCompactLayout,
+  setDockLayout,
   whenBridgeReady,
 } from "./bridge";
 import { type AvatarId } from "./components/Avatar";
 import { ControlsBar } from "./components/ControlsBar";
+import { DockPanel } from "./components/DockPanel";
 import { HeroPanel } from "./components/HeroPanel";
 import { Logo } from "./components/Logo";
 import { MetricCard } from "./components/MetricCard";
@@ -47,7 +49,8 @@ export default function App() {
   const { state, connected } = useEngineState();
   const [avatarId, setAvatarId] = useState<AvatarId>("atlas");
   // Compact = small companion (avatar + buttons). Expanded = full dashboard.
-  const [compact, setCompact] = useState(true);
+  const [compact, setCompact] = useState(false);
+  const [dock, setDock] = useState(false);
   const [prefsReady, setPrefsReady] = useState(false);
   // Launch splash: comfort check + notices, until Start or 3 minutes.
   const [splashOpen, setSplashOpen] = useState(true);
@@ -69,11 +72,9 @@ export default function App() {
         const prefs = await fetchPreferences();
         if (!cancelled) {
           setAvatarId(asAvatarId(prefs.avatar));
-          const nextCompact = prefs.compact !== false;
-          setCompact(nextCompact);
-          if (!nextCompact) {
-            void setCompactLayout(false);
-          }
+          // Every launch is the default GUI: More + Undock.
+          setCompact(false);
+          setDock(false);
         }
       } catch {
         /* keep default */
@@ -99,10 +100,27 @@ export default function App() {
     void savePreferences({ compact: next }).catch(() => {
       /* offline / restarting */
     });
-    if (!next) {
-      // Expanding: grow the native window to last session’s dashboard height.
-      void setCompactLayout(false);
+    // Width stays default (or 2× default if docked); only height changes.
+    void setCompactLayout(next);
+  }, []);
+
+  const persistDock = useCallback((next: boolean) => {
+    if (next) {
+      setCompact(false);
+      setDock(true);
+      void savePreferences({ compact: false, dock: true }).catch(() => {
+        /* offline / restarting */
+      });
+      void setDockLayout(true);
+      return;
     }
+    // Back to the default GUI (More + default width and height).
+    setDock(false);
+    setCompact(false);
+    void savePreferences({ compact: false, dock: false }).catch(() => {
+      /* offline / restarting */
+    });
+    void setDockLayout(false);
   }, []);
 
   // Hug compact content so the gap under the buttons matches the gap
@@ -121,7 +139,7 @@ export default function App() {
       cancelled = true;
       window.cancelAnimationFrame(id);
     };
-  }, [compact, splashOpen]);
+  }, [compact, splashOpen, dock]);
 
   // Keyboard shortcuts (same letters shown on the bottom buttons).
   useEffect(() => {
@@ -136,13 +154,14 @@ export default function App() {
       else if (k === "t") void setToggle("ontop");
       else if (k === "p") void setToggle("practice");
       else if (k === "d") persistCompact(!compact);
+      else if (k === "w") persistDock(!dock);
       else if (k === "c") {
         persistAvatar(avatarId === "lens" ? "atlas" : "lens");
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [avatarId, compact, persistAvatar, persistCompact, splashOpen]);
+  }, [avatarId, compact, dock, persistAvatar, persistCompact, persistDock, splashOpen]);
 
   // Colour of each card: good / warn / bad / idle based on the live number.
   const bpmTone = rateTone(state.continuous_bpm, present);
@@ -158,7 +177,11 @@ export default function App() {
       : state.ocular_rhythm_full
         ? "70% rate · 30% rhythm"
         : "rate only · rhythm warming up";
-  const oriCardTone = oriTone(state.ocular_rhythm_index, present);
+  const oriCardTone = oriTone(
+    state.ocular_rhythm_index,
+    present,
+    state.ori_threshold,
+  );
   const regTone = regularityTone(state.regularity);
   const lookTone = lookAngleTone(state.face_angle_deg, state.face_found);
 
@@ -184,9 +207,10 @@ export default function App() {
 
   return (
     <div
-      className={`app-shell${compact ? " is-compact" : ""}`}
+      className={`app-shell${compact ? " is-compact" : ""}${dock ? " is-docked" : ""}`}
       data-prefs-ready={prefsReady ? "1" : "0"}
     >
+      <div className="app-main">
       {/* Brand + camera status light (hidden in compact companion mode). */}
       <header className="topbar">
         <div className="topbar__brand">
@@ -225,21 +249,38 @@ export default function App() {
         />
 
         {/* Compact ↔ full dashboard. “D” on the keyboard does the same. */}
-        <button
-          type="button"
-          className="layout-toggle"
-          onClick={() => persistCompact(!compact)}
-          title={
-            compact
-              ? "Show rates, screen time and other cards (D)"
-              : "Hide extra cards and shrink the window (D)"
-          }
-        >
-          <span>{compact ? "More" : "Less"}</span>
-          <span className="layout-toggle__chevron" aria-hidden>
-            {compact ? "▾" : "▴"}
-          </span>
-        </button>
+        <div className="layout-toggles">
+          <button
+            type="button"
+            className="layout-toggle"
+            onClick={() => persistCompact(!compact)}
+            title={
+              compact
+                ? "Show rates, screen time and other cards (D)"
+                : "Hide extra cards and shrink the window (D)"
+            }
+          >
+            <span>{compact ? "More" : "Less"}</span>
+            <span className="layout-toggle__chevron" aria-hidden>
+              {compact ? "▾" : "▴"}
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`layout-toggle${dock ? " is-on" : ""}`}
+            onClick={() => persistDock(!dock)}
+            title={
+              dock
+                ? "Hide Settings and Reports dock (W)"
+                : "Open Settings and Reports and expand to More (W)"
+            }
+          >
+            <span>{dock ? "Undock" : "Dock"}</span>
+            <span className="layout-toggle__chevron" aria-hidden>
+              {dock ? "◂" : "▸"}
+            </span>
+          </button>
+        </div>
 
         <div className="target-strip" role="note" hidden={compact}>
           <span className="target-strip__label">Target rhythm</span>
@@ -315,6 +356,9 @@ export default function App() {
       <div className="shell-footer">
         <ControlsBar state={state} />
       </div>
+      </div>
+
+      {dock ? <DockPanel /> : null}
 
       {/* Full-screen practice: countdown + ball/string visual coach */}
       <PracticeScreen state={state} />

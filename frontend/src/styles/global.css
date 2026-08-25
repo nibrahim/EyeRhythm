@@ -124,9 +124,11 @@ button {
 }
 
 .app-shell.is-compact .shell-footer {
+  /* Same 10px as the inset above the graph; window height hugs this. */
   margin-top: 10px;
   padding-top: 0;
   padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 /* ---- top bar (logo + “Live” light) -------------------------------------- */
@@ -198,13 +200,10 @@ button {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   display: flex;
   flex-direction: column;
   gap: var(--gap);
-  padding-right: 2px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(91, 159, 224, 0.4) transparent;
 }
 
 /* Footer always fully visible and above scrolling content for clicks */
@@ -451,7 +450,7 @@ button {
   border: 1px solid rgba(30, 48, 72, 0.1);
   /* Match metric-card padding / min-height — do not grow taller */
   padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.4vw, 16px);
-  min-height: clamp(84px, 12vh, 110px);
+  min-height: clamp(76px, 10vh, 96px);
   box-shadow: var(--shadow-soft);
   background: #e6ebf0;
   display: flex;
@@ -952,7 +951,7 @@ button {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-soft);
   padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.4vw, 16px);
-  min-height: clamp(80px, 11vh, 104px);
+  min-height: clamp(72px, 9vh, 92px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1514,7 +1513,8 @@ button {
   display: flex;
   align-items: stretch;
   justify-content: center;
-  padding: 10px;
+  padding: var(--pad);
+  overflow: hidden;
   background: #e8eef6;
   color: var(--text);
   font-family: inherit;
@@ -1523,24 +1523,17 @@ button {
 .splash__panel {
   display: flex;
   flex-direction: column;
-  width: min(100%, 460px);
+  width: 100%;
+  max-width: 920px;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
   max-height: 100%;
   background: #ffffff;
   border: 1px solid var(--stroke);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow: hidden;
-}
-
-@media (min-height: 720px) {
-  .splash {
-    align-items: center;
-    padding: 24px;
-  }
-
-  .splash__panel {
-    height: min(100%, 680px);
-  }
 }
 
 .splash__bar {
@@ -1605,8 +1598,12 @@ button {
   overflow-x: hidden;
   overflow-y: auto;
   padding: 12px 14px 8px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(91, 159, 224, 0.4) transparent;
+  scrollbar-width: none;
+}
+
+.splash__body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .splash__question {
@@ -1780,6 +1777,294 @@ button {
 .splash__cta:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* ---- More / Less + Dock row -------------------------------------------- */
+
+.layout-toggles {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.layout-toggles .layout-toggle {
+  flex: 1 1 0;
+}
+
+.layout-toggle.is-on {
+  border-color: rgba(91, 159, 224, 0.5);
+  background: #d8e8f6;
+  color: var(--blue-deep);
+}
+
+/* ---- main column + horizontal Settings/Reports dock -------------------- */
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 920px;
+}
+
+.app-shell.is-compact .app-main {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.app-shell.is-docked {
+  flex-direction: row;
+  align-items: stretch;
+  max-width: none;
+  width: 100%;
+  gap: 10px;
+}
+
+.app-shell.is-docked .app-main {
+  flex: 1 1 0;
+  width: 50%;
+  max-width: none;
+  min-width: 0;
+}
+
+.app-shell.is-compact.is-docked {
+  height: auto;
+  min-height: 0;
+}
+
+.dock {
+  flex: 1 1 0;
+  width: 50%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.dock__tabs {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-bottom: 1px solid var(--stroke);
+  background: #f2f6fa;
+}
+
+.dock__tab {
+  padding: 10px 8px;
+  font-size: 0.82em;
+  font-weight: 650;
+  color: var(--text-soft);
+  border-bottom: 2px solid transparent;
+}
+
+.dock__tab:hover {
+  color: var(--text);
+}
+
+.dock__tab.is-active {
+  color: var(--blue-deep);
+  background: #ffffff;
+  border-bottom-color: var(--blue);
+}
+
+.dock__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(91, 159, 224, 0.4) transparent;
+}
+
+.settings,
+.reports {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings__field {
+  display: block;
+}
+
+.settings__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.settings__name {
+  font-size: 0.78em;
+  font-weight: 650;
+  color: #3a4f62;
+}
+
+.settings__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--blue-deep);
+}
+
+.settings__help {
+  margin: 6px 0 0;
+  font-size: 0.68em;
+  line-height: 1.4;
+  color: var(--text-soft);
+}
+
+.settings input[type="range"] {
+  width: 100%;
+  accent-color: var(--blue);
+}
+
+.settings__audit {
+  padding-top: 4px;
+  border-top: 1px solid var(--stroke);
+}
+
+.settings__audit-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.settings__audit-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.settings__audit-at {
+  font-size: 0.62em;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings__audit-what {
+  font-size: 0.7em;
+  color: var(--text-soft);
+}
+
+.reports__kinds {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.reports__kind {
+  padding: 6px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: #ffffff;
+  font-size: 0.72em;
+  font-weight: 650;
+  color: var(--text-soft);
+}
+
+.reports__kind.is-active {
+  background: rgba(91, 159, 224, 0.16);
+  border-color: rgba(91, 159, 224, 0.5);
+  color: var(--blue-deep);
+}
+
+.reports__date {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.74em;
+  font-weight: 650;
+  color: #3a4f62;
+}
+
+.reports__date input {
+  font: inherit;
+  font-weight: 550;
+  color: var(--text);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: #f7fafc;
+}
+
+.reports__caption {
+  margin: 0;
+  font-size: 0.68em;
+  color: var(--text-faint);
+}
+
+.report-chart {
+  position: relative;
+}
+
+.report-chart__svg {
+  display: block;
+  width: 100%;
+  height: 168px;
+  background: linear-gradient(180deg, #f7fafc 0%, #eef4fa 100%);
+  border: 1px solid rgba(91, 159, 224, 0.18);
+  border-radius: 12px;
+}
+
+.report-chart__bar {
+  fill: #3d8fd6;
+}
+
+.report-chart__empty {
+  position: absolute;
+  inset: 28px 12px 48px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font-size: 0.72em;
+  font-weight: 550;
+  color: var(--text-soft);
+  pointer-events: none;
+}
+
+.report-chart__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 10px 0 0;
+}
+
+.report-chart__stats div {
+  background: #f2f6fa;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  padding: 7px 8px;
+}
+
+.report-chart__stats dt {
+  font-size: 0.62em;
+  font-weight: 650;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.report-chart__stats dd {
+  margin: 2px 0 0;
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--blue-deep);
 }
 
 @media (prefers-reduced-motion: reduce) {

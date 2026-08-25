@@ -58,6 +58,9 @@ class _WindowApi:
         # Splash may grow a compact window; do not persist that size.
         self._splash_active = False
         self._pre_splash_geometry: tuple[int, int] | None = None
+        # Side dock is session-only; every launch is More + Undock.
+        self._dock_active = False
+        self._undocked_width = preferences.DEFAULT_WIDTH
 
     def bind(self, window) -> None:
         """Remember the live window object so later JS calls can resize it."""
@@ -69,11 +72,8 @@ class _WindowApi:
 
     def set_compact_layout(self, compact: bool, height=None) -> None:
         """
-        Grow / shrink the desktop window for More / Less.
-
-        Compact keeps the last expanded height in preferences so expanding
-        restores the user's dashboard size instead of a stubby window.
-        ``height`` is the measured outer window size from the UI (optional).
+        Less / More only change height. Left-panel width stays the default
+        GUI width (or 2× that width if the dock is open).
         """
         window = self._window
         want = bool(compact)
@@ -83,14 +83,11 @@ class _WindowApi:
             pass
         if window is None:
             return
-        try:
-            w = int(getattr(window, "width", 0) or 0)
-            h = int(getattr(window, "height", 0) or 0)
-        except Exception:
-            w, h = 0, 0
-        if w < preferences.MIN_WIDTH:
-            w = preferences.DEFAULT_WIDTH
-        # Optional measured height from the UI (hugs the compact content).
+        target_w = (
+            preferences.DEFAULT_WIDTH * 2
+            if self._dock_active
+            else preferences.DEFAULT_WIDTH
+        )
         fit_h = None
         if height is not None:
             try:
@@ -99,56 +96,53 @@ class _WindowApi:
                 fit_h = None
         try:
             if want:
-                # Shrinking: remember today’s tall size so “More” can restore it.
-                if h >= preferences.MIN_EXPANDED_HEIGHT:
-                    preferences.set_window_size(w, h)
-                target = (
+                target_h = (
                     fit_h
                     if fit_h is not None and fit_h >= preferences.MIN_HEIGHT
                     else preferences.COMPACT_HEIGHT
                 )
-                window.resize(w, target)
             else:
-                # Growing: use the last saved dashboard height.
-                _, stored_h = preferences.get_window_size()
-                if stored_h < preferences.MIN_EXPANDED_HEIGHT:
-                    stored_h = preferences.DEFAULT_HEIGHT
-                window.resize(w, stored_h)
+                target_h = preferences.DEFAULT_HEIGHT
+            window.resize(target_w, target_h)
         except Exception as exc:
             _log(f"compact layout toggle failed: {exc}")
 
     def set_splash_layout(self, enabled: bool) -> None:
-        """
-        Grow a compact companion window so the launch splash is readable.
-
-        Does not change the compact preference. ``on_resized`` skips saving
-        while the splash is up so a taller splash is not stored as the
-        dashboard size.
-        """
+        """Keep the splash on the default GUI size (More + Undock)."""
         window = self._window
-        want = bool(enabled)
-        self._splash_active = want
+        self._splash_active = bool(enabled)
         if window is None:
             return
         try:
-            w = int(getattr(window, "width", 0) or 0)
-            h = int(getattr(window, "height", 0) or 0)
-        except Exception:
-            w, h = 0, 0
-        if w < preferences.MIN_WIDTH:
-            w = preferences.DEFAULT_WIDTH
-        try:
-            if want:
-                self._pre_splash_geometry = (w, h)
-                target_h = max(h, preferences.MIN_EXPANDED_HEIGHT)
-                window.resize(w, target_h)
-            else:
-                geom = self._pre_splash_geometry
-                self._pre_splash_geometry = None
-                if geom is not None:
-                    window.resize(geom[0], geom[1])
+            w, h = preferences.default_gui_size()
+            window.resize(w, h)
         except Exception as exc:
             _log(f"splash layout failed: {exc}")
+
+    def set_dock_layout(self, docked: bool) -> None:
+        """
+        Dock → 2× default GUI width at default height (More).
+        Undock → default GUI width and height.
+        """
+        window = self._window
+        want = bool(docked)
+        try:
+            preferences.save(dock=want)
+            if want:
+                preferences.set_compact(False)
+        except Exception:
+            pass
+        self._dock_active = want
+        if window is None:
+            return
+        try:
+            if want:
+                w, h = preferences.docked_gui_size()
+            else:
+                w, h = preferences.default_gui_size()
+            window.resize(w, h)
+        except Exception as exc:
+            _log(f"dock layout failed: {exc}")
 
     def set_practice_fullscreen(self, enabled: bool) -> None:
         """
@@ -269,29 +263,13 @@ def _startup_console_checks(camera_index: int) -> list[str]:
 
 
 def _window_size_from_prefs() -> tuple[int, int]:
-    """Last-session window size, or a safe compact default if prefs fail."""
-    try:
-        return preferences.launch_window_geometry()
-    except Exception:
-        return DEFAULT_WIDTH, preferences.COMPACT_HEIGHT
+    """Always the default GUI (More + Undock)."""
+    return preferences.default_gui_size()
 
 
 def _save_window_size(window) -> None:
-    """Best-effort persist of current window dimensions."""
-    try:
-        w = int(getattr(window, "width", 0) or 0)
-        h = int(getattr(window, "height", 0) or 0)
-        if w < MIN_WIDTH or h < MIN_HEIGHT:
-            return
-        # Compact height is fixed — do not overwrite the expanded size.
-        if preferences.get_compact():
-            preferences.save(window_width=w)
-            _log(f"saved compact window width {w}")
-            return
-        preferences.set_window_size(w, h)
-        _log(f"saved window size {w}x{h}")
-    except Exception as exc:
-        _log(f"could not save window size: {exc}")
+    """Layout size is fixed (default GUI / 2× dock). Do not persist resizes."""
+    return None
 
 
 def _app_icon_path() -> Path | None:

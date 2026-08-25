@@ -28,6 +28,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from app import audit
 from app import preferences
 
 if TYPE_CHECKING:
@@ -112,7 +113,18 @@ class PreferencesPatch(BaseModel):
     alert: bool | None = None
     ontop: bool | None = None
     eye_comfort: str | None = None
+    dock: bool | None = None
+    ori_threshold: float | None = None
+    writing_angle_deg: float | None = None
+    close_delta: float | None = None
     # practice is accepted by toggle API but never stored in preferences
+
+
+class SettingsPatch(BaseModel):
+    """Live Settings-dock knobs. Any subset is applied immediately."""
+    ori_threshold: float | None = None
+    writing_angle_deg: float | None = None
+    close_delta: float | None = None
 
 
 def create_app(engine: "EyeRhythmEngine") -> FastAPI:
@@ -172,6 +184,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         prefs["beep"] = toggles["beep"]
         prefs["alert"] = toggles["alert"]
         prefs["ontop"] = toggles["ontop"]
+        prefs.update(engine.get_settings())
         return prefs
 
     @app.put("/api/preferences")
@@ -189,12 +202,70 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         }
         for name, val in toggle_keys.items():
             engine.set_toggle(name, bool(val))
+        # Detection knobs go through the engine so Alert / Trace / detector
+        # update live and the change is audited.
+        setting_keys = {
+            k: patch.pop(k)
+            for k in ("ori_threshold", "writing_angle_deg", "close_delta")
+            if k in patch
+        }
+        if setting_keys:
+            engine.apply_settings(setting_keys)
         if patch:
             preferences.save(patch)
         prefs = preferences.load()
         toggles = engine.get_toggles()
         prefs.update({k: toggles[k] for k in ("beep", "alert", "ontop")})
+        prefs.update(engine.get_settings())
         return prefs
+
+    @app.get("/api/settings")
+    def get_settings():
+        """Current live Settings-dock values."""
+        return engine.get_settings()
+
+    @app.put("/api/settings")
+    def put_settings(body: SettingsPatch):
+        """Apply ORI threshold / writing angle / blink sensitivity immediately."""
+        patch = body.model_dump(exclude_none=True)
+        try:
+            return engine.apply_settings(patch)
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/api/audit")
+    def get_audit(limit: int = 40):
+        """Newest-first settings change log (local JSON)."""
+        return {"entries": audit.list_entries(limit)}
+
+    @app.get("/api/reports")
+    def get_reports(
+        kind: str = "daily",
+        date: str | None = None,
+        year: int | None = None,
+        month: int | None = None,
+    ):
+        """
+        Daily (5-min bins), weekly (1 bar/day), or monthly (1 point/day).
+
+        ``date`` is YYYY-MM-DD (daily/weekly). Monthly uses ``year`` + ``month``.
+        """
+        kind = (kind or "daily").lower().strip()
+        if kind == "index":
+            return engine.reports_index()
+        if kind == "daily":
+            if not date:
+                raise HTTPException(status_code=400, detail="date required")
+            return engine.report_daily(date)
+        if kind == "weekly":
+            if not date:
+                raise HTTPException(status_code=400, detail="date required")
+            return engine.report_weekly(date)
+        if kind == "monthly":
+            if year is None or month is None:
+                raise HTTPException(status_code=400, detail="year and month required")
+            return engine.report_monthly(int(year), int(month))
+        raise HTTPException(status_code=400, detail="kind must be daily|weekly|monthly|index")
 
     @app.get("/api/quotes")
     def get_quotes():

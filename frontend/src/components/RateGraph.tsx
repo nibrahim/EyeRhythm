@@ -27,7 +27,7 @@ const TENSION = 0.14;
 // Vertical scale is ORI 0 at the bottom, 100 at the top.
 const Y_MAX = 100;
 const Y_TICKS = [25, 50, 75, 100] as const;
-const ALERT_ORI_LINE = 50;
+const DEFAULT_ALERT_ORI = 50;
 const GOOD_ORI_MIN = 70;
 // Empty margin so axis labels are not clipped.
 const PAD = { top: 28, right: 14, bottom: 28, left: 28 };
@@ -35,6 +35,8 @@ const PAD = { top: 28, right: 14, bottom: 28, left: 28 };
 export interface RateGraphProps {
   faceFound: boolean;
   lastBlinkAt: number;
+  /** Live Settings dock value — red dotted line. */
+  alertOri?: number;
 }
 
 function isLiveSample(
@@ -185,7 +187,11 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
+export function RateGraph({
+  faceFound,
+  lastBlinkAt,
+  alertOri = DEFAULT_ALERT_ORI,
+}: RateGraphProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 320, h: 200 });
   // Bumped on every history tick so React redraws the SVG.
@@ -322,7 +328,8 @@ export function RateGraph({ faceFound, lastBlinkAt }: RateGraphProps) {
 
   const bandTop = yOf(Y_MAX);
   const bandBot = yOf(GOOD_ORI_MIN);
-  const alertY = yOf(ALERT_ORI_LINE);
+  const threshold = Number.isFinite(alertOri) ? alertOri : DEFAULT_ALERT_ORI;
+  const alertY = yOf(threshold);
   const headX = PAD.left;
   const headY = nowOri !== null ? yOf(nowOri) : null;
   const displayOri = nowOri !== null ? capOriForGraph(nowOri) : null;
