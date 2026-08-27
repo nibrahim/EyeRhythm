@@ -85,9 +85,21 @@ def _bootstrap_frozen() -> None:
     frozen = bool(getattr(sys, "frozen", False))
     meipass = getattr(sys, "_MEIPASS", None)
     if meipass:
-        os.environ["PATH"] = str(meipass) + os.pathsep + os.environ.get("PATH", "")
+        bits = [str(meipass)]
+        for sub in ("webview/lib", "webview\\lib"):
+            extra = os.path.join(str(meipass), sub)
+            if os.path.isdir(extra):
+                bits.append(extra)
+        os.environ["PATH"] = os.pathsep.join(bits) + os.pathsep + os.environ.get("PATH", "")
+
+    if sys.platform == "win32":
+        # pywebview uses pythonnet. Default "coreclr" needs a separate .NET
+        # install; "netfx" is the Framework already on Windows 10/11.
+        os.environ.setdefault("PYTHONNET_RUNTIME", "netfx")
 
     if not frozen or sys.platform != "win32":
+        if sys.platform == "win32":
+            _load_windows_dotnet()
         return
 
     data = _data_dir()
@@ -112,6 +124,22 @@ def _bootstrap_frozen() -> None:
         sys.stdout = sink
     if sys.stderr is None:
         sys.stderr = sink
+    _load_windows_dotnet()
+
+
+def _load_windows_dotnet() -> None:
+    """Bind pythonnet to .NET Framework so pywebview can open a real window."""
+    if sys.platform != "win32":
+        return
+    try:
+        from pythonnet import load as _load_dotnet
+
+        try:
+            _load_dotnet("netfx")
+        except Exception:
+            _load_dotnet("coreclr")
+    except Exception:
+        pass
 
 
 def _message_box(title: str, text: str) -> None:

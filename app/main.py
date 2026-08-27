@@ -499,6 +499,14 @@ def main() -> None:
                 _open_webview(url, engine, start_engine=not args.no_engine)
             except Exception as exc:
                 _log(f"desktop window failed ({exc}) — falling back to browser")
+                _alert(
+                    "EyeRhythm",
+                    "The EyeRhythm desktop window could not open, so the "
+                    "dashboard will open in your browser instead.\n\n"
+                    "For the normal app window, install Microsoft Edge "
+                    "WebView2 Runtime, then try again.\n\n"
+                    f"({exc})",
+                )
                 if not args.no_engine:
                     engine.start()
                 _run_browser()

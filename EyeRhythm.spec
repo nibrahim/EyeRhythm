@@ -81,6 +81,8 @@ if sys.platform == "win32":
         'pythonnet',
         'clr',
         'clr_loader',
+        'clr_loader.netfx',
+        'clr_loader.coreclr',
         'bottle',
         'proxy_tools',
     ]
