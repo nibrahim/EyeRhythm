@@ -396,12 +396,18 @@ def run_server(engine: "EyeRhythmEngine", host: str = "127.0.0.1",
     def _serve() -> None:
         # Running off the main thread: skip signal handlers (uvicorn handles this
         # on recent versions; Config + Server is explicit and quieter in logs).
+        # Pin protocols so a PyInstaller freeze does not depend on uvicorn's
+        # "auto" importer finding httptools / uvloop at runtime.
         config = uvicorn.Config(
             app,
             host=host,
             port=port,
             log_level="warning",
             access_log=False,
+            loop="asyncio",
+            http="h11",
+            ws="websockets",
+            lifespan="on",
             ws_ping_interval=20,
             ws_ping_timeout=20,
         )
@@ -410,7 +416,11 @@ def run_server(engine: "EyeRhythmEngine", host: str = "127.0.0.1",
             server.install_signal_handlers = lambda: None  # type: ignore[method-assign]
         except Exception:
             pass
-        server.run()
+        try:
+            server.run()
+        except Exception:
+            import traceback
+            traceback.print_exc()
 
     t = threading.Thread(target=_serve, name="EyeRhythmHTTP", daemon=True)
     t.start()

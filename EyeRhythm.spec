@@ -47,13 +47,22 @@ hiddenimports = [
     'uvicorn.logging',
     'uvicorn.loops',
     'uvicorn.loops.auto',
+    'uvicorn.loops.asyncio',
     'uvicorn.protocols',
     'uvicorn.protocols.http',
     'uvicorn.protocols.http.auto',
+    'uvicorn.protocols.http.h11_impl',
     'uvicorn.protocols.websockets',
     'uvicorn.protocols.websockets.auto',
+    'uvicorn.protocols.websockets.websockets_impl',
     'uvicorn.lifespan',
     'uvicorn.lifespan.on',
+    'h11',
+    'websockets',
+    'anyio',
+    'anyio._backends._asyncio',
+    'starlette',
+    'sniffio',
 ]
 # MediaPipe and OpenCV ship many .so/.dll files; collect_all grabs them all.
 _collect('mediapipe')
@@ -64,6 +73,8 @@ _collect('cv2')
 # will miss them (and pythonnet). Skip on macOS — they are not installed.
 if sys.platform == "win32":
     _collect('webview')
+    _collect('pythonnet')
+    _collect('clr_loader')
     hiddenimports += [
         'webview.platforms.edgechromium',
         'webview.platforms.winforms',

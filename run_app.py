@@ -39,6 +39,19 @@ import traceback
 from pathlib import Path
 
 
+def _data_dir() -> Path:
+    """Per-user folder for crash logs and the WebView2 profile."""
+    if sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA")
+        root = Path(base) if base else Path.home() / "AppData" / "Local"
+        return root / "EyeRhythm"
+    home = Path.home()
+    logs = home / "Library" / "Logs"
+    if logs.is_dir():
+        return logs
+    return home
+
+
 def _log_path() -> Path:
     """
     Choose a sensible place to write a crash report.
@@ -48,14 +61,69 @@ def _log_path() -> Path:
     * otherwise: ``~/EyeRhythm_crash.log``
     """
     if sys.platform == "win32":
-        base = os.environ.get("LOCALAPPDATA")
-        root = Path(base) if base else Path.home() / "AppData" / "Local"
-        return root / "EyeRhythm" / "crash.log"
-    home = Path.home()
-    logs = home / "Library" / "Logs"
+        return _data_dir() / "crash.log"
+    logs = Path.home() / "Library" / "Logs"
     if logs.is_dir():
         return logs / "EyeRhythm_crash.log"
-    return home / "EyeRhythm_crash.log"
+    return Path.home() / "EyeRhythm_crash.log"
+
+
+def _bootstrap_frozen() -> None:
+    """
+    Windowed Windows freezes have no console: sys.stdout/stderr are None,
+    and some libraries crash on the first print. Also add the unpack folder
+    to PATH so MediaPipe / WebView2 DLLs resolve.
+    """
+    if sys.platform == "win32":
+        try:
+            import multiprocessing
+
+            multiprocessing.freeze_support()
+        except Exception:
+            pass
+
+    frozen = bool(getattr(sys, "frozen", False))
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        os.environ["PATH"] = str(meipass) + os.pathsep + os.environ.get("PATH", "")
+
+    if not frozen or sys.platform != "win32":
+        return
+
+    data = _data_dir()
+    try:
+        data.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return
+    os.environ.setdefault("WEBVIEW2_USER_DATA_FOLDER", str(data / "webview"))
+    try:
+        log = open(data / "runtime.log", "a", encoding="utf-8")
+        log.write("\n--- EyeRhythm start ---\n")
+        log.flush()
+    except Exception:
+        log = None
+    sink = log
+    if sink is None:
+        try:
+            sink = open(os.devnull, "w")
+        except Exception:
+            return
+    if sys.stdout is None:
+        sys.stdout = sink
+    if sys.stderr is None:
+        sys.stderr = sink
+
+
+def _message_box(title: str, text: str) -> None:
+    """Show a blocking Windows dialog so a windowed freeze is not silent."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.user32.MessageBoxW(None, text, title, 0x10)
+    except Exception:
+        pass
 
 
 def _write_crash(exc: BaseException) -> None:
@@ -91,12 +159,19 @@ def main() -> None:
 if __name__ == "__main__":
     # When this file is executed as a script (or as the PyInstaller entry),
     # wrap the whole startup in a safety net for Python exceptions.
+    _bootstrap_frozen()
     try:
         main()
     except SystemExit:
         # sys.exit(n) should still work normally — do not treat it as a crash.
+        # Hard failures already show a Windows dialog via app.main._fatal.
         raise
     except BaseException as e:
         # KeyboardInterrupt is a BaseException too; we still log unexpected ones.
         _write_crash(e)
+        _message_box(
+            "EyeRhythm",
+            "EyeRhythm failed to start.\n\n"
+            f"Details were saved to:\n{_log_path()}",
+        )
         raise

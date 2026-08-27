@@ -205,6 +205,25 @@ def _log(msg: str) -> None:
         pass
 
 
+def _alert(title: str, text: str) -> None:
+    """Windows MessageBox so a frozen exe is not silent. No-op elsewhere."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.user32.MessageBoxW(None, text, title, 0x10)
+    except Exception:
+        pass
+
+
+def _fatal(msg: str, code: int = 1) -> None:
+    """Log, tell the user, then exit. Used when the window never appears."""
+    _log(msg)
+    _alert("EyeRhythm", msg)
+    sys.exit(code)
+
+
 def _port_free(host: str, port: int) -> bool:
     """True if nothing else is already using this local address + port."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -303,7 +322,9 @@ def _apply_app_icon() -> None:
         _log(f"could not set app icon: {exc}")
 
 
-def _open_webview(url: str, engine: EyeRhythmEngine) -> None:
+def _open_webview(
+    url: str, engine: EyeRhythmEngine, *, start_engine: bool = True
+) -> None:
     """Native desktop window via pywebview (macOS + Windows + Linux)."""
     import webview
 
@@ -366,8 +387,21 @@ def _open_webview(url: str, engine: EyeRhythmEngine) -> None:
         except Exception:
             pass
 
+    def _boot() -> None:
+        # Start the camera only after the native window exists. Otherwise a
+        # failed WebView2 init looked like “camera blinks, then nothing”.
+        if not start_engine:
+            return
+        try:
+            engine.start()
+        except Exception as exc:
+            _log(f"engine start failed: {exc}")
+
     # Block until the window is closed.
-    webview.start(debug=False)
+    start_kwargs = {"debug": False}
+    if sys.platform == "win32":
+        start_kwargs["gui"] = "edgechromium"
+    webview.start(_boot, **start_kwargs)
     # Final save after start() returns (window gone).
     _save_window_size(window)
 
@@ -406,9 +440,7 @@ def main() -> None:
         hard = [m for m in issues if m.startswith("Python")
                 or m.startswith("Model") or m.startswith("React")]
         if hard:
-            for m in hard:
-                print(m, file=sys.stderr)
-            sys.exit(1)
+            _fatal("\n".join(hard))
 
     port = args.port
     try:
@@ -416,14 +448,13 @@ def main() -> None:
             port = _find_port(args.host, port)
             _log(f"port {args.port} busy — using {port}")
     except RuntimeError as exc:
-        print(exc, file=sys.stderr)
-        sys.exit(1)
+        _fatal(str(exc))
 
     # The engine owns the webcam and all blink numbers. --no-engine is a
     # developer shortcut: show the dashboard without opening the camera.
+    # Camera starts after the window is up (see _open_webview), so a failed
+    # desktop window no longer looks like a camera flash then a silent exit.
     engine = EyeRhythmEngine(camera_index=args.camera)
-    if not args.no_engine:
-        engine.start()
 
     # Local HTTP + WebSocket for the React UI (same machine only).
     run_server(engine, host=args.host, port=port)
@@ -433,9 +464,12 @@ def main() -> None:
     _log(f"prefs: {preferences.load()}")
 
     if not _wait_for_server(args.host, port):
-        _log("server failed to start in time")
         engine.stop()
-        sys.exit(1)
+        _fatal(
+            "EyeRhythm’s local UI server did not start.\n\n"
+            "If this zip came from email or a browser download, right-click "
+            "the zip → Properties → Unblock, extract again, and retry."
+        )
 
     use_browser = args.browser
     if not use_browser:
@@ -454,15 +488,19 @@ def main() -> None:
 
     try:
         if use_browser:
+            if not args.no_engine:
+                engine.start()
             _run_browser()
         else:
             # Normal path: a compact desktop window wrapping the same UI.
             # On Windows a freeze can miss WebView2 / pythonnet; keep the
             # dashboard reachable in the system browser instead of dying.
             try:
-                _open_webview(url, engine)
+                _open_webview(url, engine, start_engine=not args.no_engine)
             except Exception as exc:
                 _log(f"desktop window failed ({exc}) — falling back to browser")
+                if not args.no_engine:
+                    engine.start()
                 _run_browser()
     except KeyboardInterrupt:
         _log("interrupted")

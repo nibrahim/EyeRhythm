@@ -60,6 +60,12 @@ jobs:
           }
           Get-Item $exe | Format-List FullName, Length, LastWriteTime
 
+      - name: Add start notes next to the exe
+        shell: cmd
+        run: |
+          copy /Y for_windows\START_HERE.txt dist\EyeRhythm\START_HERE.txt
+          copy /Y for_windows\Unblock-and-run.bat dist\EyeRhythm\Unblock-and-run.bat
+
       - name: Zip portable app
         shell: pwsh
         run: |

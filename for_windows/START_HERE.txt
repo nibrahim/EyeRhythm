@@ -1,0 +1,17 @@
+EyeRhythm for Windows
+=====================
+
+1. Unzip the whole folder. Keep EyeRhythm.exe and the _internal folder together.
+2. If this zip came from email, WhatsApp, or a browser download:
+   Right-click the zip (or the extracted EyeRhythm.exe) → Properties →
+   tick Unblock → Apply.
+   Or double-click "Unblock-and-run.bat" in this folder.
+3. Double-click EyeRhythm.exe.
+4. Allow the camera when Windows asks.
+
+If the window still does not open, send these two files back:
+
+  %LOCALAPPDATA%\EyeRhythm\crash.log
+  %LOCALAPPDATA%\EyeRhythm\runtime.log
+
+(Paste that path into File Explorer’s address bar.)
