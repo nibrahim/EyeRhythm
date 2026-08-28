@@ -1,0 +1,39 @@
+---
+import Logo from "./Logo.astro";
+import { site } from "../config";
+---
+
+<footer class="footer">
+  <div class="wrap footer__top">
+    <a class="footer__brand" href="/#top">
+      <Logo size={28} />
+      <span>
+        <strong>EyeRhythm</strong>
+        <small>A quiet companion for the desk.</small>
+      </span>
+    </a>
+    <div class="footer__cols">
+      <div>
+        <h2>Product</h2>
+        <a href="/#rhythm">Rhythm</a>
+        <a href="/#highlights">Highlights</a>
+        <a href="/#privacy">Privacy</a>
+        <a href="/journal">Journal</a>
+        <a href="/#about">About</a>
+      </div>
+      <div>
+        <h2>A copy</h2>
+        <button type="button" data-open-purchase>{site.cta}</button>
+        <p>{site.price.label} one time</p>
+      </div>
+    </div>
+  </div>
+  <div class="wrap footer__bottom">
+    <p>
+      Wellness companion, not a medical device. Not intended to diagnose, treat,
+      or prevent disease. If your eyes keep hurting or your vision changes, see
+      an eye doctor.
+    </p>
+    <p>No cookies. No analytics. This page stays on your machine.</p>
+  </div>
+</footer>

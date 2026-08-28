@@ -1,0 +1,72 @@
+---
+import { posts } from "../data/journal";
+
+const post = posts[0];
+---
+
+<section class="journal-teaser" id="journal">
+  <div class="wrap">
+    <p class="kicker"><span class="kicker__dot"></span>Journal</p>
+    <a class="feature" href={`/journal/${post.slug}`}>
+      <div>
+        <p class="meta">{post.kicker} · {post.read}</p>
+        <h2 class="display">{post.title}</h2>
+        <p class="lede">{post.description}</p>
+        <span class="more">Read the guide →</span>
+      </div>
+      <img
+        src="/images/blog-cover.jpg"
+        alt="Someone at a laptop, camera at the top of the screen."
+        width="1280"
+        height="720"
+      />
+    </a>
+  </div>
+</section>
+
+<style>
+  .journal-teaser {
+    padding: clamp(64px, 9vw, 120px) 0 clamp(72px, 10vw, 112px);
+    background: #fff;
+  }
+
+  .feature {
+    margin-top: 20px;
+    display: grid;
+    gap: 28px;
+    text-decoration: none;
+    color: inherit;
+    align-items: center;
+  }
+
+  .meta {
+    font-size: 0.86rem;
+    color: var(--text-soft);
+    margin-bottom: 10px;
+  }
+
+  .display {
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+  }
+
+  .more {
+    display: inline-block;
+    margin-top: 16px;
+    color: var(--blue-deep);
+    font-weight: 600;
+  }
+
+  img {
+    width: 100%;
+    border-radius: 28px;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+  }
+
+  @media (min-width: 880px) {
+    .feature {
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 48px;
+    }
+  }
+</style>

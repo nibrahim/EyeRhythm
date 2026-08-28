@@ -1,0 +1,402 @@
+---
+/** Decorative companion window — mirrors the real app palette and cards. */
+const skinId = `atlasSkin-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<figure class="mock" aria-hidden="true">
+  <div class="mock__chrome">
+    <span class="mock__dots">
+      <i></i><i></i><i></i>
+    </span>
+    <span class="mock__title">EyeRhythm</span>
+  </div>
+  <div class="mock__body">
+    <header class="mock__top">
+      <div class="mock__brand">
+        <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
+          <rect x="2" y="2" width="60" height="60" rx="18" fill="#5B9FE0"></rect>
+          <ellipse
+            cx="32"
+            cy="32"
+            rx="20"
+            ry="12.5"
+            stroke="white"
+            stroke-width="2.6"
+            fill="rgba(255,255,255,0.14)"></ellipse>
+          <circle cx="32" cy="32" r="7.2" fill="#E8F2FA"></circle>
+          <circle cx="32" cy="32" r="3.1" fill="#1A2A38"></circle>
+          <circle cx="34.2" cy="29.8" r="1.5" fill="white" opacity="0.9"></circle>
+        </svg>
+        <div>
+          <strong>EyeRhythm</strong>
+          <em>Blink companion</em>
+        </div>
+      </div>
+      <div class="mock__live">
+        <span class="live-dot"></span>
+        Live
+      </div>
+    </header>
+
+    <div class="mock__hero">
+      <span class="mock__status">Eyes open</span>
+      <span class="mock__chip">
+        <b data-live-blinks>2,184</b>
+        blinks today
+      </span>
+      <svg class="atlas" viewBox="0 0 220 280" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id={skinId} x1="40" y1="20" x2="180" y2="260">
+            <stop stop-color="#D4C4B0"></stop>
+            <stop offset="0.5" stop-color="#B89A7A"></stop>
+            <stop offset="1" stop-color="#8F7358"></stop>
+          </linearGradient>
+        </defs>
+        <path
+          d="M110 30 C154 30 186 72 186 118 C186 158 166 190 146 204 L148 246 C148 262 132 270 110 270 C88 270 72 262 72 246 L74 204 C54 190 34 158 34 118 C34 72 66 30 110 30Z"
+          fill={`url(#${skinId})`}
+          opacity="0.95"></path>
+        <ellipse cx="110" cy="118" rx="50" ry="58" fill="rgba(255,255,255,0.12)"
+        ></ellipse>
+        <g class="atlas-eyes">
+          <ellipse cx="84" cy="110" rx="12" ry="5.5" fill="#1A2A38"></ellipse>
+          <ellipse cx="136" cy="110" rx="12" ry="5.5" fill="#1A2A38"></ellipse>
+          <circle cx="86" cy="109" r="2" fill="white" opacity="0.75"></circle>
+          <circle cx="138" cy="109" r="2" fill="white" opacity="0.75"></circle>
+        </g>
+        <path
+          d="M110 122 L110 152 M98 164 Q110 174 122 164"
+          stroke="rgba(28,42,36,0.22)"
+          stroke-width="2.2"
+          fill="none"
+          stroke-linecap="round"></path>
+      </svg>
+    </div>
+
+    <div class="mock__target">
+      <span>Target rhythm</span>
+      ≈ 15–20 blinks/min while working
+    </div>
+
+    <div class="mock__grid">
+      <article class="m sage">
+        <span>Continuous rate</span>
+        <strong>18 <small>/min</small></strong>
+      </article>
+      <article class="m mint">
+        <span>Ocular Rhythm Index</span>
+        <strong><b data-live-ori>78</b> <small>/100</small></strong>
+      </article>
+      <article class="m peach">
+        <span>Screen time</span>
+        <strong data-live-screen>3h 12m</strong>
+      </article>
+      <article class="m sun">
+        <span>Regularity</span>
+        <strong>84 <small>/100</small></strong>
+      </article>
+    </div>
+
+    <div class="mock__controls">
+      <span><i></i> Beep <kbd>B</kbd></span>
+      <span class="on"><i></i> Alert <kbd>A</kbd></span>
+      <span class="on"><i></i> On top <kbd>T</kbd></span>
+      <span><i></i> Practice <kbd>P</kbd></span>
+    </div>
+  </div>
+</figure>
+
+<style>
+  .mock {
+    margin: 0;
+    width: min(100%, 380px);
+    border-radius: 18px;
+    overflow: hidden;
+    background: #e8eef6;
+    border: 1px solid rgba(30, 48, 72, 0.12);
+    box-shadow: 0 30px 70px rgba(30, 48, 72, 0.16),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  }
+
+  .mock__chrome {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    background: linear-gradient(180deg, #f6f8fb, #e9eef5);
+    border-bottom: 1px solid rgba(30, 48, 72, 0.08);
+    position: relative;
+  }
+
+  .mock__dots {
+    position: absolute;
+    left: 12px;
+    display: flex;
+    gap: 6px;
+  }
+
+  .mock__dots i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff5f57;
+  }
+
+  .mock__dots i:nth-child(2) {
+    background: #febc2e;
+  }
+
+  .mock__dots i:nth-child(3) {
+    background: #28c840;
+  }
+
+  .mock__title {
+    font-size: 0.72rem;
+    font-weight: 550;
+    color: var(--text-soft);
+  }
+
+  .mock__body {
+    padding: 12px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .mock__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .mock__brand {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .mock__brand strong {
+    display: block;
+    font-size: 0.82rem;
+    letter-spacing: -0.02em;
+  }
+
+  .mock__brand em {
+    display: block;
+    font-style: normal;
+    font-size: 0.64rem;
+    color: var(--text-soft);
+  }
+
+  .mock__live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid var(--stroke);
+    font-size: 0.68rem;
+    color: var(--text-soft);
+  }
+
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--blue);
+    box-shadow: 0 0 0 3px rgba(91, 159, 224, 0.22);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  .mock__hero {
+    position: relative;
+    background: #fff;
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    padding: 18px 10px 8px;
+    min-height: 168px;
+    display: grid;
+    place-items: center;
+  }
+
+  .mock__status,
+  .mock__chip {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid var(--stroke);
+    box-shadow: var(--shadow-soft);
+    font-size: 0.62rem;
+    font-weight: 550;
+  }
+
+  .mock__status {
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    padding: 4px 9px;
+  }
+
+  .mock__status::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 5px;
+    border-radius: 50%;
+    background: var(--blue);
+  }
+
+  .mock__chip {
+    top: 10px;
+    right: 10px;
+    text-align: right;
+    border-radius: 10px;
+    padding: 6px 8px;
+    color: var(--text-soft);
+  }
+
+  .mock__chip b {
+    display: block;
+    font-size: 1rem;
+    color: var(--blue-deep);
+    letter-spacing: -0.03em;
+  }
+
+  .atlas {
+    width: 108px;
+    height: 138px;
+  }
+
+  .atlas-eyes {
+    transform-origin: 110px 110px;
+    animation: blink 3.333s ease-in-out infinite;
+  }
+
+  .mock__target {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px;
+    border-radius: 12px;
+    background: #e4eef8;
+    border: 1px solid rgba(91, 159, 224, 0.28);
+    font-size: 0.68rem;
+    color: var(--text);
+  }
+
+  .mock__target span {
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+  }
+
+  .mock__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+
+  .m {
+    border-radius: 12px;
+    padding: 9px 10px;
+    min-height: 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .m span {
+    font-size: 0.62rem;
+    font-weight: 650;
+    color: rgba(30, 44, 58, 0.62);
+  }
+
+  .m strong {
+    font-size: 1.15rem;
+    letter-spacing: -0.03em;
+    color: #1a2a3a;
+  }
+
+  .m small {
+    font-size: 0.62rem;
+    font-weight: 550;
+    color: rgba(30, 44, 58, 0.5);
+  }
+
+  .sage {
+    background: #b5d4ec;
+  }
+  .mint {
+    background: #9cc8e8;
+  }
+  .peach {
+    background: #f0c8a8;
+  }
+  .sun {
+    background: #f0d878;
+  }
+
+  .mock__controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    padding-top: 2px;
+  }
+
+  .mock__controls span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--stroke);
+    font-size: 0.62rem;
+    font-weight: 550;
+    color: var(--text-soft);
+  }
+
+  .mock__controls span.on {
+    background: #d4e8f8;
+    color: var(--blue-deep);
+    border-color: rgba(91, 159, 224, 0.45);
+  }
+
+  .mock__controls i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--slate, #8a9aab);
+  }
+
+  .mock__controls span.on i {
+    background: var(--blue);
+  }
+
+  .mock__controls kbd {
+    font: inherit;
+    font-size: 0.58rem;
+    opacity: 0.7;
+  }
+
+  @keyframes blink {
+    0%,
+    88%,
+    100% {
+      transform: scaleY(1);
+    }
+    92% {
+      transform: scaleY(0.12);
+    }
+  }
+
+  @keyframes pulse {
+    50% {
+      box-shadow: 0 0 0 5px rgba(91, 159, 224, 0.08);
+    }
+  }
+</style>

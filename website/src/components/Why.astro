@@ -1,0 +1,98 @@
+<section class="section" id="why">
+  <div class="wrap why">
+    <div class="why__copy">
+      <p class="kicker"><span class="kicker__dot"></span>Why it exists</p>
+      <h2 class="display">Your eyes work hard for you. Screens make them work worse.</h2>
+      <p>
+        During focused computer use, people blink far less often than they do
+        in conversation. That drop is a well-known driver of digital eye strain:
+        dryness, grit, fatigue, and blurred vision.
+      </p>
+      <p>
+        The problem is not that you “forget to care.” It is that attention
+        narrows, the face stills, and blinking becomes sparse and uneven — and
+        you rarely notice until the eyes already hurt.
+      </p>
+      <p>
+        EyeRhythm’s motivation is simple: give the eyes a rhythm they can keep,
+        for as long as the work needs to last. A healthy cadence is often around
+        <strong>15–20 blinks per minute</strong>. The app does not lecture. It
+        watches, scores, and, if you ask it to, gently nudges.
+      </p>
+      <p class="note">
+        It is a wellness companion, not a medical device. It is not intended to
+        diagnose, treat, or prevent disease. Persistent discomfort or a change
+        in vision belongs with a licensed eye-care professional.
+      </p>
+    </div>
+    <figure class="why__photo">
+      <img
+        src="/images/desk.jpg"
+        alt="A quiet oak desk with a small plant, a cup of tea, and a linen notebook in morning light."
+        width="1280"
+        height="720"
+      />
+      <figcaption>
+        Built for desk hours. A small companion that stays out of the way of
+        the work.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<style>
+  .why {
+    display: grid;
+    gap: 40px;
+    align-items: center;
+  }
+
+  .why__copy {
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+  }
+
+  .why__copy p {
+    color: var(--text-soft);
+    max-width: 40rem;
+  }
+
+  .why__copy strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .note {
+    font-size: 0.92rem;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid var(--stroke);
+  }
+
+  .why__photo {
+    margin: 0;
+  }
+
+  .why__photo img {
+    border-radius: 24px;
+    border: 1px solid var(--stroke);
+    box-shadow: var(--shadow);
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+  }
+
+  .why__photo figcaption {
+    margin-top: 12px;
+    font-size: 0.88rem;
+    color: var(--text-soft);
+  }
+
+  @media (min-width: 900px) {
+    .why {
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 56px;
+    }
+  }
+</style>

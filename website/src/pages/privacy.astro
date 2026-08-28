@@ -1,0 +1,95 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout
+  title="Privacy — EyeRhythm"
+  description="EyeRhythm is fully offline in normal use. Camera frames never leave the machine. No accounts, no cloud, no analytics."
+>
+  <main id="main" class="section" style="background:#fff;padding-bottom:96px">
+    <article class="wrap legal">
+      <p class="kicker"><span class="kicker__dot"></span>Privacy</p>
+      <h1 class="display">On-device and private.</h1>
+      <p class="lede">
+        EyeRhythm is meant to sit next to your work, not on someone else’s
+        server. This page states that plainly.
+      </p>
+
+      <h2>What never leaves the machine</h2>
+      <p>
+        No internet is required for normal use. There is no account, no login,
+        no cloud, and no analytics. Camera frames are processed on this computer
+        only, in real time. Video is not recorded for upload, not stored as a
+        film of your face, and not shared.
+      </p>
+
+      <h2>What may be kept locally</h2>
+      <p>
+        What is kept, if anything, is yours: today’s blink and screen-time
+        totals, preferences, and optional on-device history for your own
+        reports. That data stays in a folder on the computer and resets or
+        remains there according to the app. It is not sent to us or to anyone
+        else.
+      </p>
+      <p>
+        On macOS and Windows the local folder is typically under your home
+        directory as <code>.eyerhythm_blinkcounter</code>.
+      </p>
+
+      <h2>Sharing the app</h2>
+      <p>
+        You can share the Mac app or the Windows zip. The recipient runs it
+        locally. There is no “phone home.”
+      </p>
+
+      <h2>This website</h2>
+      <p>
+        This site is a static page. It does not set cookies, does not load
+        analytics, and does not call third-party scripts. A license reservation
+        is stored only in your browser until payment is connected.
+      </p>
+
+      <h2>Not a medical device</h2>
+      <p>
+        EyeRhythm is a wellness companion. It has not been cleared or approved
+        by the FDA or any other regulator. It is not intended to diagnose,
+        treat, cure, or prevent disease. ORI is a cadence score you can act on —
+        not a diagnosis. If you have an ocular surface disorder, a change in
+        vision, or persistent discomfort, consult a licensed eye-care
+        professional.
+      </p>
+
+      <p><a href="/#privacy">Back to the site</a></p>
+    </article>
+  </main>
+</Layout>
+
+<style>
+  .legal {
+    display: grid;
+    gap: 16px;
+    padding-bottom: 40px;
+    max-width: 42rem;
+  }
+
+  .legal h1 {
+    font-size: clamp(2.1rem, 5vw, 3.4rem);
+  }
+
+  .legal h2 {
+    margin-top: 12px;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+  }
+
+  .legal p {
+    color: var(--text-soft);
+  }
+
+  code {
+    font-size: 0.88em;
+    background: rgba(255, 255, 255, 0.75);
+    padding: 1px 6px;
+    border-radius: 6px;
+  }
+</style>

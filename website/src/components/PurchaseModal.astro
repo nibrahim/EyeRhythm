@@ -1,0 +1,62 @@
+---
+import { site } from "../config";
+---
+
+<dialog class="modal" id="purchase-dialog" aria-labelledby="purchase-title">
+  <div class="modal__inner">
+    <div class="modal__head">
+      <div>
+        <p class="kicker"><span class="kicker__dot"></span>{site.cta}</p>
+        <h2 id="purchase-title">A copy for your desk</h2>
+      </div>
+      <button class="modal__close" type="button" data-close-purchase aria-label="Close">
+        ×
+      </button>
+    </div>
+    <p class="muted">
+      {site.price.label} one time. Mac and Windows. {site.price.updates}.
+      Payment is not connected yet — this note keeps your place.
+    </p>
+    <div class="modal__price">
+      <strong>{site.price.label}</strong>
+      <span class="muted">one-time</span>
+    </div>
+
+    <form id="purchase-form" novalidate>
+      <label class="field">
+        <span>Name</span>
+        <input name="name" type="text" autocomplete="name" required />
+      </label>
+      <label class="field">
+        <span>Email</span>
+        <input name="email" type="email" autocomplete="email" required />
+      </label>
+      <label class="field">
+        <span>Computer</span>
+        <select name="platform">
+          <option value="both" selected>Mac and Windows</option>
+          <option value="mac">macOS</option>
+          <option value="windows">Windows</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Note (optional)</span>
+        <textarea name="note" placeholder="Anything we should know"></textarea>
+      </label>
+      <p class="form-error" data-form-error>
+        Please add a name and a valid email.
+      </p>
+      <button class="btn btn--primary" type="submit">{site.cta}</button>
+    </form>
+
+    <div class="success" data-form-success>
+      <h3>Thank you.</h3>
+      <p>
+        Your note is saved in this browser. When checkout is ready, we will
+        complete the {site.price.label} copy for this email. Nothing was sent
+        to a server.
+      </p>
+      <p data-mailto-slot></p>
+    </div>
+  </div>
+</dialog>

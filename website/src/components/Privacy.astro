@@ -1,0 +1,81 @@
+<section class="privacy" id="privacy">
+  <div class="wrap privacy__inner">
+    <figure class="privacy__art">
+      <img
+        class="privacy__photo"
+        src="/images/flower-laptop.jpg"
+        alt="A peony in full bloom beside an open laptop showing a pair of happy eyes."
+        width="1152"
+        height="864"
+      />
+    </figure>
+    <div class="privacy__copy">
+      <p class="kicker"><span class="kicker__dot"></span>Fully offline</p>
+      <h2 class="display">Meant to sit next to your work, not on someone else’s server.</h2>
+      <ul>
+        <li>No internet for normal use. No account, no cloud, no analytics.</li>
+        <li>
+          Camera frames never leave the machine. They are processed here, in
+          real time. Video is not recorded for upload, not stored as a film of
+          your face, and not shared.
+        </li>
+        <li>
+          What is kept locally, if anything, is yours: today’s totals,
+          preferences, optional on-device history.
+        </li>
+        <li>Share the Mac app or the Windows zip. There is no phone home.</li>
+      </ul>
+      <a class="btn btn--soft" href="/privacy">Read the privacy page</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .privacy {
+    padding: clamp(64px, 9vw, 120px) 0;
+    background: #fff;
+  }
+
+  .privacy__inner {
+    display: grid;
+    gap: 40px;
+    align-items: center;
+  }
+
+  .privacy__copy {
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+  }
+
+  .display {
+    font-size: clamp(1.9rem, 4vw, 3.1rem);
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 10px;
+    color: var(--text-soft);
+  }
+
+  .privacy__art {
+    margin: 0;
+  }
+
+  .privacy__photo {
+    width: 100%;
+    border-radius: 28px;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+  }
+
+  @media (min-width: 900px) {
+    .privacy__inner {
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+    }
+  }
+</style>

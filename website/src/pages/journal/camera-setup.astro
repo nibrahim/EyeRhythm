@@ -1,0 +1,312 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getPost } from "../../data/journal";
+
+const post = getPost("camera-setup")!;
+---
+
+<Layout title={`${post.title} — EyeRhythm`} description={post.description}>
+  <main id="main">
+    <header class="cover">
+      <img
+        src="/images/blog-cover.jpg"
+        alt="Someone sitting at a laptop. The camera at the top of the screen can see their face."
+        width="1280"
+        height="720"
+      />
+      <div class="cover__shade"></div>
+      <div class="cover__copy">
+        <p class="kicker"><span class="kicker__dot"></span>{post.kicker}</p>
+        <h1 class="display">{post.title}</h1>
+        <p class="lede">{post.description}</p>
+        <p class="meta">{post.read} · 27 August 2026</p>
+      </div>
+    </header>
+
+    <article class="wrap article">
+      <div class="prose">
+        <p>
+          EyeRhythm counts blinks through the camera already in your laptop.
+          You do not need a special webcam. You just need the camera to see
+          your face while you work.
+        </p>
+        <p>
+          Video stays on this computer. Nothing is sent away. Follow the steps
+          below once, then leave the app running.
+        </p>
+
+        <h2>1. Let EyeRhythm use the camera</h2>
+        <p>
+          The first time you open the app, your computer will ask for camera
+          permission. Click <strong>Allow</strong>.
+        </p>
+        <ul>
+          <li>
+            <strong>Mac:</strong> System Settings → Privacy &amp; Security →
+            Camera → turn EyeRhythm on.
+          </li>
+          <li>
+            <strong>Windows:</strong> Settings → Privacy &amp; security →
+            Camera → allow desktop apps, then allow EyeRhythm.
+          </li>
+        </ul>
+
+        <h2>2. Close Zoom, Teams, or the browser camera first</h2>
+        <p>
+          Only one app can use the camera at a time. If a meeting is already
+          using it, EyeRhythm will show a black picture, or it will not go
+          Live. Close those apps, then open EyeRhythm.
+        </p>
+
+        <h2>3. Sit the way you normally sit</h2>
+        <p>
+          Put the laptop or monitor so the camera is near your eye line. Sit
+          about an arm’s length away — the same as a normal desk.
+        </p>
+        <p>
+          Too close, and your face fills the picture. Too far, and your eyes
+          look tiny. Look at the screen, not down at the keyboard for a long
+          time, if you want this stretch of work to count.
+        </p>
+        <p>
+          If you look clearly down, or turn far to the side, the app treats
+          that as <strong>off-screen</strong>. That is on purpose. The score is
+          about time at the screen, not the whole room.
+        </p>
+
+        <h2>4. Put the light in front of you</h2>
+        <p>
+          Face a window or a lamp. Do not sit with a bright window behind your
+          head. That turns your face dark, and blinks are hard to see.
+        </p>
+        <p>
+          Glasses are fine. A little extra light on your eyes helps. You do
+          not need a ring light.
+        </p>
+
+        <h2>5. Look at the screen, not past it</h2>
+        <p>
+          The app needs to see both eyes, looking mostly toward the camera. A
+          quick glance away is fine. Working with your head turned to the side
+          is not — those blinks will not count.
+        </p>
+
+        <h2>6. Check once, then hide the camera</h2>
+        <p>
+          In the app, choose <strong>Lens</strong> for a few seconds. You
+          should see your face, both eyes, and a Live light. Then switch back
+          to Atlas or another face. You do not need to watch yourself all day.
+        </p>
+        <p>
+          While you look at the screen, the status should say the eyes are
+          open. If it stays off-screen, sit up, raise the laptop, or add
+          light.
+        </p>
+
+        <h2>If you use more than one screen</h2>
+        <p>
+          Extra monitors are fine. The camera still has to see your face. How
+          you place the laptop matters.
+        </p>
+
+        <h3>Best: laptop in the middle</h3>
+        <p>
+          Keep the laptop in the centre, facing you. Put one or two screens on
+          the sides. Look mostly toward the laptop so its built-in camera can
+          see your eyes. A glance to the side is fine. Sitting turned toward a
+          side screen for a long time is not.
+        </p>
+        <figure class="shot">
+          <img
+            src="/images/setup-center.jpg"
+            alt="A laptop in the centre of the desk with a monitor on each side."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            Laptop in the centre. Side screens angle in. The webcam looks at
+            your face.
+          </figcaption>
+        </figure>
+
+        <h3>If the laptop is off to the side</h3>
+        <p>
+          If you look at other screens and the laptop sits to the left or
+          right, the built-in camera is looking at your cheek, not your eyes.
+          Blink counts will be poor.
+        </p>
+        <p>
+          In that case use a small external webcam on the screen in front of
+          you. Point it at your face. Keep the angle from your face to that
+          camera as small as you can — almost straight on, not from the side
+          or from far above.
+        </p>
+        <figure class="shot">
+          <img
+            src="/images/setup-side.jpg"
+            alt="Two monitors in front with an external webcam on top, laptop closed to the side."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            Laptop parked to the side. Webcam on the screen you actually look
+            at.
+          </figcaption>
+        </figure>
+
+        <h2>Quick check</h2>
+        <ol>
+          <li>Camera permission is on.</li>
+          <li>No other app is using the camera.</li>
+          <li>Camera near eye height, normal desk distance.</li>
+          <li>Light on your face, not a window behind you.</li>
+          <li>Lens shows your face, then you hide the preview.</li>
+        </ol>
+
+        <h2>If it is not working</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>What you see</th>
+              <th>What to try</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Black camera, not Live</td>
+              <td>
+                Close Zoom, Teams, or any browser tab using the camera. Check
+                camera permission again.
+              </td>
+            </tr>
+            <tr>
+              <td>Always off-screen</td>
+              <td>
+                Sit up. Raise the screen. Look at the display, not down at the
+                desk.
+              </td>
+            </tr>
+            <tr>
+              <td>Blinks missed with glasses</td>
+              <td>Face the camera and add a bit of light on your eyes.</td>
+            </tr>
+            <tr>
+              <td>The number jumps around</td>
+              <td>
+                Stay in the picture for a minute. Looking away pauses the
+                score on purpose.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          After this, leave it. EyeRhythm is a small window next to your work
+          — not another chore.
+        </p>
+      </div>
+
+      <p class="back">
+        <a href="/journal">All journal</a>
+        ·
+        <button type="button" data-open-purchase>Get a copy</button>
+      </p>
+    </article>
+  </main>
+</Layout>
+
+<style>
+  .cover {
+    position: relative;
+    width: 100%;
+    min-height: min(72vh, 640px);
+    display: grid;
+    align-items: end;
+    color: #fff;
+    background: #1d1d1f;
+  }
+
+  .cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cover__shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.15) 20%,
+      rgba(0, 0, 0, 0.62) 100%
+    );
+  }
+
+  .cover__copy {
+    position: relative;
+    z-index: 1;
+    width: min(var(--wrap), calc(100% - var(--gutter) * 2));
+    margin: 0 auto;
+    padding: 48px 0 40px;
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+  }
+
+  .cover .kicker {
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  .cover .display {
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    max-width: 14ch;
+    color: #fff;
+  }
+
+  .cover .lede {
+    color: rgba(255, 255, 255, 0.88);
+    max-width: 34rem;
+  }
+
+  .meta {
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .article {
+    padding: 48px 0 96px;
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+  }
+
+  .shot {
+    margin: 16px 0 4px;
+    width: min(100%, 42rem);
+  }
+
+  .shot img {
+    width: 100%;
+    border-radius: 20px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .shot figcaption {
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: var(--text-soft);
+  }
+
+  .back {
+    margin-top: 12px;
+    font-size: 0.95rem;
+  }
+
+  .back button {
+    color: var(--blue-deep);
+    font-weight: 600;
+  }
+</style>

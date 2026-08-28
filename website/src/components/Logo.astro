@@ -1,0 +1,55 @@
+---
+interface Props {
+  size?: number;
+}
+const { size = 28 } = Astro.props;
+---
+
+<svg
+  width={size}
+  height={size}
+  viewBox="0 0 64 64"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  aria-hidden="true"
+  class="er-logo"
+>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="#5B9FE0"></rect>
+  <ellipse
+    cx="32"
+    cy="32"
+    rx="20"
+    ry="12.5"
+    stroke="white"
+    stroke-width="2.6"
+    fill="rgba(255,255,255,0.14)"></ellipse>
+  <circle cx="32" cy="32" r="7.2" fill="#E8F2FA"></circle>
+  <g class="blink-lid">
+    <circle cx="32" cy="32" r="3.1" fill="#1A2A38"></circle>
+    <circle cx="34.2" cy="29.8" r="1.5" fill="white" opacity="0.9"></circle>
+  </g>
+</svg>
+
+<style>
+  .er-logo {
+    display: block;
+    flex-shrink: 0;
+    border-radius: 30%;
+  }
+
+  .blink-lid {
+    transform-origin: 32px 32px;
+    animation: lid 3.333s ease-in-out infinite;
+  }
+
+  @keyframes lid {
+    0%,
+    88%,
+    100% {
+      transform: scaleY(1);
+    }
+    92% {
+      transform: scaleY(0.12);
+    }
+  }
+</style>

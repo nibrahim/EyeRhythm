@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Paid app files are not on this site.
+Disallow: /downloads/

@@ -1,0 +1,146 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { posts } from "../../data/journal";
+---
+
+<Layout
+  title="Journal — EyeRhythm"
+  description="Simple guides for using EyeRhythm at your desk."
+>
+  <main id="main">
+    <a class="hero-card" href="/journal/camera-setup">
+      <img
+        src="/images/blog-cover.jpg"
+        alt=""
+        width="1280"
+        height="720"
+      />
+      <div class="hero-card__copy">
+        <p class="kicker"><span class="kicker__dot"></span>Journal</p>
+        <h1 class="display">Set up your camera so blinks count</h1>
+        <p class="lede">
+          Sit as you usually work, turn the camera on, and give EyeRhythm a
+          clear view of your eyes.
+        </p>
+        <span>Read the guide →</span>
+      </div>
+    </a>
+    <div class="wrap list">
+      <ul>
+        {
+          posts.map((post) => (
+            <li>
+              <a href={`/journal/${post.slug}`}>
+                <span class="meta">
+                  {post.kicker} · {post.read}
+                </span>
+                <strong>{post.title}</strong>
+                <span class="desc">{post.description}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .hero-card {
+    position: relative;
+    display: grid;
+    min-height: min(62vh, 560px);
+    align-items: end;
+    color: #fff;
+    text-decoration: none;
+    background: #1d1d1f;
+  }
+
+  .hero-card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .hero-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.12),
+      rgba(0, 0, 0, 0.58)
+    );
+  }
+
+  .hero-card__copy {
+    position: relative;
+    z-index: 1;
+    width: min(var(--wrap), calc(100% - var(--gutter) * 2));
+    margin: 0 auto;
+    padding: 48px 0 40px;
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+  }
+
+  .hero-card .kicker {
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  .display {
+    font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+    max-width: 14ch;
+    color: #fff;
+  }
+
+  .lede {
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .hero-card span:last-child {
+    font-weight: 600;
+  }
+
+  .list {
+    padding: 40px 0 96px;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 14px;
+  }
+
+  li a {
+    display: grid;
+    gap: 8px;
+    padding: 28px;
+    border-radius: 24px;
+    background: var(--band);
+    text-decoration: none;
+    color: inherit;
+  }
+
+  li a:hover {
+    background: #eeeef0;
+  }
+
+  .meta {
+    font-size: 0.82rem;
+    color: var(--text-soft);
+  }
+
+  strong {
+    font-size: 1.35rem;
+    letter-spacing: -0.03em;
+  }
+
+  .desc {
+    color: var(--text-soft);
+  }
+</style>

@@ -1,0 +1,46 @@
+---
+import Logo from "./Logo.astro";
+import { site } from "../config";
+---
+
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav" data-nav>
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="/#top">
+      <Logo size={26} />
+      EyeRhythm
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="/#rhythm">Rhythm</a>
+      <a href="/#highlights">Highlights</a>
+      <a href="/#privacy">Privacy</a>
+      <a href="/journal">Journal</a>
+      <a href="/#about">About</a>
+    </nav>
+    <div class="nav__cta">
+      <button class="btn btn--primary" type="button" data-open-purchase>
+        {site.cta}
+      </button>
+    </div>
+    <button
+      class="nav__toggle"
+      type="button"
+      data-nav-toggle
+      aria-expanded="false"
+      aria-controls="mobile-nav"
+      aria-label="Menu"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+  <div class="wrap nav__panel" id="mobile-nav" data-nav-panel>
+    <a href="/#rhythm">Rhythm</a>
+    <a href="/#highlights">Highlights</a>
+    <a href="/#privacy">Privacy</a>
+    <a href="/journal">Journal</a>
+    <a href="/#about">About</a>
+    <button type="button" data-open-purchase>{site.cta}</button>
+  </div>
+</header>

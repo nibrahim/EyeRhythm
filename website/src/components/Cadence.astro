@@ -1,0 +1,69 @@
+---
+const dots = Array.from({ length: 18 }, (_, i) => i);
+---
+
+<section class="cadence" aria-label="Healthy blink cadence">
+  <div class="wrap">
+    <div class="cadence__label">
+      <strong>18 blinks</strong>
+      <span>a calm minute at the desk</span>
+    </div>
+    <div class="cadence__track" aria-hidden="true">
+      {dots.map((i) => <i class="cadence-dot" style={`--i:${i}`} />)}
+    </div>
+  </div>
+</section>
+
+<style>
+  .cadence {
+    padding: 8px 0 28px;
+    background: #fff;
+  }
+
+  .cadence__label {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    font-size: 0.88rem;
+    color: var(--text-soft);
+  }
+
+  .cadence__label strong {
+    color: var(--blue-deep);
+    letter-spacing: -0.02em;
+  }
+
+  .cadence__track {
+    display: grid;
+    grid-template-columns: repeat(18, minmax(0, 1fr));
+    gap: 6px;
+    align-items: center;
+  }
+
+  .cadence-dot {
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(91, 159, 224, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(91, 159, 224, 0.12);
+    animation: beat 60s linear infinite;
+    animation-delay: calc(var(--i) * (60s / 18));
+  }
+
+  @keyframes beat {
+    0% {
+      background: var(--blue-deep);
+      transform: scaleY(2.1);
+    }
+    1.2% {
+      background: rgba(91, 159, 224, 0.28);
+      transform: scaleY(1);
+    }
+    100% {
+      background: rgba(91, 159, 224, 0.28);
+      transform: scaleY(1);
+    }
+  }
+</style>

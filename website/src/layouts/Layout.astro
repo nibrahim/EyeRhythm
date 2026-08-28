@@ -1,0 +1,50 @@
+---
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+import PurchaseModal from "../components/PurchaseModal.astro";
+import { site } from "../config";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = `${site.name} — ${site.tagline}`,
+  description = site.description,
+} = Astro.props;
+
+const origin = Astro.site ?? new URL(site.url);
+const canonical = new URL(Astro.url.pathname, origin).toString();
+const ogImage = new URL("/app-icon.png", origin).toString();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light" />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/app-icon.png" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <Nav />
+    <slot />
+    <Footer />
+    <PurchaseModal />
+    <script>
+      import "../scripts/main.ts";
+    </script>
+  </body>
+</html>

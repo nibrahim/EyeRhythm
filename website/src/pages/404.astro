@@ -1,0 +1,32 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Not found — EyeRhythm">
+  <main id="main" class="section" style="background:#fff;padding-bottom:96px">
+    <div class="wrap miss">
+      <p class="kicker"><span class="kicker__dot"></span>404</p>
+      <h1 class="display">This page looked away.</h1>
+      <p class="lede">
+        Off-screen, in EyeRhythm terms. The companion itself is still on the
+        home page.
+      </p>
+      <div class="btn-row">
+        <a class="btn btn--primary" href="/">Back home</a>
+        <button class="btn btn--ghost" type="button" data-open-purchase>
+          Get a copy
+        </button>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .miss {
+    display: grid;
+    gap: 18px;
+    justify-items: start;
+    min-height: 50vh;
+    align-content: center;
+  }
+</style>

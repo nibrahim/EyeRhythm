@@ -1,0 +1,111 @@
+---
+import { site } from "../config";
+---
+
+<section class="section" id="purchase">
+  <div class="wrap buy">
+    <div class="buy__copy">
+      <p class="kicker"><span class="kicker__dot"></span>A license, not a subscription</p>
+      <h2 class="display">Pay once. Keep it on your machine.</h2>
+      <p class="lede">
+        EyeRhythm is yours to run locally. A personal license covers Mac and
+        Windows, with no account to renew and no cloud seat to lose.
+      </p>
+      <ul>
+        <li>Lifetime personal use on your computers</li>
+        <li>macOS and Windows builds included</li>
+        <li>Still fully offline — nothing to activate in the cloud</li>
+        <li>Supports the work of keeping it quiet and private</li>
+      </ul>
+      <p class="buy__note">
+        Checkout is not wired yet. You can reserve a license now; we will
+        follow up when payment is live. Your details stay in this browser until
+        then.
+      </p>
+    </div>
+    <aside class="card ticket">
+      <p class="ticket__kicker">Personal license</p>
+      <p class="ticket__price">
+        <strong>{site.price.label}</strong>
+        <span>{site.price.cadence}</span>
+      </p>
+      <p class="ticket__sub">Both platforms · no subscription</p>
+      <button class="btn btn--primary" type="button" data-open-purchase>
+        Reserve a license
+      </button>
+      <a class="btn btn--ghost" href="#download">Download first</a>
+    </aside>
+  </div>
+</section>
+
+<style>
+  .buy {
+    display: grid;
+    gap: 28px;
+    align-items: center;
+  }
+
+  .buy__copy {
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 8px;
+    color: var(--text-soft);
+  }
+
+  .buy__note {
+    font-size: 0.92rem;
+    color: var(--text-soft);
+    max-width: 38rem;
+  }
+
+  .ticket {
+    padding: 28px;
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+    background: linear-gradient(180deg, #ffffff, #e4eef8);
+  }
+
+  .ticket__kicker {
+    font-size: 0.78rem;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+  }
+
+  .ticket__price {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .ticket__price strong {
+    font-size: 3.2rem;
+    letter-spacing: -0.05em;
+    line-height: 1;
+  }
+
+  .ticket__price span,
+  .ticket__sub {
+    color: var(--text-soft);
+  }
+
+  .ticket .btn {
+    width: 100%;
+  }
+
+  @media (min-width: 860px) {
+    .buy {
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 48px;
+    }
+  }
+</style>

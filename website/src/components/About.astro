@@ -1,0 +1,88 @@
+---
+import { site } from "../config";
+---
+
+<section class="about" id="about">
+  <div class="wrap about__grid">
+    <figure>
+      <img
+        src="/images/about-desk.jpg"
+        alt="A quiet evening desk with a lamp, notes, glasses, and a laptop."
+        width="1280"
+        height="720"
+      />
+    </figure>
+    <div class="copy">
+      <p class="kicker"><span class="kicker__dot"></span>About</p>
+      <h2 class="display">Built from a real pain, not a trend.</h2>
+      <p>
+        The person who made EyeRhythm spent two decades as a software
+        developer. Long days in front of screens added up. After years of that
+        work, the eyes were dry, red, and often in real pain.
+      </p>
+      <p>
+        With newer tools, it became possible to build a small companion that
+        stays on this computer. He has been using it himself for the last two
+        months, and the change has been clear enough to share.
+      </p>
+      <p>
+        The aim is simple: technology that is small, useful, and aimed at a
+        real problem — healthy blink rhythm during screen work — without
+        another loud app in the way.
+      </p>
+      <p>
+        If you try it, we would be glad for honest feedback. That is how this
+        mission stays reliable, and quiet.
+      </p>
+      <button class="btn btn--primary" type="button" data-open-purchase>
+        {site.cta}
+      </button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .about {
+    padding: clamp(64px, 9vw, 120px) 0;
+    background: var(--band);
+  }
+
+  .about__grid {
+    display: grid;
+    gap: 40px;
+    align-items: center;
+  }
+
+  figure {
+    margin: 0;
+  }
+
+  img {
+    width: 100%;
+    border-radius: 28px;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+  }
+
+  .copy {
+    display: grid;
+    gap: 14px;
+    justify-items: start;
+  }
+
+  .display {
+    font-size: clamp(1.9rem, 4vw, 3rem);
+  }
+
+  .copy p {
+    color: var(--text-soft);
+    max-width: 38rem;
+  }
+
+  @media (min-width: 900px) {
+    .about__grid {
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 56px;
+    }
+  }
+</style>

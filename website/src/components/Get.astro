@@ -1,0 +1,82 @@
+---
+import { site } from "../config";
+---
+
+<section class="get" id="get">
+  <div class="wrap">
+    <p class="kicker"><span class="kicker__dot"></span>A copy for your desk</p>
+    <h2 class="display">Keep it nearby. Pay once.</h2>
+    <p class="lede">
+      {site.price.label} one time. Mac and Windows. {site.price.updates}.
+      Checkout is not wired yet — leave your name so we can send a copy when
+      it is.
+    </p>
+    <div class="ticket">
+      <p class="ticket__price">{site.price.label}</p>
+      <p class="ticket__sub">CAD · one-time · both platforms</p>
+      <ul>
+        <li>Yours to run on this computer</li>
+        <li>Feature updates included for six months</li>
+        <li>A small way to thank the person who built it</li>
+      </ul>
+      <button class="btn btn--primary" type="button" data-open-purchase>
+        {site.cta}
+      </button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .get {
+    padding: clamp(64px, 9vw, 120px) 0;
+    background: var(--band);
+    text-align: center;
+  }
+
+  .wrap {
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+  }
+
+  .display {
+    font-size: clamp(1.9rem, 4vw, 3rem);
+  }
+
+  .lede {
+    text-align: center;
+  }
+
+  .ticket {
+    margin-top: 12px;
+    width: min(100%, 440px);
+    background: #fff;
+    border-radius: 28px;
+    padding: 32px 28px;
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+  }
+
+  .ticket__price {
+    margin: 0;
+    font-size: 3.2rem;
+    font-weight: 600;
+    letter-spacing: -0.05em;
+    line-height: 1;
+  }
+
+  .ticket__sub,
+  .ticket li {
+    color: var(--text-soft);
+    font-size: 0.95rem;
+  }
+
+  ul {
+    margin: 8px 0 4px;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+  }
+</style>

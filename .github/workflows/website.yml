@@ -1,0 +1,164 @@
+# Build the Astro site and publish it to Cloudflare Pages.
+#
+# Production: push to main (or Run workflow)
+# Preview:    pull requests against website/**
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   Pages:Edit + Account:Read
+#   CLOUDFLARE_ACCOUNT_ID  Cloudflare dashboard → right sidebar
+#
+# Optional variable:
+#   PUBLIC_SITE_URL        e.g. https://eyerhythm.pages.dev
+#                          later https://your-domain
+
+name: Website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/website.yml"
+  pull_request:
+    paths:
+      - "website/**"
+      - ".github/workflows/website.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: website-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: write
+  pull-requests: write
+
+env:
+  NODE_VERSION: "22"
+  CF_PROJECT: eyerhythm
+  PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL || 'https://eyerhythm.pages.dev' }}
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Refuse paid binaries on the marketing site
+        working-directory: .
+        run: |
+          set -euo pipefail
+          if find website/public/downloads website/dist -type f \( \
+               -iname '*.zip' -o -iname '*.dmg' -o -iname '*.exe' \
+               -o -iname '*.pkg' -o -iname '*.msi' -o -iname '*.app' \
+             \) 2>/dev/null | grep -q .; then
+            echo "::error::Installers must not ship in website/public. Serve copies after payment, not as a public URL."
+            exit 1
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          PUBLIC_SITE_URL: ${{ env.PUBLIC_SITE_URL }}
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-dist
+          path: website/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy-preview:
+    name: Preview
+    if: github.event_name == 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: website-preview
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - name: Fetch dist
+        uses: actions/download-artifact@v4
+        with:
+          name: website-dist
+          path: dist
+
+      - name: Publish preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ env.CF_PROJECT }} --branch=${{ github.head_ref }} --commit-dirty=true
+
+      - name: Comment preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.deployment-url }}';
+            if (!url) return;
+            const body = `Preview: ${url}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const found = comments.find((c) => c.body && c.body.startsWith('Preview: '));
+            if (found) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: found.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  deploy-production:
+    name: Production
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: website-production
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - name: Fetch dist
+        uses: actions/download-artifact@v4
+        with:
+          name: website-dist
+          path: dist
+
+      - name: Publish production
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ env.CF_PROJECT }} --branch=main --commit-dirty=true

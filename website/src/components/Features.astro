@@ -1,0 +1,120 @@
+<section class="section" id="features">
+  <div class="wrap">
+    <header class="head">
+      <p class="kicker"><span class="kicker__dot"></span>What you get</p>
+      <h2 class="display">A compact companion, not another dashboard to manage.</h2>
+      <p class="lede">
+        Usefulness follows from cadence: live numbers you can glance at, optional
+        nudges when the rhythm dips, and a short practice so the habit is easier
+        to feel — not only to measure.
+      </p>
+    </header>
+
+    <div class="bento">
+      <article class="card tile sage">
+        <h3>Live cadence, one glance</h3>
+        <p>
+          Rate, regularity, and ORI on a compact dashboard, plus screen time
+          (how long a face has actually been in front of the camera today) and a
+          daily average.
+        </p>
+      </article>
+      <article class="card tile peach">
+        <h3>Alert, if you ask</h3>
+        <p>
+          Optional sound if ORI stays low for a meaningful stretch — not a
+          single bad second, but a sustained dip — so you can blink, look away,
+          or rest before strain piles up.
+        </p>
+      </article>
+      <article class="card tile sun">
+        <h3>Beep on each blink</h3>
+        <p>
+          A tighter feedback loop. Optional click on every counted blink, for
+          days when you want the rhythm in your ear.
+        </p>
+      </article>
+      <article class="card tile mint">
+        <h3>Practice</h3>
+        <p>
+          A short, full-screen coach: a countdown, then a guided two-minute
+          session that paces blinks so the habit is easier to feel.
+        </p>
+      </article>
+      <article class="card tile sky">
+        <h3>Built for the desk</h3>
+        <p>
+          A small window, optionally always on top, with a launch check-in about
+          how comfortable the eyes feel. Camera preview stays put-away unless
+          you open it.
+        </p>
+      </article>
+      <article class="card tile lavender">
+        <h3>This work, not the whole room</h3>
+        <p>
+          Blinks are counted when you are actually at the screen. Looking
+          clearly away is treated as off-screen, so the score is about this
+          stretch of work.
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<style>
+  .head {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 32px;
+    justify-items: start;
+  }
+
+  .bento {
+    display: grid;
+    gap: 14px;
+  }
+
+  .tile {
+    padding: 22px 22px 20px;
+    display: grid;
+    gap: 8px;
+    border: 0;
+    min-height: 168px;
+  }
+
+  .tile p {
+    font-size: 0.98rem;
+    color: rgba(30, 44, 58, 0.72);
+  }
+
+  .sage {
+    background: #b5d4ec;
+  }
+  .peach {
+    background: #f0c8a8;
+  }
+  .sun {
+    background: #f0d878;
+  }
+  .mint {
+    background: #9cc8e8;
+  }
+  .sky {
+    background: #a8ccec;
+  }
+  .lavender {
+    background: #c8c0e8;
+  }
+
+  @media (min-width: 760px) {
+    .bento {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (min-width: 1020px) {
+    .bento {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+  }
+</style>

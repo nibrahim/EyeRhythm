@@ -1,0 +1,4 @@
+# Old download paths must not serve installers. Paid copies go through checkout.
+/download  /#get  301
+/downloads  /#get  301
+/downloads/*  /#get  301

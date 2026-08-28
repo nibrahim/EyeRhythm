@@ -1,0 +1,61 @@
+<section class="kind" aria-label="Light by design">
+  <div class="wrap kind__inner">
+    <div class="kind__mark" aria-hidden="true">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M5 14c6-9 14-10 16-10-1 8-6 15-13 16-2-2-3-4-3-6z"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linejoin="round"></path>
+      </svg>
+    </div>
+    <div>
+      <h2>Kind to eyes. Light on the planet.</h2>
+      <p>
+        The app has no cloud to keep warm. This page has no cookies, no
+        analytics, and no third-party scripts. It is a static site you can run
+        from a folder. Software that sips, the way a blink should.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .kind {
+    padding: 12px 0 4px;
+  }
+
+  .kind__inner {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 16px;
+    align-items: start;
+    padding: 22px 24px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.62);
+    border: 1px solid var(--stroke);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .kind__mark {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #e4eef8;
+    color: var(--blue-deep);
+  }
+
+  h2 {
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 0.98rem;
+  }
+</style>

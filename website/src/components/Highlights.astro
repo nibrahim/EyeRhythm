@@ -1,0 +1,131 @@
+---
+const tiles = [
+  {
+    title: "Live cadence",
+    body: "Rate, regularity, and ORI on a compact dashboard, plus screen time and a daily average.",
+    tone: "sage",
+  },
+  {
+    title: "Alert, if you ask",
+    body: "Optional sound if ORI stays low for a meaningful stretch — not a single bad second.",
+    tone: "peach",
+  },
+  {
+    title: "Beep on each blink",
+    body: "A tighter feedback loop. Optional click on every counted blink.",
+    tone: "sun",
+  },
+  {
+    title: "Practice",
+    body: "A countdown, then a guided two-minute session that paces blinks so the habit is easier to feel.",
+    tone: "mint",
+  },
+  {
+    title: "Dockable GUI",
+    body: "Open Settings and Reports beside the companion. Dock it when you want to tune the app to how you work, then undock to keep the window small.",
+    tone: "sky",
+  },
+  {
+    title: "Built for the desk",
+    body: "A small window, optionally always on top. Camera preview stays put-away unless you open it.",
+    tone: "mist",
+  },
+  {
+    title: "This work, not the room",
+    body: "Looking clearly away is treated as off-screen, so the score is about this stretch of work.",
+    tone: "lavender",
+  },
+];
+---
+
+<section class="highlights" id="highlights">
+  <div class="wrap">
+    <div class="rail-head">
+      <div>
+        <p class="kicker"><span class="kicker__dot"></span>Get the highlights</p>
+        <h2 class="display">A companion, not another dashboard.</h2>
+      </div>
+      <div class="rail-nav">
+        <button type="button" data-rail-prev aria-label="Previous">‹</button>
+        <button type="button" data-rail-next aria-label="Next">›</button>
+      </div>
+    </div>
+  </div>
+  <div class="rail-bleed">
+    <div class="rail" data-rail>
+      {
+        tiles.map((tile) => (
+          <article class:list={["tile", tile.tone]}>
+            <h3>{tile.title}</h3>
+            <p>{tile.body}</p>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .highlights {
+    padding: clamp(64px, 9vw, 120px) 0;
+    background: #fff;
+  }
+
+  .rail-bleed {
+    padding-left: max(var(--gutter), calc((100vw - var(--wrap)) / 2));
+  }
+
+  .rail-bleed .rail {
+    padding-right: var(--gutter);
+  }
+
+  .display {
+    font-size: clamp(1.9rem, 4vw, 3rem);
+    margin-top: 10px;
+  }
+
+  .tile {
+    min-height: 280px;
+    padding: 28px;
+    border-radius: 28px;
+    display: grid;
+    align-content: space-between;
+  }
+
+  .tile p {
+    color: rgba(29, 29, 31, 0.72);
+    font-size: 1.02rem;
+  }
+
+  .sage {
+    background: #b5d4ec;
+  }
+  .peach {
+    background: #f0c8a8;
+  }
+  .sun {
+    background: #f0d878;
+  }
+  .mint {
+    background: #9cc8e8;
+  }
+  .sky {
+    background: #a8ccec;
+  }
+  .mist {
+    background: #d4dce6;
+  }
+  .lavender {
+    background: #c8c0e8;
+  }
+
+  @media (min-width: 900px) {
+    .rail > * {
+      flex-basis: 360px;
+    }
+
+    .tile {
+      min-height: 340px;
+    }
+  }
+</style>
