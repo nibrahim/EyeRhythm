@@ -1,4 +1,4 @@
-# EyeRhythm — Code Guide
+# EyesRhythm — Code Guide
 
 How the project fits together after the React UI rewrite.
 
@@ -263,4 +263,4 @@ Useful flags:
 
 ---
 
-*EyeRhythm is free and open source. Take care of your eyes.*
+*EyesRhythm is free and open source. Take care of your eyes.*

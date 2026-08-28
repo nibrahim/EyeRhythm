@@ -1,4 +1,4 @@
-# EyeRhythm on Windows
+# EyesRhythm on Windows
 
 The shareable Windows app is a freeze of the same code as the Mac `.app`. Recipients do **not** install Python or Node.
 
@@ -12,7 +12,7 @@ for_windows/
 │
 └── for_developers/                   ← rebuild the freeze / installer
     ├── README.md
-    ├── build_exe.bat                 ← PyInstaller → dist\EyeRhythm\
+    ├── build_exe.bat                 ← PyInstaller → dist\EyesRhythm\
     ├── build_installer.bat           ← freeze + Inno Setup
     ├── EyeRhythm.iss
     └── BUILD_INSTALLER.md
@@ -22,13 +22,13 @@ for_windows/
 
 ## Share this with someone (no extra software)
 
-1. Produce **`EyeRhythm-Windows.zip`** (see below).
+1. Produce **`EyesRhythm-Windows.zip`** (see below).
 2. Send that zip (email, Drive, USB).
-3. They unzip it and double-click **`EyeRhythm.exe`**.
+3. They unzip it and double-click **`EyesRhythm.exe`**.
 
 ```
-EyeRhythm\
-  EyeRhythm.exe      ← this
+EyesRhythm\
+  EyesRhythm.exe     ← this
   _internal\         ← libraries, model, dashboard (leave this next to the exe)
 ```
 
@@ -40,10 +40,10 @@ First launch:
 If the window fails to open, the crash log is:
 
 ```
-%LOCALAPPDATA%\EyeRhythm\crash.log
+%LOCALAPPDATA%\EyesRhythm\crash.log
 ```
 
-`EyeRhythm-Setup.exe` is the same freeze as a next-next-finish installer (per-user, no admin). Optional.
+`EyesRhythm-Setup.exe` is the same freeze as a next-next-finish installer (per-user, no admin). Optional.
 
 ### How you produce the zip
 
@@ -53,7 +53,7 @@ You cannot freeze a Windows `.exe` on a Mac (MediaPipe / OpenCV are native). Use
 
 1. Push the commit you want to ship.
 2. GitHub → **Actions → Build Windows app → Run workflow**.
-3. Download the `EyeRhythm-Windows-zip` artifact.
+3. Download the `EyesRhythm-Windows-zip` artifact.
 
 Pushing a tag `v1.0.0` also attaches the zip (and Setup.exe) to that GitHub Release.
 
@@ -63,7 +63,7 @@ Pushing a tag `v1.0.0` also attaches the zip (and Setup.exe) to that GitHub Rele
 for_windows\for_developers\build_exe.bat
 ```
 
-Then zip the folder `dist\EyeRhythm`.
+Then zip the folder `dist\EyesRhythm`.
 
 ---
 

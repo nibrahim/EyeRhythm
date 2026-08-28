@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# EyeRhythm — launch the app from source (macOS / Linux)
+# EyesRhythm — launch the app from source (macOS / Linux)
 # =============================================================================
 #
 # 1. Activates the EyeRhythm/ virtualenv
@@ -42,7 +42,7 @@ if [ ! -f frontend/dist/index.html ]; then
     (cd frontend && npm install && npm run build)
 fi
 
-echo "EyeRhythm  ·  $(pwd)"
+echo "EyesRhythm  ·  $(pwd)"
 echo "Keys in UI: B beep  ·  A alert  ·  T on-top  ·  C camera panel"
 echo
 

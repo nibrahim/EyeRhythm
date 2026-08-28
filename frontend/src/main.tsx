@@ -2,7 +2,7 @@
  * Front door of the dashboard.
  *
  * The HTML page has an empty box (`<div id="root">`). This file paints the
- * EyeRhythm app into that box and loads the global look-and-feel CSS.
+ * EyesRhythm app into that box and loads the global look-and-feel CSS.
  * Everything else (cards, buttons, camera) lives inside `<App />`.
  */
 import React from "react";

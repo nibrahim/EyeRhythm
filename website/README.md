@@ -1,4 +1,4 @@
-# EyeRhythm website
+# EyesRhythm website
 
 Static Astro site. No server, no database, no analytics. Hosted on
 **Cloudflare Pages**, built and shipped by **GitHub Actions**.
@@ -22,20 +22,31 @@ Open [http://localhost:4321](http://localhost:4321).
 4. In GitHub: **Settings → Secrets and variables → Actions**:
    - Secret `CLOUDFLARE_API_TOKEN`
    - Secret `CLOUDFLARE_ACCOUNT_ID`
-5. Optional variable `PUBLIC_SITE_URL` (later your custom domain, e.g. `https://eyerhythm.app`). Until then production is `https://eyerhythm.pages.dev`.
+5. Variable `PUBLIC_SITE_URL` = `https://eyesrhythm.com`.
 6. Push to `main`, or **Actions → Website → Run workflow**.
 
 Pull requests that touch `website/` get a **preview URL** commented on the PR.
 
-### Custom domain
+### Custom domain (`eyesrhythm.com`)
 
-Cloudflare Pages → project `eyerhythm` → **Custom domains** → add your name
-(e.g. `eyerhythm.app`). Then set `PUBLIC_SITE_URL` to that HTTPS origin and
-redeploy. Turn on **Always Use HTTPS**.
+Apex domains on Pages need the domain as a Cloudflare zone:
 
-### Payment (keep cards off this site)
+1. Cloudflare dashboard → **Add a site** → `eyesrhythm.com` (Free plan is enough).
+2. Copy the two Cloudflare nameservers it shows.
+3. At the registrar where you bought the domain: replace nameservers with those two. Do not add a CNAME at the registrar for the root domain.
+4. Wait until Cloudflare says the zone is **Active** (often minutes; can take up to 24–48 hours).
+5. **Workers & Pages** → project `eyerhythm` → **Custom domains** → **Set up a domain** → `eyesrhythm.com`.
+6. Optional: also add `www.eyesrhythm.com`, then in the zone DNS add a redirect from `www` to `https://eyesrhythm.com`.
+7. Turn on **Always Use HTTPS**. SSL is issued automatically.
+8. GitHub → **Settings → Secrets and variables → Actions → Variables** → `PUBLIC_SITE_URL` = `https://eyesrhythm.com`.
+9. **Actions → Website → Run workflow** (or push) so canonical URLs match.
+
+Keep the GitHub repo **private**. Do not make a public GitHub Release — that would be a download.
+
+### Payment (keep cards and installers off this site)
 
 Do not put `.zip` / `.dmg` / `.exe` in `website/public`. CI will fail if you do.
+`downloadsOpen` in `src/config.ts` stays `false` until checkout and license keys exist.
 
 When you are ready to take $10 CAD:
 

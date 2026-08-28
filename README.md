@@ -1,12 +1,12 @@
-# EyeRhythm — Blink companion
+# EyesRhythm — Blink companion
 
-**Your eyes work hard for you. EyeRhythm helps them work longer.**
+**Your eyes work hard for you. EyesRhythm helps them work longer.**
 
 Every day millions of knowledge workers, students and creators spend hours staring at screens. Research from the American Academy of Ophthalmology shows that the spontaneous blink rate drops by **half or more** during computer use. Fewer blinks → dry eyes, fatigue, blurred vision, and the classic symptoms of Computer Vision Syndrome.
 
-EyeRhythm is a lightweight, **completely offline** open-source companion that quietly watches your blink rate through the built-in webcam and gently nudges you back toward a healthy rhythm (~15–20 blinks per minute). No accounts, no cloud, no analytics, no video ever leaves your machine.
+EyesRhythm is a lightweight, **completely offline** open-source companion that quietly watches your blink rate through the built-in webcam and gently nudges you back toward a healthy rhythm (~15–20 blinks per minute). No accounts, no cloud, no analytics, no video ever leaves your machine.
 
-> **Privacy first.** Once installed, EyeRhythm runs 100 % offline. Nothing is uploaded. Nothing is shared. Local JSON under `~/.eyerhythm_blinkcounter/` holds today’s blink count and screen-time minutes (resets at midnight), plus an optional research log of inter-blink interval stats per screen-time hour.
+> **Privacy first.** Once installed, EyesRhythm runs 100 % offline. Nothing is uploaded. Nothing is shared. Local JSON under `~/.eyerhythm_blinkcounter/` holds today’s blink count and screen-time minutes (resets at midnight), plus an optional research log of inter-blink interval stats per screen-time hour.
 
 ---
 
@@ -56,11 +56,11 @@ To stop opening at login: `./for_mac/uninstall_autostart.sh`.
 
 ### Windows
 
-Share **`EyeRhythm-Windows.zip`** (built by GitHub Actions or `for_windows/for_developers/build_exe.bat`). Recipients unzip and double-click `EyeRhythm.exe` — no Python or Node.
+Share **`EyesRhythm-Windows.zip`** (built by GitHub Actions or `for_windows/for_developers/build_exe.bat`). Recipients unzip and double-click `EyesRhythm.exe` — no Python or Node.
 
 All Windows helpers live under **[`for_windows/`](for_windows/)**.
 
-* **Share / use the app** → unzip `EyeRhythm-Windows.zip` and run `EyeRhythm.exe`. Details in [`for_windows/`](for_windows/).
+* **Share / use the app** → unzip `EyesRhythm-Windows.zip` and run `EyesRhythm.exe`. Details in [`for_windows/`](for_windows/).
 * **From source** → [`for_windows/just_use_for_nondevelopers/`](for_windows/just_use_for_nondevelopers/) (needs Python once).
 * **Rebuild the zip / installer** → [`for_windows/for_developers/`](for_windows/for_developers/) or **Actions → Build Windows app**.
 
@@ -140,6 +140,6 @@ Start with **[`docs/CODE_GUIDE.md`](docs/CODE_GUIDE.md)**, then `app/engine.py` 
 
 ## Feedback & sharing
 
-If the counter feels off for you, or you have ideas for the reserved metric cards, please open an issue. If EyeRhythm is useful, share it — a regular blink habit is one of the easiest gifts we can give our eyes.
+If the counter feels off for you, or you have ideas for the reserved metric cards, please open an issue. If EyesRhythm is useful, share it — a regular blink habit is one of the easiest gifts we can give our eyes.
 
-*EyeRhythm is free and open-source. Use it, improve it, share it.*
+*EyesRhythm is free and open-source. Use it, improve it, share it.*

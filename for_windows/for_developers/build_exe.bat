@@ -1,6 +1,6 @@
 @echo off
 REM =============================================================================
-REM  Build standalone EyeRhythm.exe (Windows) with PyInstaller
+REM  Build standalone EyesRhythm.exe (Windows) with PyInstaller
 REM  Uses the same EyeRhythm.spec as the Mac build.
 REM  Includes the built React UI from frontend\dist
 REM =============================================================================
@@ -10,7 +10,7 @@ cd /d "%~dp0..\.."
 
 echo.
 echo  ========================================
-echo   EyeRhythm  -  Building standalone EXE
+echo   EyesRhythm  -  Building standalone EXE
 echo  ========================================
 echo.
 
@@ -40,8 +40,8 @@ if errorlevel 1 (
 )
 
 echo  Cleaning previous Windows freeze...
-if exist build\EyeRhythm rmdir /s /q build\EyeRhythm
-if exist dist\EyeRhythm rmdir /s /q dist\EyeRhythm
+if exist build\EyesRhythm rmdir /s /q build\EyesRhythm
+if exist dist\EyesRhythm rmdir /s /q dist\EyesRhythm
 
 echo  Running PyInstaller (EyeRhythm.spec)...
 python -m PyInstaller --noconfirm --clean EyeRhythm.spec
@@ -52,12 +52,12 @@ if errorlevel 1 (
 )
 
 echo.
-if exist "dist\EyeRhythm\EyeRhythm.exe" (
+if exist "dist\EyesRhythm\EyesRhythm.exe" (
     echo  SUCCESS
-    echo  Executable: dist\EyeRhythm\EyeRhythm.exe
+    echo  Executable: dist\EyesRhythm\EyesRhythm.exe
     echo  Zip that folder to share - no Python required on the other PC.
 ) else (
-    echo  Build finished with problems - dist\EyeRhythm\EyeRhythm.exe is missing.
+    echo  Build finished with problems - dist\EyesRhythm\EyesRhythm.exe is missing.
     if not defined EYERHYTHM_NOPAUSE if not defined GITHUB_ACTIONS pause
     exit /b 1
 )

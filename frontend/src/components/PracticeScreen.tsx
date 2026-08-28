@@ -272,7 +272,7 @@ export function PracticeScreen({ state }: Props) {
       aria-label="Practice mode"
     >
       <div className="practice-screen__chrome">
-        <div className="practice-screen__brand">EyeRhythm Practice</div>
+        <div className="practice-screen__brand">EyesRhythm Practice</div>
         <div className="practice-screen__meta">
           {isCountdown ? (
             <span>Starting soon</span>

@@ -2,7 +2,7 @@
 REM ============================================================
 REM  Full Windows release pipeline
 REM  1. Build standalone EXE with PyInstaller
-REM  2. Compile Inno Setup script → EyeRhythm-Setup.exe
+REM  2. Compile Inno Setup script → EyesRhythm-Setup.exe
 REM
 REM  Prerequisites (one-time):
 REM    - Python venv activated
@@ -15,7 +15,7 @@ cd /d "%~dp0..\.."
 
 echo.
 echo  ========================================
-echo   EyeRhythm  -  Full Installer Build
+echo   EyesRhythm  -  Full Installer Build
 echo  ========================================
 echo.
 
@@ -23,9 +23,9 @@ REM ---------- Step 1: PyInstaller ----------
 echo  [1/2] Building standalone executable...
 set "EYERHYTHM_NOPAUSE=1"
 call "%~dp0build_exe.bat" --no-pause
-if not exist "dist\EyeRhythm\EyeRhythm.exe" (
+if not exist "dist\EyesRhythm\EyesRhythm.exe" (
     echo.
-    echo  ERROR: PyInstaller did not produce dist\EyeRhythm\EyeRhythm.exe
+    echo  ERROR: PyInstaller did not produce dist\EyesRhythm\EyesRhythm.exe
     echo  Fix the errors above and try again.
     if not defined GITHUB_ACTIONS pause
     exit /b 1
@@ -53,7 +53,7 @@ if "%ISCC%"=="" (
     echo  https://jrsoftware.org/isinfo.php
     echo.
     echo  After installation, re-run this script.
-    echo  (You already have a working standalone folder in dist\EyeRhythm)
+    echo  (You already have a working standalone folder in dist\EyesRhythm)
     if not defined GITHUB_ACTIONS pause
     exit /b 1
 )
@@ -73,11 +73,11 @@ echo   SUCCESS
 echo  ========================================
 echo.
 echo  Installer created:
-echo    for_windows\for_developers\Output\EyeRhythm-Setup.exe
+echo    for_windows\for_developers\Output\EyesRhythm-Setup.exe
 echo.
 echo  Share either:
-echo    dist\EyeRhythm\                 ^(zip this folder^)
-echo    for_windows\for_developers\Output\EyeRhythm-Setup.exe
+echo    dist\EyesRhythm\                 ^(zip this folder^)
+echo    for_windows\for_developers\Output\EyesRhythm-Setup.exe
 echo.
 if not defined GITHUB_ACTIONS pause
 exit /b 0

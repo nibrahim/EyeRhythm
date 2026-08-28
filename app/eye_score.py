@@ -5,7 +5,7 @@ Ocular Rhythm Index (ORI)
 Composite 0–100 score blending blink rate (70 %) and inter-blink regularity
 (30 %). Both inputs are already on comparable scales after rate normalization.
 
-Rate normalization uses a trapezoid aligned with EyeRhythm alert targets:
+Rate normalization uses a trapezoid aligned with EyesRhythm alert targets:
   * 0 BPM        → unavailable (None)
   * 0–10 BPM     → 0–50   (alert zone)
   * 10–20 BPM    → 50–100 (healthy screen-use band)

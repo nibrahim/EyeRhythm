@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# EyeRhythm — one-time setup for macOS / Linux
+# EyesRhythm — one-time setup for macOS / Linux
 # =============================================================================
 #
 # 1. Creates virtualenv EyeRhythm/
@@ -14,7 +14,7 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT"
 
 echo "=============================================="
-echo "  EyeRhythm  ·  macOS / Linux setup"
+echo "  EyesRhythm  ·  macOS / Linux setup"
 echo "  Project root: $ROOT"
 echo "=============================================="
 echo

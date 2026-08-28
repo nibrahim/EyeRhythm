@@ -1,4 +1,4 @@
-# EyeRhythm on macOS / Linux
+# EyesRhythm on macOS / Linux
 
 Everything Mac/Linux-related lives in this folder.
 
@@ -7,7 +7,7 @@ for_mac/
 ├── README.md              ← this file
 ├── setup.sh               ← one-time: create venv + install deps
 ├── run.sh                 ← launch the app from source
-├── install_autostart.sh   ← open EyeRhythm automatically at login
+├── install_autostart.sh   ← open EyesRhythm automatically at login
 ├── uninstall_autostart.sh ← turn that off
 ├── start_at_login.sh      ← used by the login item (do not run by hand)
 └── build_mac.sh           ← optional: build a standalone .app
@@ -70,7 +70,7 @@ You can manage it later under:
 ./for_mac/install_autostart.sh
 ```
 
-This registers a per-user Launch Agent. After you log in (or restart), the EyeRhythm window opens on its own — no Terminal needed. macOS may ask once to allow EyeRhythm in the background; choose **Allow** (System Settings → General → Login Items).
+This registers a per-user Launch Agent. After you log in (or restart), the EyesRhythm window opens on its own — no Terminal needed. macOS may ask once to allow EyesRhythm in the background; choose **Allow** (System Settings → General → Login Items).
 
 Turn it off with:
 
@@ -80,7 +80,7 @@ Turn it off with:
 
 If you move the project folder, run `install_autostart.sh` again so the login item points at the new path.
 
-Logs land in `~/Library/Logs/EyeRhythm.log`.
+Logs land in `~/Library/Logs/EyesRhythm.log`.
 
 ### Useful flags
 
@@ -111,7 +111,7 @@ If you want a double-clickable Mac application (no Terminal needed):
 ./for_mac/build_mac.sh
 ```
 
-The script builds the app icon from `assets/logo.svg`, stamps the camera permission key, and writes `dist/EyeRhythm.app`.
+The script builds the app icon from `assets/logo.svg`, stamps the camera permission key, and writes `dist/EyesRhythm.app`.
 
 ### After you change the code
 
@@ -125,13 +125,13 @@ You must rebuild. Editing Python / React files does **not** update an already-bu
    ```
 
    (`build_mac.sh` also does this if `frontend/dist` is missing, but not if it is merely stale.)
-3. Rebuild the app (this replaces `dist/EyeRhythm.app`):
+3. Rebuild the app (this replaces `dist/EyesRhythm.app`):
 
    ```bash
    ./for_mac/build_mac.sh
    ```
-4. Double-click `dist/EyeRhythm.app` and confirm it works.
-5. Right-click `EyeRhythm.app` → **Compress**, and send only that zip.
+4. Double-click `dist/EyesRhythm.app` and confirm it works.
+5. Right-click `EyesRhythm.app` → **Compress**, and send only that zip.
 
 Do not send the project folder, `build/`, or `.venv`.
 
@@ -146,7 +146,7 @@ Do not send the project folder, `build/`, or `.venv`.
 | “No module named mediapipe”     | Make sure the `EyeRhythm` venv is activated and `pip install -r requirements.txt` succeeded |
 | Black / no camera               | Close Zoom, Teams, browser tabs that use the webcam; check System Settings → Camera |
 | “Model file not found”          | Confirm `models/face_landmarker.task` exists (≈ 3.7 MB) |
-| App starts then immediately exits | Look for a crash log at `~/Library/Logs/EyeRhythm_crash.log` |
+| App starts then immediately exits | Look for a crash log at `~/Library/Logs/EyesRhythm_crash.log` |
 | Double-click `.app` shows Retry / Ignore / Report | The bundle was missing `NSCameraUsageDescription`. Rebuild with `./for_mac/build_mac.sh` (the script now stamps the camera privacy key). |
 
-That’s everything required to run EyeRhythm on a Mac or Linux machine.
+That’s everything required to run EyesRhythm on a Mac or Linux machine.

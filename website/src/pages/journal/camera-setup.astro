@@ -1,11 +1,12 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { getPost } from "../../data/journal";
+import { site } from "../../config";
 
 const post = getPost("camera-setup")!;
 ---
 
-<Layout title={`${post.title} — EyeRhythm`} description={post.description}>
+<Layout title={`${post.title} — EyesRhythm`} description={post.description}>
   <main id="main">
     <header class="cover">
       <img
@@ -26,7 +27,7 @@ const post = getPost("camera-setup")!;
     <article class="wrap article">
       <div class="prose">
         <p>
-          EyeRhythm counts blinks through the camera already in your laptop.
+          EyesRhythm counts blinks through the camera already in your laptop.
           You do not need a special webcam. You just need the camera to see
           your face while you work.
         </p>
@@ -35,7 +36,7 @@ const post = getPost("camera-setup")!;
           below once, then leave the app running.
         </p>
 
-        <h2>1. Let EyeRhythm use the camera</h2>
+        <h2>1. Let EyesRhythm use the camera</h2>
         <p>
           The first time you open the app, your computer will ask for camera
           permission. Click <strong>Allow</strong>.
@@ -43,19 +44,19 @@ const post = getPost("camera-setup")!;
         <ul>
           <li>
             <strong>Mac:</strong> System Settings → Privacy &amp; Security →
-            Camera → turn EyeRhythm on.
+            Camera → turn EyesRhythm on.
           </li>
           <li>
             <strong>Windows:</strong> Settings → Privacy &amp; security →
-            Camera → allow desktop apps, then allow EyeRhythm.
+            Camera → allow desktop apps, then allow EyesRhythm.
           </li>
         </ul>
 
         <h2>2. Close Zoom, Teams, or the browser camera first</h2>
         <p>
           Only one app can use the camera at a time. If a meeting is already
-          using it, EyeRhythm will show a black picture, or it will not go
-          Live. Close those apps, then open EyeRhythm.
+          using it, EyesRhythm will show a black picture, or it will not go
+          Live. Close those apps, then open EyesRhythm.
         </p>
 
         <h2>3. Sit the way you normally sit</h2>
@@ -201,7 +202,7 @@ const post = getPost("camera-setup")!;
         </table>
 
         <p>
-          After this, leave it. EyeRhythm is a small window next to your work
+          After this, leave it. EyesRhythm is a small window next to your work
           — not another chore.
         </p>
       </div>
@@ -209,7 +210,7 @@ const post = getPost("camera-setup")!;
       <p class="back">
         <a href="/journal">All journal</a>
         ·
-        <button type="button" data-open-purchase>Get a copy</button>
+        <button type="button" data-open-purchase>{site.cta}</button>
       </p>
     </article>
   </main>

@@ -137,7 +137,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     or “please turn Beep on”, and this file forwards that to the engine.
     """
     # Hide the auto-generated API docs — this is a private localhost app.
-    app = FastAPI(title="EyeRhythm", version="2.0.0", docs_url=None, redoc_url=None)
+    app = FastAPI(title="EyesRhythm", version="2.0.0", docs_url=None, redoc_url=None)
 
     # Vite dev server may call from another port during development.
     app.add_middleware(
@@ -153,7 +153,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     @app.get("/api/health")
     def health():
         """“Is the local server alive?” — used by the UI / installers."""
-        return {"ok": True, "service": "EyeRhythm"}
+        return {"ok": True, "service": "EyesRhythm"}
 
     @app.get("/api/state")
     def state():
@@ -422,6 +422,6 @@ def run_server(engine: "EyeRhythmEngine", host: str = "127.0.0.1",
             import traceback
             traceback.print_exc()
 
-    t = threading.Thread(target=_serve, name="EyeRhythmHTTP", daemon=True)
+    t = threading.Thread(target=_serve, name="EyesRhythmHTTP", daemon=True)
     t.start()
     return t

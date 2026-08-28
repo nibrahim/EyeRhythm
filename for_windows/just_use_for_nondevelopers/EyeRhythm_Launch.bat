@@ -1,14 +1,14 @@
 @echo off
 REM =============================================================================
-REM  EyeRhythm — one-click launcher for Windows end users
+REM  EyesRhythm — one-click launcher for Windows end users
 REM =============================================================================
-title EyeRhythm
+title EyesRhythm
 color 0A
 cd /d "%~dp0..\.."
 
 echo.
 echo  ========================================
-echo   EyeRhythm  -  Blink companion
+echo   EyesRhythm  -  Blink companion
 echo  ========================================
 echo.
 
@@ -62,7 +62,7 @@ if not exist frontend\dist\index.html (
     )
 )
 
-echo  Starting EyeRhythm...
+echo  Starting EyesRhythm...
 echo  Keys in UI: B beep  ·  A alert  ·  T on-top  ·  C camera
 echo.
 python -m app.main %*

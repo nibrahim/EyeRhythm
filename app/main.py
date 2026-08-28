@@ -1,5 +1,5 @@
 """
-EyeRhythm main entry
+EyesRhythm main entry
 ====================
 
 Starts:
@@ -34,7 +34,7 @@ from app.server import run_server, UI_DIST  # noqa: E402
 # The dashboard talks to this machine only (never the internet).
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8742
-WINDOW_TITLE = "EyeRhythm"
+WINDOW_TITLE = "EyesRhythm"
 DEFAULT_WIDTH = preferences.DEFAULT_WIDTH
 DEFAULT_HEIGHT = preferences.DEFAULT_HEIGHT
 MIN_WIDTH = preferences.MIN_WIDTH
@@ -200,7 +200,7 @@ class _WindowApi:
 def _log(msg: str) -> None:
     """Print a short diagnostic line. Never crash if the terminal is gone."""
     try:
-        print(f"[EyeRhythm] {msg}", file=sys.stderr, flush=True)
+        print(f"[EyesRhythm] {msg}", file=sys.stderr, flush=True)
     except Exception:
         pass
 
@@ -220,7 +220,7 @@ def _alert(title: str, text: str) -> None:
 def _fatal(msg: str, code: int = 1) -> None:
     """Log, tell the user, then exit. Used when the window never appears."""
     _log(msg)
-    _alert("EyeRhythm", msg)
+    _alert("EyesRhythm", msg)
     sys.exit(code)
 
 
@@ -239,7 +239,7 @@ def _find_port(host: str, preferred: int) -> int:
     """
     Use the preferred port if free; otherwise try the next few numbers.
 
-    Two EyeRhythm windows (or another app) may already own 8742 — we still
+    Two EyesRhythm windows (or another app) may already own 8742 — we still
     want to launch instead of failing.
     """
     if _port_free(host, preferred):
@@ -247,7 +247,7 @@ def _find_port(host: str, preferred: int) -> int:
     for p in range(preferred + 1, preferred + 40):
         if _port_free(host, p):
             return p
-    raise RuntimeError("No free localhost port for EyeRhythm UI server")
+    raise RuntimeError("No free localhost port for EyesRhythm UI server")
 
 
 def _wait_for_server(host: str, port: int, timeout: float = 15.0) -> bool:
@@ -418,7 +418,7 @@ def main() -> None:
     6. On quit: stop the camera loop and save today’s stats.
     """
     parser = argparse.ArgumentParser(
-        description="EyeRhythm — blink rhythm companion (React UI)")
+        description="EyesRhythm — blink rhythm companion (React UI)")
     parser.add_argument("--camera", type=int, default=0,
                         help="webcam index (default 0)")
     parser.add_argument("--host", default=DEFAULT_HOST,
@@ -466,7 +466,7 @@ def main() -> None:
     if not _wait_for_server(args.host, port):
         engine.stop()
         _fatal(
-            "EyeRhythm’s local UI server did not start.\n\n"
+            "EyesRhythm’s local UI server did not start.\n\n"
             "If this zip came from email or a browser download, right-click "
             "the zip → Properties → Unblock, extract again, and retry."
         )
@@ -500,8 +500,8 @@ def main() -> None:
             except Exception as exc:
                 _log(f"desktop window failed ({exc}) — falling back to browser")
                 _alert(
-                    "EyeRhythm",
-                    "The EyeRhythm desktop window could not open, so the "
+                    "EyesRhythm",
+                    "The EyesRhythm desktop window could not open, so the "
                     "dashboard will open in your browser instead.\n\n"
                     "For the normal app window, install Microsoft Edge "
                     "WebView2 Runtime, then try again.\n\n"

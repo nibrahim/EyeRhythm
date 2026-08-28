@@ -1,5 +1,5 @@
 """
-app — desktop shell + local API for EyeRhythm
+app — desktop shell + local API for EyesRhythm
 =============================================
 
 Modules

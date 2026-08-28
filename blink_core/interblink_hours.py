@@ -4,7 +4,7 @@ Inter-blink interval research log (per screen-time hour)
 
 Plain-language goal
 -------------------
-While EyeRhythm runs, collect the **time between consecutive blinks**
+While EyesRhythm runs, collect the **time between consecutive blinks**
 (inter-blink interval) and summarise it for **each full hour of face-present
 screen time**, plus a final partial hour if the day ends mid-hour.
 

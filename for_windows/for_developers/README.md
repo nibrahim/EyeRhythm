@@ -1,10 +1,10 @@
-# EyeRhythm — Windows developer & release tools
+# EyesRhythm — Windows developer & release tools
 
 This folder contains everything needed to:
 
 1. Run the app from source while developing
-2. Build a standalone `EyeRhythm.exe` (no Python required on the end-user machine)
-3. Produce a Windows installer (`EyeRhythm-Setup.exe`) that installs per-user and creates Start Menu + optional Desktop shortcuts
+2. Build a standalone `EyesRhythm.exe` (no Python required on the end-user machine)
+3. Produce a Windows installer (`EyesRhythm-Setup.exe`) that installs per-user and creates Start Menu + optional Desktop shortcuts
 
 You **cannot** freeze a Windows exe on a Mac. Use GitHub Actions (see below) or a Windows PC with **Python 3.11**.
 
@@ -45,10 +45,10 @@ This uses the same `EyeRhythm.spec` as the Mac `.app` build (model, React UI, Me
 Result:
 
 ```
-dist\EyeRhythm\EyeRhythm.exe
+dist\EyesRhythm\EyesRhythm.exe
 ```
 
-Zip the whole `dist\EyeRhythm` folder and give it to users. They unzip and double-click the `.exe` (camera permission still required on first run). SmartScreen may warn because the binary is unsigned → **More info → Run anyway**.
+Zip the whole `dist\EyesRhythm` folder and give it to users. They unzip and double-click the `.exe` (camera permission still required on first run). SmartScreen may warn because the binary is unsigned → **More info → Run anyway**.
 
 ---
 
@@ -57,9 +57,9 @@ Zip the whole `dist\EyeRhythm` folder and give it to users. They unzip and doubl
 The workflow **Build Windows app** (`.github/workflows/build-windows.yml`):
 
 1. Builds the React UI
-2. Freezes `dist\EyeRhythm` with PyInstaller
-3. Uploads `EyeRhythm-Windows.zip`
-4. Builds `EyeRhythm-Setup.exe` with Inno Setup
+2. Freezes `dist\EyesRhythm` with PyInstaller
+3. Uploads `EyesRhythm-Windows.zip`
+4. Builds `EyesRhythm-Setup.exe` with Inno Setup
 
 Run it: GitHub → **Actions → Build Windows app → Run workflow**.  
 A tag `v1.0.0` also attaches both files to the GitHub Release.
@@ -71,9 +71,9 @@ A tag `v1.0.0` also attaches both files to the GitHub Release.
 ```
 Source code
     ↓  build_exe.bat          (PyInstaller)
-Standalone folder (dist\EyeRhythm)
+Standalone folder (dist\EyesRhythm)
     ↓  build_installer.bat    (Inno Setup)
-EyeRhythm-Setup.exe
+EyesRhythm-Setup.exe
 ```
 
 ### Prerequisites (one-time on a Windows machine)
@@ -93,13 +93,13 @@ for_windows\for_developers\build_installer.bat
 
 This script:
 
-1. Builds a fresh `dist\EyeRhythm` with PyInstaller
+1. Builds a fresh `dist\EyesRhythm` with PyInstaller
 2. Compiles `EyeRhythm.iss`
-3. Produces `for_windows\for_developers\Output\EyeRhythm-Setup.exe`
+3. Produces `for_windows\for_developers\Output\EyesRhythm-Setup.exe`
 
 End users who run Setup.exe get:
 
-- Installation into `%LOCALAPPDATA%\EyeRhythm` (no admin)
+- Installation into `%LOCALAPPDATA%\EyesRhythm` (no admin)
 - Start Menu entry
 - Optional Desktop shortcut
 - Uninstaller via Windows “Apps & features”
@@ -110,7 +110,7 @@ End users who run Setup.exe get:
 
 | File | Purpose |
 |------|---------|
-| `build_exe.bat` | PyInstaller via `EyeRhythm.spec` → `dist\EyeRhythm` |
+| `build_exe.bat` | PyInstaller via `EyeRhythm.spec` → `dist\EyesRhythm` |
 | `build_installer.bat` | Full pipeline (exe + Setup.exe) |
 | `EyeRhythm.iss` | Inno Setup script (edit version number here) |
 | `BUILD_INSTALLER.md` | Release checklist |

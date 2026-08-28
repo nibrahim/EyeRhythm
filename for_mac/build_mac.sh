@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# EyeRhythm — build a standalone macOS .app with PyInstaller
+# EyesRhythm — build a standalone macOS .app with PyInstaller
 # Includes the built React UI from frontend/dist
 # =============================================================================
 set -e
@@ -10,7 +10,7 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT"
 
 echo "=============================================="
-echo "  EyeRhythm  ·  build Mac app"
+echo "  EyesRhythm  ·  build Mac app"
 echo "  Project root: $ROOT"
 echo "=============================================="
 echo
@@ -42,7 +42,7 @@ echo "Installing PyInstaller if needed..."
 python3 -m pip install -q pyinstaller
 
 echo
-echo "Building EyeRhythm (this can take a few minutes)..."
+echo "Building EyesRhythm (this can take a few minutes)..."
 # Prefer the checked-in spec so macOS privacy keys (camera) are baked in.
 # Fall back to the equivalent CLI if the spec is missing.
 if [ -f "$ROOT/EyeRhythm.spec" ]; then
@@ -53,7 +53,7 @@ else
       --clean \
       --windowed \
       --osx-bundle-identifier com.eyerhythm.app \
-      --name EyeRhythm \
+      --name EyesRhythm \
       --add-data "models/face_landmarker.task:models" \
       --add-data "assets:assets" \
       --add-data "frontend/dist:frontend/dist" \
@@ -79,7 +79,7 @@ stamp_macos_camera_usage() {
     local app="$1"
     local plist="$app/Contents/Info.plist"
     local buddy="/usr/libexec/PlistBuddy"
-    local msg="EyeRhythm uses the camera to count your blinks. Video never leaves this Mac."
+    local msg="EyesRhythm uses the camera to count your blinks. Video never leaves this Mac."
     if [ ! -f "$plist" ]; then
         return 0
     fi
@@ -109,12 +109,12 @@ stamp_macos_camera_usage() {
 }
 
 echo
-if [ -d "dist/EyeRhythm.app" ]; then
-    stamp_macos_camera_usage "$ROOT/dist/EyeRhythm.app"
-    echo "SUCCESS:  dist/EyeRhythm.app"
+if [ -d "dist/EyesRhythm.app" ]; then
+    stamp_macos_camera_usage "$ROOT/dist/EyesRhythm.app"
+    echo "SUCCESS:  dist/EyesRhythm.app"
     echo "First open: right-click → Open, then Allow the camera."
-elif [ -f "dist/EyeRhythm/EyeRhythm" ]; then
-    echo "SUCCESS:  dist/EyeRhythm/EyeRhythm"
+elif [ -f "dist/EyesRhythm/EyesRhythm" ]; then
+    echo "SUCCESS:  dist/EyesRhythm/EyesRhythm"
 else
     echo "Build finished - check the dist/ folder."
 fi

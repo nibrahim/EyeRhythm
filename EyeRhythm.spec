@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller recipe for the EyeRhythm desktop app
+PyInstaller recipe for the EyesRhythm desktop app
 ================================================
 
 This file is *not* run by users. Developers run it via::
@@ -111,7 +111,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='EyeRhythm',
+    name='EyesRhythm',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -133,25 +133,25 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='EyeRhythm',
+    name='EyesRhythm',
 )
 # macOS-only wrapper: Dock name, icon, and the camera-permission sentence.
 # BUNDLE is not valid on Windows; the COLLECT folder *is* the Windows app.
 if sys.platform == "darwin":
     app = BUNDLE(
         coll,
-        name='EyeRhythm.app',
+        name='EyesRhythm.app',
         icon=ICON,
         bundle_identifier='com.eyerhythm.app',
         info_plist={
-            'CFBundleDisplayName': 'EyeRhythm',
-            'CFBundleName': 'EyeRhythm',
+            'CFBundleDisplayName': 'EyesRhythm',
+            'CFBundleName': 'EyesRhythm',
             'CFBundleShortVersionString': '1.0.0',
             'NSHighResolutionCapable': True,
             # Required: without this, macOS SIGABRTs the app on the first
             # OpenCV camera open (Retry / Ignore / Report crash dialog).
             'NSCameraUsageDescription': (
-                'EyeRhythm uses the camera to count your blinks. '
+                'EyesRhythm uses the camera to count your blinks. '
                 'Video never leaves this Mac.'
             ),
         },

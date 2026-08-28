@@ -24,7 +24,7 @@ TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
 "$PYTHON" - "$PNG" "$ICO" "$TMP/EyeRhythm.iconset" <<'PY'
-"""Rasterize the EyeRhythm mark with a real alpha channel (no white plate)."""
+"""Rasterize the EyesRhythm mark with a real alpha channel (no white plate)."""
 import sys
 from pathlib import Path
 
@@ -47,25 +47,29 @@ def render(size: int) -> Image.Image:
         radius=36 * f,
         fill=(91, 159, 224, 255),
     )
-    cx, cy, rx, ry = 64 * f, 64 * f, 40 * f, 25 * f
-    d.ellipse(
-        [cx - rx, cy - ry, cx + rx, cy + ry],
-        fill=(255, 255, 255, 36),
-    )
-    d.ellipse(
-        [cx - rx, cy - ry, cx + rx, cy + ry],
-        outline=(255, 255, 255, 255),
-        width=max(1, round(5 * f)),
-    )
-    r = 14.5 * f
-    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(232, 242, 250, 255))
-    r2 = 6.2 * f
-    d.ellipse([cx - r2, cy - r2, cx + r2, cy + r2], fill=(26, 42, 56, 255))
-    hx, hy, hr = 68.5 * f, 59.5 * f, 3 * f
-    d.ellipse(
-        [hx - hr, hy - hr, hx + hr, hy + hr],
-        fill=(255, 255, 255, 230),
-    )
+    def eye(cx: float, cy: float) -> None:
+        rx, ry = 22 * f, 15 * f
+        d.ellipse(
+            [cx - rx, cy - ry, cx + rx, cy + ry],
+            fill=(255, 255, 255, 36),
+        )
+        d.ellipse(
+            [cx - rx, cy - ry, cx + rx, cy + ry],
+            outline=(255, 255, 255, 255),
+            width=max(1, round(5 * f)),
+        )
+        r = 8.4 * f
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(232, 242, 250, 255))
+        r2 = 4.0 * f
+        d.ellipse([cx - r2, cy - r2, cx + r2, cy + r2], fill=(26, 42, 56, 255))
+        hx, hy, hr = cx + 2.6 * f, cy - 2.6 * f, 1.8 * f
+        d.ellipse(
+            [hx - hr, hy - hr, hx + hr, hy + hr],
+            fill=(255, 255, 255, 230),
+        )
+
+    eye(43 * f, 64 * f)
+    eye(85 * f, 64 * f)
     if hi != size:
         im = im.resize((size, size), Image.Resampling.LANCZOS)
     return im

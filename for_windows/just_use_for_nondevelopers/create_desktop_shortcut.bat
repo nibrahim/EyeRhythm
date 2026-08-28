@@ -3,7 +3,7 @@ REM Creates a Desktop shortcut that points to EyeRhythm_Launch.bat
 cd /d "%~dp0"
 
 set "TARGET=%~dp0EyeRhythm_Launch.bat"
-set "SHORTCUT=%USERPROFILE%\Desktop\EyeRhythm.lnk"
+set "SHORTCUT=%USERPROFILE%\Desktop\EyesRhythm.lnk"
 
 echo Creating desktop shortcut...
 powershell -NoProfile -Command ^
@@ -11,7 +11,7 @@ powershell -NoProfile -Command ^
    $s = $ws.CreateShortcut('%SHORTCUT%'); ^
    $s.TargetPath = '%TARGET%'; ^
    $s.WorkingDirectory = '%~dp0'; ^
-   $s.Description = 'EyeRhythm - BlinkCounter'; ^
+   $s.Description = 'EyesRhythm - Blink companion'; ^
    $s.Save()"
 
 if exist "%SHORTCUT%" (

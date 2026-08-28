@@ -8,8 +8,8 @@
 #   CLOUDFLARE_ACCOUNT_ID  Cloudflare dashboard → right sidebar
 #
 # Optional variable:
-#   PUBLIC_SITE_URL        e.g. https://eyerhythm.pages.dev
-#                          later https://your-domain
+#   PUBLIC_SITE_URL        https://eyesrhythm.com
+#                          (falls back to https://eyerhythm.pages.dev)
 
 name: Website
 
@@ -37,7 +37,7 @@ permissions:
 env:
   NODE_VERSION: "22"
   CF_PROJECT: eyerhythm
-  PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL || 'https://eyerhythm.pages.dev' }}
+  PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL || 'https://eyesrhythm.com' }}
 
 jobs:
   build:

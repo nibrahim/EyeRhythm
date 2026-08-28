@@ -1,5 +1,5 @@
 """
-EyeRhythm processing engine (no UI)
+EyesRhythm processing engine (no UI)
 ===================================
 
 Owns the camera loop, blink detector, daily stats, beeps, and low-ORI alerts.
@@ -212,7 +212,7 @@ def look_side_offscreen(
 def _log(msg: str) -> None:
     """Write a diagnostic line. Silent if the terminal is already gone."""
     try:
-        print(f"[EyeRhythm] {msg}", file=sys.stderr, flush=True)
+        print(f"[EyesRhythm] {msg}", file=sys.stderr, flush=True)
     except Exception:
         pass
 

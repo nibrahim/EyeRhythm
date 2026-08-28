@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# EyeRhythm — stop opening automatically at login
+# EyesRhythm — stop opening automatically at login
 # =============================================================================
 set -e
 
@@ -19,5 +19,5 @@ if [ -f "$PLIST" ]; then
     rm -f "$PLIST"
 fi
 
-echo "EyeRhythm will no longer start at login."
+echo "EyesRhythm will no longer start at login."
 echo "The app itself is unchanged — run it anytime with:  ./for_mac/run.sh"

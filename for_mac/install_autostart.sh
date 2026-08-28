@@ -1,9 +1,9 @@
 #!/bin/bash
 # =============================================================================
-# EyeRhythm — start automatically when you log in to this Mac
+# EyesRhythm — start automatically when you log in to this Mac
 # =============================================================================
 #
-# Installs a per-user Launch Agent that opens the EyeRhythm window at login.
+# Installs a per-user Launch Agent that opens the EyesRhythm window at login.
 # No Terminal window is shown.
 #
 #   ./for_mac/install_autostart.sh
@@ -63,9 +63,9 @@ cat >"$PLIST" <<EOF
     <key>ProcessType</key>
     <string>Interactive</string>
     <key>StandardOutPath</key>
-    <string>${HOME}/Library/Logs/EyeRhythm.log</string>
+    <string>${HOME}/Library/Logs/EyesRhythm.log</string>
     <key>StandardErrorPath</key>
-    <string>${HOME}/Library/Logs/EyeRhythm.err.log</string>
+    <string>${HOME}/Library/Logs/EyesRhythm.err.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
@@ -89,12 +89,12 @@ fi
 
 echo
 echo "=============================================="
-echo "  EyeRhythm will now open when you log in."
+echo "  EyesRhythm will now open when you log in."
 echo
 echo "  Agent:  ${PLIST}"
-echo "  Logs:   ~/Library/Logs/EyeRhythm.log"
+echo "  Logs:   ~/Library/Logs/EyesRhythm.log"
 echo
-echo "  If macOS asks to allow EyeRhythm in the"
+echo "  If macOS asks to allow EyesRhythm in the"
 echo "  background, choose Allow."
 echo "  (System Settings → General → Login Items)"
 echo
@@ -103,6 +103,6 @@ echo
 echo "  Stop auto-start:  ./for_mac/uninstall_autostart.sh"
 echo "=============================================="
 echo
-echo "Opening EyeRhythm now so you can confirm it works…"
+echo "Opening EyesRhythm now so you can confirm it works…"
 # RunAtLoad starts the agent on bootstrap. Do not kickstart -k — that would
 # kill the first launch and start a second one.

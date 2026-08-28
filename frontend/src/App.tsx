@@ -216,7 +216,7 @@ export default function App() {
         <div className="topbar__brand">
           <Logo size={30} />
           <div>
-            <div className="topbar__title">EyeRhythm</div>
+            <div className="topbar__title">EyesRhythm</div>
             <div className="topbar__tag">Blink companion</div>
           </div>
         </div>

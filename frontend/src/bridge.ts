@@ -31,7 +31,7 @@ declare global {
   }
 }
 
-/** True when we are inside the native EyeRhythm window, not a browser tab. */
+/** True when we are inside the native EyesRhythm window, not a browser tab. */
 export function isDesktopShell(): boolean {
   return Boolean(window.pywebview?.api);
 }

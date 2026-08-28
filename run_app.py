@@ -1,5 +1,5 @@
 """
-EyeRhythm packaging entry-point
+EyesRhythm packaging entry-point
 ===============================
 
 Plain-language goal
@@ -21,9 +21,9 @@ re-raise so the process still exits with an error code.
 
 Where is the crash log?
 -----------------------
-* Windows: ``%LOCALAPPDATA%\\EyeRhythm\\crash.log``
-* macOS: ``~/Library/Logs/EyeRhythm_crash.log`` (if that Logs folder exists)
-* otherwise: ``~/EyeRhythm_crash.log``
+* Windows: ``%LOCALAPPDATA%\\EyesRhythm\\crash.log``
+* macOS: ``~/Library/Logs/EyesRhythm_crash.log`` (if that Logs folder exists)
+* otherwise: ``~/EyesRhythm_crash.log``
 
 Note
 ----
@@ -44,7 +44,7 @@ def _data_dir() -> Path:
     if sys.platform == "win32":
         base = os.environ.get("LOCALAPPDATA")
         root = Path(base) if base else Path.home() / "AppData" / "Local"
-        return root / "EyeRhythm"
+        return root / "EyesRhythm"
     home = Path.home()
     logs = home / "Library" / "Logs"
     if logs.is_dir():
@@ -56,16 +56,16 @@ def _log_path() -> Path:
     """
     Choose a sensible place to write a crash report.
 
-    * Windows: ``%LOCALAPPDATA%\\EyeRhythm\\crash.log``
-    * macOS: ``~/Library/Logs/EyeRhythm_crash.log`` when that folder exists
-    * otherwise: ``~/EyeRhythm_crash.log``
+    * Windows: ``%LOCALAPPDATA%\\EyesRhythm\\crash.log``
+    * macOS: ``~/Library/Logs/EyesRhythm_crash.log`` when that folder exists
+    * otherwise: ``~/EyesRhythm_crash.log``
     """
     if sys.platform == "win32":
         return _data_dir() / "crash.log"
     logs = Path.home() / "Library" / "Logs"
     if logs.is_dir():
-        return logs / "EyeRhythm_crash.log"
-    return Path.home() / "EyeRhythm_crash.log"
+        return logs / "EyesRhythm_crash.log"
+    return Path.home() / "EyesRhythm_crash.log"
 
 
 def _bootstrap_frozen() -> None:
@@ -110,7 +110,7 @@ def _bootstrap_frozen() -> None:
     os.environ.setdefault("WEBVIEW2_USER_DATA_FOLDER", str(data / "webview"))
     try:
         log = open(data / "runtime.log", "a", encoding="utf-8")
-        log.write("\n--- EyeRhythm start ---\n")
+        log.write("\n--- EyesRhythm start ---\n")
         log.flush()
     except Exception:
         log = None
@@ -165,11 +165,11 @@ def _write_crash(exc: BaseException) -> None:
         # Ensure parent directory exists (e.g. first run on a fresh machine).
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            "EyeRhythm failed to start.\n\n"
+            "EyesRhythm failed to start.\n\n"
             + "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
         )
         # Also print if a terminal is attached (useful for developers).
-        print(f"EyeRhythm crash log: {path}", file=sys.stderr)
+        print(f"EyesRhythm crash log: {path}", file=sys.stderr)
         traceback.print_exception(type(exc), exc, exc.__traceback__, file=sys.stderr)
     except Exception:
         # If even logging fails (disk full, permissions), give up quietly.
@@ -198,8 +198,8 @@ if __name__ == "__main__":
         # KeyboardInterrupt is a BaseException too; we still log unexpected ones.
         _write_crash(e)
         _message_box(
-            "EyeRhythm",
-            "EyeRhythm failed to start.\n\n"
+            "EyesRhythm",
+            "EyesRhythm failed to start.\n\n"
             f"Details were saved to:\n{_log_path()}",
         )
         raise

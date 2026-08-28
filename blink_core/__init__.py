@@ -1,5 +1,5 @@
 """
-blink_core — the “brain” of EyeRhythm
+blink_core — the “brain” of EyesRhythm
 =====================================
 
 This package holds the **platform-independent** logic: it does not open windows,

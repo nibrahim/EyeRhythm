@@ -103,7 +103,7 @@ function initForm() {
     };
 
     try {
-      const key = "eyerhythm-license-reservations";
+      const key = "eyesrhythm-license-reservations";
       const prev = JSON.parse(localStorage.getItem(key) || "[]") as unknown[];
       prev.push(order);
       localStorage.setItem(key, JSON.stringify(prev));
@@ -118,7 +118,7 @@ function initForm() {
       const body = encodeURIComponent(
         `Name: ${name}\nEmail: ${email}\nPlatform: ${platform}\nNote: ${note}\n`,
       );
-      const subject = encodeURIComponent("EyeRhythm license reservation");
+      const subject = encodeURIComponent("EyesRhythm license reservation");
       mailtoSlot.innerHTML = `<a href="mailto:${site.contactEmail}?subject=${subject}&body=${body}">Email this reservation</a>`;
     }
   });

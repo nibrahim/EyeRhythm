@@ -45,11 +45,11 @@ export type EyeComfortId = (typeof EYE_COMFORT_OPTIONS)[number]["id"];
 const NOTICES = [
   {
     title: "On-device and private",
-    body: "EyeRhythm is fully offline in normal use. Camera frames and blink metrics are processed on this computer only — nothing is uploaded, and no internet connection is required. Your ocular data stays with you.",
+    body: "EyesRhythm is fully offline in normal use. Camera frames and blink metrics are processed on this computer only — nothing is uploaded, and no internet connection is required. Your ocular data stays with you.",
   },
   {
     title: "A wellness companion, not a medical device",
-    body: "EyeRhythm has not been cleared or approved by the FDA or any other regulator. It is not intended to diagnose, treat, cure, or prevent disease. If you have an ocular surface disorder, a change in vision, or persistent discomfort, consult a licensed eye-care professional.",
+    body: "EyesRhythm has not been cleared or approved by the FDA or any other regulator. It is not intended to diagnose, treat, cure, or prevent disease. If you have an ocular surface disorder, a change in vision, or persistent discomfort, consult a licensed eye-care professional.",
   },
   {
     title: "Ocular Rhythm Index (ORI)",
@@ -145,7 +145,7 @@ export function SplashScreen({ onDone }: Props) {
           <Logo size={32} />
           <div className="splash__brand">
             <div id="splash-title" className="splash__title">
-              EyeRhythm
+              EyesRhythm
             </div>
             <div className="splash__tag">Blink companion</div>
           </div>
@@ -194,7 +194,7 @@ export function SplashScreen({ onDone }: Props) {
             <>
               <h2 className="splash__question">Before you start</h2>
               <p className="splash__lead">
-                Please read these notes. You can begin now, or EyeRhythm will
+                Please read these notes. You can begin now, or EyesRhythm will
                 continue automatically.
               </p>
               <ol className="splash__notes">

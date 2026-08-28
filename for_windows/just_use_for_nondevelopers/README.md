@@ -1,6 +1,6 @@
-# EyeRhythm for Windows — from source
+# EyesRhythm for Windows — from source
 
-**Prefer the self-contained app** if you only want to *use* EyeRhythm: unzip **`EyeRhythm-Windows.zip`** and double-click `EyeRhythm.exe`. No Python, no Node. See [`../README.md`](../README.md).
+**Prefer the self-contained app** if you only want to *use* EyesRhythm: unzip **`EyesRhythm-Windows.zip`** and double-click `EyesRhythm.exe`. No Python, no Node. See [`../README.md`](../README.md).
 
 This folder is for running **from the source tree** (contributors, or if you do not have the zip yet). You install Python once; after that a double-click is enough.
 
@@ -19,7 +19,7 @@ This folder is for running **from the source tree** (contributors, or if you do 
 
 5. Click **Install Now**. Accept the defaults.
 
-### 2. Run EyeRhythm
+### 2. Run EyesRhythm
 
 1. Open the `just_use_for_nondevelopers` folder.
 2. Double-click **`EyeRhythm_Launch.bat`**.
@@ -44,7 +44,7 @@ After the first successful launch you can create a desktop shortcut:
 
 1. Right-click `EyeRhythm_Launch.bat`
 2. Choose **Send to → Desktop (create shortcut)**
-3. Rename the shortcut to **EyeRhythm** if you like
+3. Rename the shortcut to **EyesRhythm** if you like
 
 Or run the helper once:
 
@@ -69,7 +69,7 @@ create_desktop_shortcut.bat
 
 A freeze that needs **zero** extra installs is produced by GitHub Actions (**Build Windows app**) or by `for_windows/for_developers/build_exe.bat` on a Windows PC.
 
-- **`EyeRhythm-Windows.zip`** — unzip, run `EyeRhythm.exe`
-- **`EyeRhythm-Setup.exe`** — per-user installer (Start Menu + optional Desktop shortcut)
+- **`EyesRhythm-Windows.zip`** — unzip, run `EyesRhythm.exe`
+- **`EyesRhythm-Setup.exe`** — per-user installer (Start Menu + optional Desktop shortcut)
 
 Share those files, not this folder, with people who should not install Python.

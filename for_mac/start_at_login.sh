@@ -1,9 +1,9 @@
 #!/bin/bash
 # =============================================================================
-# EyeRhythm — start from a macOS Login item / Launch Agent
+# EyesRhythm — start from a macOS Login item / Launch Agent
 # =============================================================================
 #
-# Waits until the desktop session is up, skips if EyeRhythm is already
+# Waits until the desktop session is up, skips if EyesRhythm is already
 # running, then hands off to run.sh (venv + python -m app.main).
 # =============================================================================
 set -e
@@ -11,7 +11,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_DIR="${HOME}/Library/Logs"
 mkdir -p "$LOG_DIR"
-LOG="${LOG_DIR}/EyeRhythm.log"
+LOG="${LOG_DIR}/EyesRhythm.log"
 
 {
     echo "----------------------------------------"

@@ -4,7 +4,7 @@ blink_core.detector — eye-blink detection engine
 
 Plain-language summary
 ----------------------
-This file is the scientific heart of EyeRhythm. It answers one question
+This file is the scientific heart of EyesRhythm. It answers one question
 over and over, for every camera frame:
 
     “Did the person just complete a blink?”

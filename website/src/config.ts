@@ -1,9 +1,10 @@
 /**
  * Site copy and knobs — edit here as you iterate.
- * “Get a copy” is a reservation until a payment provider is wired.
+ * “Get a copy” is a reservation only. Installers are not on this site
+ * until payment and licensing are wired.
  */
 export const site = {
-  name: "EyeRhythm",
+  name: "EyesRhythm",
   tagline: "A quiet rhythm for long screen days",
   description:
     "A private, offline blink companion that turns how often and how steadily you blink into a single, useful rhythm score — so screen days can last longer without the eyes paying first.",
@@ -13,6 +14,8 @@ export const site = {
       : "http://localhost:4321",
   contactEmail: "",
   cta: "Get a copy",
+  /** Keep false until checkout and license keys exist. No public installers. */
+  downloadsOpen: false,
   price: {
     amount: 10,
     currency: "CAD",

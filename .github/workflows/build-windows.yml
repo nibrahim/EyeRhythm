@@ -48,13 +48,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pyinstaller
 
-      - name: Freeze EyeRhythm.exe
+      - name: Freeze EyesRhythm.exe
         run: python -m PyInstaller --noconfirm --clean EyeRhythm.spec
 
       - name: Check freeze output
         shell: pwsh
         run: |
-          $exe = "dist\EyeRhythm\EyeRhythm.exe"
+          $exe = "dist\EyesRhythm\EyesRhythm.exe"
           if (-not (Test-Path $exe)) {
             throw "PyInstaller did not produce $exe"
           }
@@ -63,20 +63,20 @@ jobs:
       - name: Add start notes next to the exe
         shell: cmd
         run: |
-          copy /Y for_windows\START_HERE.txt dist\EyeRhythm\START_HERE.txt
-          copy /Y for_windows\Unblock-and-run.bat dist\EyeRhythm\Unblock-and-run.bat
+          copy /Y for_windows\START_HERE.txt dist\EyesRhythm\START_HERE.txt
+          copy /Y for_windows\Unblock-and-run.bat dist\EyesRhythm\Unblock-and-run.bat
 
       - name: Zip portable app
         shell: pwsh
         run: |
-          Compress-Archive -Path dist\EyeRhythm -DestinationPath EyeRhythm-Windows.zip -Force
-          Get-Item EyeRhythm-Windows.zip | Format-List FullName, Length
+          Compress-Archive -Path dist\EyesRhythm -DestinationPath EyesRhythm-Windows.zip -Force
+          Get-Item EyesRhythm-Windows.zip | Format-List FullName, Length
 
       - name: Upload portable zip
         uses: actions/upload-artifact@v4
         with:
-          name: EyeRhythm-Windows-zip
-          path: EyeRhythm-Windows.zip
+          name: EyesRhythm-Windows-zip
+          path: EyesRhythm-Windows.zip
           if-no-files-found: error
 
       - name: Install Inno Setup
@@ -97,8 +97,8 @@ jobs:
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: EyeRhythm-Windows-setup
-          path: for_windows/for_developers/Output/EyeRhythm-Setup.exe
+          name: EyesRhythm-Windows-setup
+          path: for_windows/for_developers/Output/EyesRhythm-Setup.exe
           if-no-files-found: error
 
       - name: Attach to GitHub Release
@@ -106,6 +106,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            EyeRhythm-Windows.zip
-            for_windows/for_developers/Output/EyeRhythm-Setup.exe
+            EyesRhythm-Windows.zip
+            for_windows/for_developers/Output/EyesRhythm-Setup.exe
           generate_release_notes: true

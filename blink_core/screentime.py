@@ -4,7 +4,7 @@ Daily screen-time + blink tracker
 
 Plain-language goal
 -------------------
-While EyeRhythm is running, we want two simple daily numbers:
+While EyesRhythm is running, we want two simple daily numbers:
 
 1. **How long** was a face visible in front of the camera?  (“screen time”)
 2. **How many blinks** did we count during that time?

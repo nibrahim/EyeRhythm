@@ -7,7 +7,7 @@ This document is for maintainers. Follow these steps whenever you update the app
 ## Why this pipeline?
 
 - **Git repository** stays small (source only).
-- Recipients get a freeze: unzip `EyeRhythm-Windows.zip` or run `EyeRhythm-Setup.exe`.
+- Recipients get a freeze: unzip `EyesRhythm-Windows.zip` or run `EyesRhythm-Setup.exe`.
 - You cannot produce that freeze on a Mac. Use **GitHub Actions** or a Windows PC.
 
 ---
@@ -17,8 +17,8 @@ This document is for maintainers. Follow these steps whenever you update the app
 1. Commit and push the code you want inside the Windows app (uncommitted files are **not** included).
 2. On GitHub: **Actions → Build Windows app → Run workflow**.
 3. When it finishes, download:
-   - `EyeRhythm-Windows-zip` → `EyeRhythm-Windows.zip`
-   - `EyeRhythm-Windows-setup` → `EyeRhythm-Setup.exe`
+   - `EyesRhythm-Windows-zip` → `EyesRhythm-Windows.zip`
+   - `EyesRhythm-Windows-setup` → `EyesRhythm-Setup.exe`
 4. Send the zip (or the Setup.exe) to the other person.
 
 Tag `v1.0.0` (or any `v*`) to attach both files to a GitHub Release. The repo is private, so you still download and forward the files yourself.
@@ -58,13 +58,13 @@ Typical runtime: 10–20 minutes. Python is pinned to **3.11**.
    ```bat
    for_windows\for_developers\build_exe.bat
    ```
-   Portable app: `dist\EyeRhythm\` — zip that folder.
+   Portable app: `dist\EyesRhythm\` — zip that folder.
 
    Or the full installer:
    ```bat
    for_windows\for_developers\build_installer.bat
    ```
-   Output: `for_windows\for_developers\Output\EyeRhythm-Setup.exe`
+   Output: `for_windows\for_developers\Output\EyesRhythm-Setup.exe`
 
 4. Test on a Windows machine:
    - Unzip / run Setup
@@ -75,9 +75,9 @@ Typical runtime: 10–20 minutes. Python is pinned to **3.11**.
 
 ## What the end user experiences
 
-1. Receives `EyeRhythm-Windows.zip` (or Setup.exe).
+1. Receives `EyesRhythm-Windows.zip` (or Setup.exe).
 2. Unzips (or clicks through the wizard).
-3. Double-clicks `EyeRhythm.exe`.
+3. Double-clicks `EyesRhythm.exe`.
 4. If SmartScreen appears → **More info → Run anyway**.
 5. Allows camera permission.
 6. Uses the same dashboard as the Mac app.
@@ -87,7 +87,7 @@ No Python, no Command Prompt, no extra downloads.
 Crash log if it dies on start:
 
 ```
-%LOCALAPPDATA%\EyeRhythm\crash.log
+%LOCALAPPDATA%\EyesRhythm\crash.log
 ```
 
 ---
@@ -111,7 +111,7 @@ Crash log if it dies on start:
 code change
     → push
     → Actions → Build Windows app
-    → send EyeRhythm-Windows.zip
+    → send EyesRhythm-Windows.zip
 ```
 
-Or on a Windows PC: `build_exe.bat` → zip `dist\EyeRhythm`.
+Or on a Windows PC: `build_exe.bat` → zip `dist\EyesRhythm`.
