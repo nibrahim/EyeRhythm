@@ -2,6 +2,7 @@
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
 import PurchaseModal from "../components/PurchaseModal.astro";
+import ComingSoon from "../components/ComingSoon.astro";
 import { site } from "../config";
 import "../styles/global.css";
 
@@ -10,13 +11,16 @@ interface Props {
   description?: string;
 }
 
-const {
-  title = `${site.name} — ${site.tagline}`,
-  description = site.description,
-} = Astro.props;
+const hold = site.comingSoon;
+const title = hold
+  ? `${site.name} — Coming soon`
+  : (Astro.props.title ?? `${site.name} — ${site.tagline}`);
+const description = hold
+  ? "EyesRhythm is a private blink companion for the desk. Copies will be available when checkout is ready."
+  : (Astro.props.description ?? site.description);
 
 const origin = Astro.site ?? new URL(site.url);
-const canonical = new URL(Astro.url.pathname, origin).toString();
+const canonical = new URL(hold ? "/" : Astro.url.pathname, origin).toString();
 const ogImageUrl = new URL("/app-icon.png", origin);
 ogImageUrl.searchParams.set("v", "3");
 const ogImage = ogImageUrl.toString();
@@ -30,6 +34,7 @@ const ogImage = ogImageUrl.toString();
     <meta name="theme-color" content="#ffffff" />
     <meta name="description" content={description} />
     <meta name="color-scheme" content="light" />
+    {hold ? <meta name="robots" content="noindex, nofollow" /> : null}
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
     <link rel="apple-touch-icon" href="/app-icon.png?v=3" />
@@ -41,12 +46,20 @@ const ogImage = ogImageUrl.toString();
     <title>{title}</title>
   </head>
   <body>
-    <Nav />
-    <slot />
-    <Footer />
-    <PurchaseModal />
-    <script>
-      import "../scripts/main.ts";
-    </script>
+    {
+      hold ? (
+        <ComingSoon />
+      ) : (
+        <>
+          <Nav />
+          <slot />
+          <Footer />
+          <PurchaseModal />
+          <script>
+            import "../scripts/main.ts";
+          </script>
+        </>
+      )
+    }
   </body>
 </html>

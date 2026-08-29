@@ -1,0 +1,49 @@
+---
+import Logo from "./Logo.astro";
+---
+
+<main class="soon" id="main">
+  <Logo size={56} />
+  <h1>EyesRhythm</h1>
+  <p class="soon__kicker">Coming soon</p>
+  <p class="soon__lede">
+    A private blink companion for the desk. Copies will be available when
+    checkout is ready.
+  </p>
+</main>
+
+<style>
+  .soon {
+    min-height: 100svh;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    text-align: center;
+    gap: 14px;
+    padding: 32px 24px 48px;
+  }
+
+  h1 {
+    margin: 4px 0 0;
+    font-size: clamp(2rem, 6vw, 3rem);
+    letter-spacing: -0.045em;
+    font-weight: 600;
+  }
+
+  .soon__kicker {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 650;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--blue-deep);
+  }
+
+  .soon__lede {
+    margin: 0;
+    max-width: 26rem;
+    color: var(--text-soft);
+    font-size: 1.05rem;
+    line-height: 1.5;
+  }
+</style>

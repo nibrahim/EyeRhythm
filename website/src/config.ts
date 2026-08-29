@@ -14,6 +14,8 @@ export const site = {
       : "http://localhost:4321",
   contactEmail: "",
   cta: "Get a copy",
+  /** Hold the public site to a single coming-soon screen. */
+  comingSoon: true,
   /** Keep false until checkout and license keys exist. No public installers. */
   downloadsOpen: false,
   price: {

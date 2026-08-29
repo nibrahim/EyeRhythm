@@ -58,9 +58,13 @@ This origin never sees card numbers (PCI stays with the payment provider).
 
 ## Iterate
 
+While `comingSoon` is `true` in `src/config.ts`, every page shows a
+single holding screen (no Get a copy, no journal). Set it to `false` and
+redeploy when checkout is ready.
+
 | Want to change | File |
 |---|---|
-| Price, CTA, contact | `src/config.ts` |
+| Coming soon / price, CTA, contact | `src/config.ts` |
 | Colors, type | `src/styles/global.css` |
 | A section | `src/components/*.astro` |
 | Journal | `src/data/journal.ts` and `src/pages/journal/` |
