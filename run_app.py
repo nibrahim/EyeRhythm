@@ -81,6 +81,8 @@ def _bootstrap_frozen() -> None:
             multiprocessing.freeze_support()
         except Exception:
             pass
+        # Downloaded zips mark DLLs as blocked; .NET then cannot load pythonnet.
+        _unblock_windows_binaries()
 
     frozen = bool(getattr(sys, "frozen", False))
     meipass = getattr(sys, "_MEIPASS", None)
@@ -105,10 +107,7 @@ def _bootstrap_frozen() -> None:
     data = _data_dir()
     try:
         data.mkdir(parents=True, exist_ok=True)
-    except Exception:
-        return
-    os.environ.setdefault("WEBVIEW2_USER_DATA_FOLDER", str(data / "webview"))
-    try:
+        os.environ.setdefault("WEBVIEW2_USER_DATA_FOLDER", str(data / "webview"))
         log = open(data / "runtime.log", "a", encoding="utf-8")
         log.write("\n--- EyesRhythm start ---\n")
         log.flush()
@@ -119,12 +118,54 @@ def _bootstrap_frozen() -> None:
         try:
             sink = open(os.devnull, "w")
         except Exception:
-            return
-    if sys.stdout is None:
-        sys.stdout = sink
-    if sys.stderr is None:
-        sys.stderr = sink
+            sink = None
+    if sink is not None:
+        if sys.stdout is None:
+            sys.stdout = sink
+        if sys.stderr is None:
+            sys.stderr = sink
     _load_windows_dotnet()
+
+
+def _unblock_windows_binaries() -> None:
+    """
+    Remove Zone.Identifier from the unpacked exe folder.
+
+    Windows stamps downloaded zips with Mark-of-the-Web. .NET Framework will
+    not resolve ``Python.Runtime.Loader.Initialize`` until that stamp is gone,
+    so the desktop window never opens (browser fallback instead).
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        delete_file = ctypes.windll.kernel32.DeleteFileW
+    except Exception:
+        return
+    roots = []
+    exe = getattr(sys, "executable", "") or ""
+    if exe:
+        roots.append(os.path.dirname(os.path.abspath(exe)))
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        roots.append(str(meipass))
+    seen: set[str] = set()
+    for root in roots:
+        if not root or not os.path.isdir(root):
+            continue
+        key = os.path.normcase(os.path.abspath(root))
+        if key in seen:
+            continue
+        seen.add(key)
+        for dirpath, _dirs, filenames in os.walk(root):
+            for name in filenames:
+                if not name.lower().endswith((".dll", ".exe", ".pyd")):
+                    continue
+                try:
+                    delete_file(os.path.join(dirpath, name) + ":Zone.Identifier")
+                except Exception:
+                    pass
 
 
 def _load_windows_dotnet() -> None:

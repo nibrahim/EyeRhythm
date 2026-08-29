@@ -97,7 +97,9 @@ a = Analysis(
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=[
+        str(Path("for_windows") / "rthook_unblock_dlls.py"),
+    ],
     excludes=[],
     noarchive=False,
     optimize=0,
