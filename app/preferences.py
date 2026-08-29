@@ -34,7 +34,7 @@ VALID_EYE_COMFORT = frozenset(
 
 # Canonical “default GUI”: More + Undock. Dock is exactly 2× this width.
 DEFAULT_WIDTH = 480
-DEFAULT_HEIGHT = 1000
+DEFAULT_HEIGHT = 800
 MIN_WIDTH = 400
 # Floor for any window (compact companion). Expanded layout still prefers more.
 MIN_HEIGHT = 400
@@ -61,7 +61,7 @@ _DEFAULTS: dict[str, Any] = {
     "window_width": DEFAULT_WIDTH,
     "window_height": DEFAULT_HEIGHT,
     "beep": False,
-    "alert": False,
+    "alert": True,
     "ontop": False,
     # Last splash ocular-comfort self-check (empty = never answered).
     "eye_comfort": "",

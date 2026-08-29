@@ -98,8 +98,8 @@ python -m app.main --skip-checks       # skip the startup self-check
 | Q / Esc   | Quit                            |
 | B         | Beep on every blink ON/OFF      |
 | A         | Low-rate alert ON/OFF           |
-| T         | Always-on-top ON/OFF            |
 | D         | More / Less (compact window)    |
+| W         | Settings / Hide settings        |
 
 ---
 

@@ -63,7 +63,7 @@ if not exist frontend\dist\index.html (
 )
 
 echo  Starting EyesRhythm...
-echo  Keys in UI: B beep  ·  A alert  ·  T on-top  ·  C camera
+echo  Keys in UI: B beep  ·  A alert  ·  P practice  ·  D more/less  ·  W settings
 echo.
 python -m app.main %*
 

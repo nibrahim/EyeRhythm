@@ -1,5 +1,5 @@
 /**
- * Reports dock: daily 5-min ORI, weekly bars, monthly daily line.
+ * Reports dock: daily 5-min ORI bars, weekly bars, monthly daily bars.
  * Period is chosen by the user; data comes from ori_history.json.
  */
 

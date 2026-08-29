@@ -5,8 +5,8 @@
  *   1. Title bar with a Live / Connecting light
  *   2. Hero: blinking avatar (or live camera / Trace graph)
  *   3. More / Less — hide extra cards in the compact companion window
- *   4. Six metric cards + the Information & Quote strip
- *   5. Beep / Alert / On top / Practice buttons
+ *   4. Four metric cards + the Information & Quote strip
+ *   5. Beep / Alert / Practice buttons
  *   6. Full-screen Practice overlay when that mode is on
  *
  * Live numbers arrive from the Python engine via a WebSocket
@@ -32,7 +32,7 @@ import { PracticeScreen } from "./components/PracticeScreen";
 import { SplashScreen } from "./components/SplashScreen";
 import { useEngineState } from "./hooks/useEngineState";
 import { useRateHistory } from "./hooks/useRateHistory";
-import { formatBpm, lookAngleTone, oriTone, regularityTone, rateTone } from "./utils/format";
+import { lookAngleTone, oriTone } from "./utils/format";
 
 const AVATARS: AvatarId[] = ["atlas", "lumen", "vesper", "lens", "graph"];
 
@@ -57,7 +57,12 @@ export default function App() {
 
   // Session-wide Trace history: starts at boot, survives avatar switches + minimize.
   const present = state.face_found && !state.off_screen;
-  useRateHistory(state.ocular_rhythm_index, present);
+  useRateHistory(
+    state.ocular_rhythm_index,
+    present,
+    present ? state.continuous_bpm : null,
+    present && state.regularity_ready ? state.regularity : null,
+  );
 
   useEffect(() => {
     // Wait for the desktop window to inject its resize/fullscreen helpers.
@@ -72,7 +77,7 @@ export default function App() {
         const prefs = await fetchPreferences();
         if (!cancelled) {
           setAvatarId(asAvatarId(prefs.avatar));
-          // Every launch is the default GUI: More + Undock.
+          // Every launch is the default GUI: More, settings panel closed.
           setCompact(false);
           setDock(false);
         }
@@ -114,7 +119,7 @@ export default function App() {
       void setDockLayout(true);
       return;
     }
-    // Back to the default GUI (More + default width and height).
+    // Back to the default GUI (More + default width and height, panel closed).
     setDock(false);
     setCompact(false);
     void savePreferences({ compact: false, dock: false }).catch(() => {
@@ -151,7 +156,6 @@ export default function App() {
       const k = e.key.toLowerCase();
       if (k === "b") void setToggle("beep");
       else if (k === "a") void setToggle("alert");
-      else if (k === "t") void setToggle("ontop");
       else if (k === "p") void setToggle("practice");
       else if (k === "d") persistCompact(!compact);
       else if (k === "w") persistDock(!dock);
@@ -164,7 +168,6 @@ export default function App() {
   }, [avatarId, compact, dock, persistAvatar, persistCompact, persistDock, splashOpen]);
 
   // Colour of each card: good / warn / bad / idle based on the live number.
-  const bpmTone = rateTone(state.continuous_bpm, present);
   // “—” means we do not have a number yet (no face, or still warming up).
   const oriValue =
     state.ocular_rhythm_index !== null
@@ -182,18 +185,7 @@ export default function App() {
     present,
     state.ori_threshold,
   );
-  const regTone = regularityTone(state.regularity);
   const lookTone = lookAngleTone(state.face_angle_deg, state.face_found);
-
-  const regValue =
-    state.regularity_ready && state.regularity !== null
-      ? Math.round(state.regularity)
-      : "—";
-  const regSub = state.regularity_ready
-    ? "inter-blink rhythm"
-    : state.regularity_gaps > 0
-      ? `warming up · ${state.regularity_gaps}/2 gaps`
-      : "need a few blinks";
 
   const lookValue =
     state.face_found && state.face_angle_deg !== null
@@ -271,11 +263,11 @@ export default function App() {
             onClick={() => persistDock(!dock)}
             title={
               dock
-                ? "Hide Settings and Reports dock (W)"
-                : "Open Settings and Reports and expand to More (W)"
+                ? "Hide Settings and Reports (W)"
+                : "Open Settings and Reports beside the companion (W)"
             }
           >
-            <span>{dock ? "Undock" : "Dock"}</span>
+            <span>{dock ? "Hide settings" : "Settings"}</span>
             <span className="layout-toggle__chevron" aria-hidden>
               {dock ? "◂" : "▸"}
             </span>
@@ -289,20 +281,12 @@ export default function App() {
           </span>
         </div>
 
-        {/* Six live tiles + the quote card. Hidden while compact. */}
+        {/* Four live tiles + the quote card. Hidden while compact. */}
         <section
           className="metrics-grid"
           aria-label="Blink metrics"
           hidden={compact}
         >
-          <MetricCard
-            title="Continuous rate"
-            value={formatBpm(state.continuous_bpm)}
-            unit="/min"
-            subtitle="last ~60s"
-            tone={bpmTone}
-            palette="sage"
-          />
           <MetricCard
             title="Ocular Rhythm Index"
             value={oriValue}
@@ -324,14 +308,6 @@ export default function App() {
             subtitle="camera pipeline"
             tone="neutral"
             palette="sky"
-          />
-          <MetricCard
-            title="Regularity"
-            value={regValue}
-            unit={state.regularity_ready ? "/100" : undefined}
-            subtitle={regSub}
-            tone={regTone}
-            palette="sun"
           />
           <MetricCard
             title="Look angle"

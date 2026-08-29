@@ -15,26 +15,36 @@ const skinId = `atlasSkin-${Math.random().toString(36).slice(2, 8)}`;
       <div class="mock__brand">
         <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
           <rect x="2" y="2" width="60" height="60" rx="18" fill="#5B9FE0"></rect>
-          <ellipse
-            cx="21.5"
-            cy="32"
-            rx="11"
-            ry="7.5"
+          <path
+            d="M27 33 C29.2 27.6 30.8 27.6 32 32 C33.2 36.4 34.8 36.4 37 33"
             stroke="white"
-            stroke-width="2.4"
-            fill="rgba(255,255,255,0.14)"></ellipse>
-          <circle cx="21.5" cy="32" r="4.2" fill="#E8F2FA"></circle>
-          <circle cx="21.5" cy="32" r="2" fill="#1A2A38"></circle>
-          <ellipse
-            cx="42.5"
-            cy="32"
-            rx="11"
-            ry="7.5"
-            stroke="white"
-            stroke-width="2.4"
-            fill="rgba(255,255,255,0.14)"></ellipse>
-          <circle cx="42.5" cy="32" r="4.2" fill="#E8F2FA"></circle>
-          <circle cx="42.5" cy="32" r="2" fill="#1A2A38"></circle>
+            stroke-width="1.8"
+            stroke-linecap="round"
+            fill="none"></path>
+          <g transform="rotate(-8 17.5 32)">
+            <ellipse
+              cx="17.5"
+              cy="32"
+              rx="8.4"
+              ry="6"
+              stroke="white"
+              stroke-width="2.2"
+              fill="rgba(255,255,255,0.16)"></ellipse>
+            <circle cx="19.2" cy="32" r="3.4" fill="#E8F2FA"></circle>
+            <circle cx="19.6" cy="32" r="1.65" fill="#1A2A38"></circle>
+          </g>
+          <g transform="rotate(8 46.5 32)">
+            <ellipse
+              cx="46.5"
+              cy="32"
+              rx="8.4"
+              ry="6"
+              stroke="white"
+              stroke-width="2.2"
+              fill="rgba(255,255,255,0.16)"></ellipse>
+            <circle cx="44.8" cy="32" r="3.4" fill="#E8F2FA"></circle>
+            <circle cx="44.4" cy="32" r="1.65" fill="#1A2A38"></circle>
+          </g>
         </svg>
         <div>
           <strong>EyesRhythm</strong>
@@ -88,10 +98,6 @@ const skinId = `atlasSkin-${Math.random().toString(36).slice(2, 8)}`;
     </div>
 
     <div class="mock__grid">
-      <article class="m sage">
-        <span>Continuous rate</span>
-        <strong>18 <small>/min</small></strong>
-      </article>
       <article class="m mint">
         <span>Ocular Rhythm Index</span>
         <strong><b data-live-ori>78</b> <small>/100</small></strong>
@@ -100,16 +106,19 @@ const skinId = `atlasSkin-${Math.random().toString(36).slice(2, 8)}`;
         <span>Screen time</span>
         <strong data-live-screen>3h 12m</strong>
       </article>
-      <article class="m sun">
-        <span>Regularity</span>
-        <strong>84 <small>/100</small></strong>
+      <article class="m sky">
+        <span>FPS</span>
+        <strong>30</strong>
+      </article>
+      <article class="m lavender">
+        <span>Look angle</span>
+        <strong>8 <small>°</small></strong>
       </article>
     </div>
 
     <div class="mock__controls">
       <span><i></i> Beep <kbd>B</kbd></span>
       <span class="on"><i></i> Alert <kbd>A</kbd></span>
-      <span class="on"><i></i> On top <kbd>T</kbd></span>
       <span><i></i> Practice <kbd>P</kbd></span>
     </div>
   </div>
@@ -346,6 +355,12 @@ const skinId = `atlasSkin-${Math.random().toString(36).slice(2, 8)}`;
   }
   .sun {
     background: #f0d878;
+  }
+  .sky {
+    background: #b8d8f0;
+  }
+  .lavender {
+    background: #d4c8ea;
   }
 
   .mock__controls {

@@ -170,15 +170,15 @@ History is kept across days in the same file.
 
 ## Settings / Reports dock
 
-**Dock** (or **W**) grows the window sideways. **More / Less** still owns height.
+**Settings** (or **W**) grows the window sideways to show Settings and Reports. **More / Less** still owns height.
 
 * **Settings** — live ORI threshold (Trace red line + Alert), writing angle
   (10–40°, off-screen look-down), turn angle (20–80°, default 50°, off-screen
   left/right), blink close sensitivity. Changes apply immediately and are
   appended to `~/.eyerhythm_blinkcounter/audit.json`.
-* **Reports** — ORI history in `ori_history.json` (5-minute bins). Daily line
-  (24 h), weekly bars (Mon–Sun), monthly daily line. Choose the period in the
-  dock.
+* **Reports** — ORI history in `ori_history.json` (5-minute bins). Daily bars
+  (24 h, 5-min bins), weekly bars (Mon–Sun), monthly daily bars. Choose the
+  period in the panel.
 
 ---
 
@@ -220,8 +220,10 @@ Tunables in `app/engine.py`: `PRACTICE_COUNTDOWN_S`, `PRACTICE_INTERVAL_S`,
 |-----|--------|
 | B | Toggle beep on each counted blink |
 | A | Toggle low-ORI alert (3 min below 50 in last 5 min) |
-| T | Toggle always-on-top (desktop window) |
-| C | Expand / collapse camera panel |
+| P | Practice |
+| D | More / Less |
+| W | Settings / Hide settings |
+| C | Switch Lens camera preview |
 
 ---
 

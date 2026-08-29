@@ -1,6 +1,7 @@
 /**
- * Settings-dock report charts: daily line (5-min), weekly bars, monthly line.
+ * Settings-dock report charts: daily / weekly / monthly ORI bars.
  * Same visual language as Trace (ORI 0–100, red dotted threshold).
+ * Daily and monthly use colours off the app blue so the periods are distinct.
  */
 
 import { useMemo } from "react";
@@ -26,6 +27,12 @@ function screenLabel(s: number): string {
   return rem ? `${h}h ${rem}m` : `${h}h`;
 }
 
+function barClass(kind: ReportPayload["kind"]): string {
+  if (kind === "daily") return "report-chart__bar report-chart__bar--daily";
+  if (kind === "monthly") return "report-chart__bar report-chart__bar--monthly";
+  return "report-chart__bar";
+}
+
 export function ReportChart({ report }: Props) {
   const w = 340;
   const h = 168;
@@ -40,24 +47,8 @@ export function ReportChart({ report }: Props) {
   }, [report]);
 
   const n = Math.max(1, series.length);
-
-  const path = useMemo(() => {
-    if (report.kind === "weekly") return "";
-    const segs: string[] = [];
-    let d = "";
-    series.forEach((p, i) => {
-      const x = PAD.left + (i / Math.max(1, n - 1)) * plotW;
-      if (p.ori == null || !Number.isFinite(p.ori)) {
-        if (d) segs.push(d);
-        d = "";
-        return;
-      }
-      const y = yOf(p.ori, plotH);
-      d += d ? ` L ${x.toFixed(1)} ${y.toFixed(1)}` : `M ${x.toFixed(1)} ${y.toFixed(1)}`;
-    });
-    if (d) segs.push(d);
-    return segs.join(" ");
-  }, [n, plotH, plotW, report.kind, series]);
+  const gap = report.kind === "daily" ? 0.12 : 0.38;
+  const bw = (plotW / n) * (1 - gap);
 
   const xTicks = useMemo(() => {
     if (report.kind === "daily") {
@@ -77,7 +68,7 @@ export function ReportChart({ report }: Props) {
       const day = Number(p.label);
       if (day === 1 || day % 5 === 0) {
         out.push({
-          x: PAD.left + (i / Math.max(1, n - 1)) * plotW,
+          x: PAD.left + ((i + 0.5) / n) * plotW,
           label: String(day),
         });
       }
@@ -111,33 +102,23 @@ export function ReportChart({ report }: Props) {
         >
           {Math.round(threshold)}
         </text>
-        {report.kind === "weekly"
-          ? series.map((p, i) => {
-              if (p.ori == null) return null;
-              const bw = (plotW / n) * 0.62;
-              const x = PAD.left + ((i + 0.5) / n) * plotW - bw / 2;
-              const y = yOf(p.ori, plotH);
-              const bh = PAD.top + plotH - y;
-              return (
-                <rect
-                  key={p.date ?? i}
-                  x={x}
-                  y={y}
-                  width={bw}
-                  height={Math.max(0, bh)}
-                  rx={3}
-                  className="report-chart__bar"
-                />
-              );
-            })
-          : path
-            ? (
-                <path
-                  d={path}
-                  className="rate-graph__line rate-graph__line--rate"
-                />
-              )
-            : null}
+        {series.map((p, i) => {
+          if (p.ori == null) return null;
+          const x = PAD.left + ((i + 0.5) / n) * plotW - bw / 2;
+          const y = yOf(p.ori, plotH);
+          const bh = PAD.top + plotH - y;
+          return (
+            <rect
+              key={p.date ?? p.t ?? i}
+              x={x}
+              y={y}
+              width={bw}
+              height={Math.max(0, bh)}
+              rx={report.kind === "daily" ? 0.6 : 3}
+              className={barClass(report.kind)}
+            />
+          );
+        })}
         <line
           x1={PAD.left}
           y1={PAD.top + plotH}

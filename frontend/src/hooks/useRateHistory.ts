@@ -17,6 +17,8 @@ import {
 export function useRateHistory(
   ori: number | null,
   present: boolean,
+  bpm: number | null = null,
+  regularity: number | null = null,
 ): void {
   // Start the 5-minute ring buffer on first mount; never stop for the session.
   useEffect(() => {
@@ -25,6 +27,6 @@ export function useRateHistory(
 
   // present = face found and not looking down off-screen. Gaps break Trace.
   useEffect(() => {
-    setRateHistoryInput(ori, present);
-  }, [ori, present]);
+    setRateHistoryInput(ori, present, bpm, regularity);
+  }, [ori, present, bpm, regularity]);
 }

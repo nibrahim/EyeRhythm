@@ -15,29 +15,44 @@ const { size = 28 } = Astro.props;
   class="er-logo"
 >
   <rect x="2" y="2" width="60" height="60" rx="18" fill="#5B9FE0"></rect>
-  <ellipse
-    cx="21.5"
-    cy="32"
-    rx="11"
-    ry="7.5"
+  <path
+    d="M27 33 C29.2 27.6 30.8 27.6 32 32 C33.2 36.4 34.8 36.4 37 33"
     stroke="white"
-    stroke-width="2.4"
-    fill="rgba(255,255,255,0.14)"></ellipse>
-  <ellipse
-    cx="42.5"
-    cy="32"
-    rx="11"
-    ry="7.5"
-    stroke="white"
-    stroke-width="2.4"
-    fill="rgba(255,255,255,0.14)"></ellipse>
+    stroke-width="1.8"
+    stroke-linecap="round"
+    fill="none"
+    opacity="0.92"></path>
+  <g transform="rotate(-8 17.5 32)">
+    <ellipse
+      cx="17.5"
+      cy="32"
+      rx="8.4"
+      ry="6"
+      stroke="white"
+      stroke-width="2.2"
+      fill="rgba(255,255,255,0.16)"></ellipse>
+  </g>
+  <g transform="rotate(8 46.5 32)">
+    <ellipse
+      cx="46.5"
+      cy="32"
+      rx="8.4"
+      ry="6"
+      stroke="white"
+      stroke-width="2.2"
+      fill="rgba(255,255,255,0.16)"></ellipse>
+  </g>
   <g class="blink-lid">
-    <circle cx="21.5" cy="32" r="4.2" fill="#E8F2FA"></circle>
-    <circle cx="21.5" cy="32" r="2" fill="#1A2A38"></circle>
-    <circle cx="22.8" cy="30.7" r="0.85" fill="white" opacity="0.9"></circle>
-    <circle cx="42.5" cy="32" r="4.2" fill="#E8F2FA"></circle>
-    <circle cx="42.5" cy="32" r="2" fill="#1A2A38"></circle>
-    <circle cx="43.8" cy="30.7" r="0.85" fill="white" opacity="0.9"></circle>
+    <g transform="rotate(-8 17.5 32)">
+      <circle cx="19.2" cy="32" r="3.4" fill="#E8F2FA"></circle>
+      <circle cx="19.6" cy="32" r="1.65" fill="#1A2A38"></circle>
+      <circle cx="20.4" cy="31.2" r="0.7" fill="white" opacity="0.95"></circle>
+    </g>
+    <g transform="rotate(8 46.5 32)">
+      <circle cx="44.8" cy="32" r="3.4" fill="#E8F2FA"></circle>
+      <circle cx="44.4" cy="32" r="1.65" fill="#1A2A38"></circle>
+      <circle cx="45.2" cy="31.2" r="0.7" fill="white" opacity="0.95"></circle>
+    </g>
   </g>
 </svg>
 

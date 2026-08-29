@@ -233,7 +233,7 @@ export async function fetchReport(params: {
   return res.json();
 }
 
-/** Turn Beep / Alert / On top / Practice on or off (omit value = flip). */
+/** Turn Beep / Alert / Practice on or off (omit value = flip). On top remains in the engine API. */
 export async function setToggle(
   name: ToggleName,
   value?: boolean,

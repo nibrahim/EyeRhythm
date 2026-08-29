@@ -8,7 +8,14 @@
  * Time runs now→−5m (now on the left). The line cuts on no-face / off-screen.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
 import {
   RATE_WINDOW_S,
   capOriForGraph,
@@ -17,6 +24,7 @@ import {
   subscribeRateHistory,
   type RateSample,
 } from "../hooks/rateHistory";
+import { formatBpm } from "../utils/format";
 
 // How far (seconds) each plotted point averages neighbouring samples.
 const AVG_HALF_S = 2.4;
@@ -198,6 +206,13 @@ export function RateGraph({
   const [frame, setFrame] = useState(0);
   const [blinkFlash, setBlinkFlash] = useState(false);
   const prevBlinkAt = useRef(0);
+  const [hover, setHover] = useState<{
+    x: number;
+    y: number | null;
+    bpm: number | null;
+    regularity: number | null;
+    agoS: number;
+  } | null>(null);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -236,6 +251,64 @@ export function RateGraph({
     const id = window.setTimeout(() => setBlinkFlash(false), 420);
     return () => window.clearTimeout(id);
   }, [lastBlinkAt]);
+
+  const plot = useMemo(() => {
+    const { w, h } = size;
+    const plotW = Math.max(1, w - PAD.left - PAD.right);
+    const plotH = Math.max(1, h - PAD.top - PAD.bottom);
+    return { plotW, plotH };
+  }, [size]);
+
+  const clientToPlot = useCallback(
+    (clientX: number, clientY: number) => {
+      const svg = wrapRef.current?.querySelector("svg");
+      if (!svg) return null;
+      const r = svg.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return null;
+      const x = ((clientX - r.left) / r.width) * size.w;
+      const y = ((clientY - r.top) / r.height) * size.h;
+      return { x, y };
+    },
+    [size.w, size.h],
+  );
+
+  const onPlotMove = (event: MouseEvent<SVGRectElement>) => {
+    const pt = clientToPlot(event.clientX, event.clientY);
+    if (!pt) {
+      setHover(null);
+      return;
+    }
+    const { plotW, plotH } = plot;
+    if (
+      pt.x < PAD.left ||
+      pt.x > PAD.left + plotW ||
+      pt.y < PAD.top ||
+      pt.y > PAD.top + plotH
+    ) {
+      setHover(null);
+      return;
+    }
+    const now = performance.now();
+    const uFromLeft = (pt.x - PAD.left) / plotW;
+    const t = now - uFromLeft * RATE_WINDOW_S * 1000;
+    const arr = getRateSamples();
+    const sample = nearestSample(arr, t);
+    const live = isLiveSample(sample);
+    const at = oriAt(arr, t);
+    const v =
+      at === null ? null : (averagedOri(arr, t, AVG_HALF_S * 1000) ?? at);
+    const y =
+      v !== null
+        ? PAD.top + plotH - (capOriForGraph(v) / Y_MAX) * plotH
+        : null;
+    setHover({
+      x: pt.x,
+      y,
+      bpm: live ? sample.bpm : null,
+      regularity: live ? sample.regularity : null,
+      agoS: Math.max(0, (now - t) / 1000),
+    });
+  };
 
   const { pathD, nowOri } = useMemo(() => {
     void frame;
@@ -338,7 +411,7 @@ export function RateGraph({
     <div
       className="rate-graph"
       ref={wrapRef}
-      aria-label="Ocular Rhythm Index, last 5 minutes"
+      aria-label="Ocular Rhythm Index, last 5 minutes. Hover for rate and regularity."
     >
       <div className="rate-graph__chrome" aria-hidden>
         <div className="rate-graph__live rate-graph__live--rate" aria-live="polite">
@@ -442,6 +515,37 @@ export function RateGraph({
           <circle cx={headX} cy={headY} r={3} className="rate-graph__head" />
         ) : null}
 
+        <rect
+          x={PAD.left}
+          y={PAD.top}
+          width={plotW}
+          height={plotH}
+          fill="transparent"
+          className="rate-graph__hit"
+          onMouseMove={onPlotMove}
+          onMouseLeave={() => setHover(null)}
+        />
+
+        {hover ? (
+          <g className="rate-graph__hover" pointerEvents="none">
+            <line
+              x1={hover.x}
+              y1={PAD.top}
+              x2={hover.x}
+              y2={PAD.top + plotH}
+              className="rate-graph__hover-line"
+            />
+            {hover.y !== null ? (
+              <circle
+                cx={hover.x}
+                cy={hover.y}
+                r={4}
+                className="rate-graph__hover-dot"
+              />
+            ) : null}
+          </g>
+        ) : null}
+
         <text
           x={PAD.left}
           y={h - 8}
@@ -466,6 +570,43 @@ export function RateGraph({
           Face the camera to start the trace
         </div>
       )}
+
+      {hover ? (
+        <div
+          className="rate-graph__tip"
+          style={{
+            left: Math.min(
+              Math.max(hover.x + 8, PAD.left),
+              size.w - 128,
+            ),
+            top: PAD.top + 6,
+          }}
+        >
+          <div className="rate-graph__tip-time">
+            {hover.agoS < 5
+              ? "now"
+              : hover.agoS < 60
+                ? `−${Math.round(hover.agoS)}s`
+                : `−${Math.floor(hover.agoS / 60)}m ${Math.round(hover.agoS % 60)}s`}
+          </div>
+          <div>
+            Rate{" "}
+            <strong>
+              {hover.bpm !== null ? formatBpm(hover.bpm) : "—"}
+            </strong>
+            {hover.bpm !== null ? <span> /min</span> : null}
+          </div>
+          <div>
+            Regularity{" "}
+            <strong>
+              {hover.regularity !== null
+                ? Math.round(hover.regularity)
+                : "—"}
+            </strong>
+            {hover.regularity !== null ? <span> /100</span> : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

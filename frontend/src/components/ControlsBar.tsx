@@ -1,9 +1,9 @@
 /**
- * Bottom row of four switches: Beep, Alert, On top, Practice.
+ * Bottom row of three switches: Beep, Alert, Practice.
  *
  * Each chip flashes when something happens (orange on a counted blink,
  * red on a low-ORI alert). Clicking a chip asks the Python engine to
- * flip that flag. Keyboard letters (B / A / T / P) are shown as hints.
+ * flip that flag. Keyboard letters (B / A / P) are shown as hints.
  */
 import { useEffect, useRef, useState } from "react";
 import { setToggle } from "../api";
@@ -95,14 +95,6 @@ export function ControlsBar({ state }: Props) {
         onClick={() => void flip("alert")}
         disabled={busy === "alert"}
         title={`Alert after ORI stays below ${Math.round(state.ori_threshold ?? 50)} for 3 minutes in total over the last 5 minutes`}
-      />
-      <ToggleChip
-        label="On top"
-        hint="T"
-        active={state.ontop}
-        onClick={() => void flip("ontop")}
-        disabled={busy === "ontop"}
-        title="Keep window always on top"
       />
       <ToggleChip
         label="Practice"

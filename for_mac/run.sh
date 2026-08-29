@@ -43,7 +43,7 @@ if [ ! -f frontend/dist/index.html ]; then
 fi
 
 echo "EyesRhythm  ·  $(pwd)"
-echo "Keys in UI: B beep  ·  A alert  ·  T on-top  ·  C camera panel"
+echo "Keys in UI: B beep  ·  A alert  ·  P practice  ·  D more/less  ·  W settings"
 echo
 
 exec python -m app.main "$@"

@@ -18,6 +18,10 @@ export interface RateSample {
   ori: number | null;
   /** False = do not plot this instant. */
   present: boolean;
+  /** Continuous blink rate at this instant (/min); null in a gap. */
+  bpm: number | null;
+  /** Regularity 0–100 at this instant; null if not ready or in a gap. */
+  regularity: number | null;
 }
 
 /** Visible + retained time window (seconds). */
@@ -58,6 +62,8 @@ let smooth = 0;
 let targetOri: number | null = null;
 /** On-screen (face found and not looking down off-screen). */
 let targetPresent = false;
+let targetBpm: number | null = null;
+let targetRegularity: number | null = null;
 /** Filters hold a real ORI — false after a gap until the next live value. */
 let filtersLive = false;
 let lastSampleAt = 0;
@@ -86,7 +92,7 @@ function seedFilters(ori: number): void {
 }
 
 function gapHead(t: number): RateSample {
-  return { t, ori: null, present: false };
+  return { t, ori: null, present: false, bpm: null, regularity: null };
 }
 
 /** Advance filters by one fixed sample step and push a sample. */
@@ -116,6 +122,8 @@ function advanceOneStep(sampleT: number, dtS: number): void {
     t: sampleT,
     ori: smooth,
     present: true,
+    bpm: targetBpm,
+    regularity: targetRegularity,
   });
   lastSampleAt = sampleT;
 }
@@ -152,7 +160,13 @@ function tick(): void {
     if (samples.length > 0) {
       samples[samples.length - 1] =
         targetPresent && targetOri !== null
-          ? { t: now, ori: smooth, present: true }
+          ? {
+              t: now,
+              ori: smooth,
+              present: true,
+              bpm: targetBpm,
+              regularity: targetRegularity,
+            }
           : gapHead(now);
     }
     return;
@@ -172,7 +186,13 @@ function tick(): void {
   if (samples.length > 0) {
     samples[samples.length - 1] =
       targetPresent && targetOri !== null
-        ? { t: now, ori: smooth, present: true }
+        ? {
+            t: now,
+            ori: smooth,
+            present: true,
+            bpm: targetBpm,
+            regularity: targetRegularity,
+          }
         : gapHead(now);
     lastSampleAt = now;
   }
@@ -194,6 +214,8 @@ function tick(): void {
 export function setRateHistoryInput(
   ori: number | null,
   present = true,
+  bpm: number | null = null,
+  regularity: number | null = null,
 ): void {
   const nextPresent = Boolean(present);
   const nextOri =
@@ -201,6 +223,12 @@ export function setRateHistoryInput(
   const dropped = targetPresent && !nextPresent;
   targetPresent = nextPresent;
   targetOri = targetPresent ? nextOri : null;
+  targetBpm =
+    targetPresent && bpm !== null && Number.isFinite(bpm) ? bpm : null;
+  targetRegularity =
+    targetPresent && regularity !== null && Number.isFinite(regularity)
+      ? regularity
+      : null;
   ensureRateHistoryRunning();
   // Cut the trail on this tick — do not wait for the next 80ms sample.
   if (dropped) {
@@ -262,6 +290,8 @@ export function _resetRateHistoryForTests(): void {
   ema1 = ema2 = ema3 = smooth = 0;
   targetOri = null;
   targetPresent = false;
+  targetBpm = null;
+  targetRegularity = null;
   filtersLive = false;
   lastSampleAt = lastNotifyAt = 0;
   listeners.clear();

@@ -876,6 +876,8 @@ class EyeRhythmEngine:
         self._detector: BlinkDetector | None = None
         self._last_blink_at = 0.0
         self._last_alert_beep_at = 0.0
+        # Lens: red eye outlines for 500 ms after a counted blink (not while closed).
+        self._eye_flash_until = 0.0
         self._look_off_screen = False
         # Freeze rate + regularity while looking down / no-face.
         self._rate_present = False
@@ -904,7 +906,7 @@ class EyeRhythmEngine:
         saved = preferences.get_toggles()
         self._states = {
             "beep": bool(saved.get("beep", False)),
-            "alert": bool(saved.get("alert", False)),
+            "alert": bool(saved.get("alert", True)),
             "ontop": bool(saved.get("ontop", False)),
             "practice": False,
         }
@@ -1553,15 +1555,15 @@ class EyeRhythmEngine:
         display_scale: float = 1.0,
     ) -> None:
         """
-        Draw hollow red eye outlines only while eyes are closed (blink).
+        Draw hollow red eye outlines for 500 ms after a counted blink.
 
-        Eyes open / no face → leave the stream raw.
+        Eyes closed without a counted blink, or no face → leave the stream raw.
         Landmarks are normalized (0…1) on the *source* camera frame (same
         geometry as the process frame). ``origin_xy`` / ``src_wh`` map into
         the crop; ``display_scale`` remaps crop pixels after the crop is
         resized to the preview display size.
         """
-        if not res.face_found or not res.eyes_closed:
+        if not res.face_found or time.monotonic() >= self._eye_flash_until:
             return
         fh, fw = frame.shape[:2]
         if src_wh is None:
@@ -1827,6 +1829,9 @@ class EyeRhythmEngine:
                     # During the 10s instruction countdown, skip blink-beeps.
                     if self._states["beep"] and phase != "countdown":
                         self._beeper.beep()
+                    self._eye_flash_until = time.monotonic() + 0.5
+                    # Encode the flash on this frame, not the next preview tick.
+                    self._last_preview_at = 0.0
 
                 # Adaptive FPS only (face 30 / no-face 1 + post-blink rest).
                 # All other business logic above is unchanged.
