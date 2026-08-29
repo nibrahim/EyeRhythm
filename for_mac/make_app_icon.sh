@@ -47,59 +47,25 @@ def render(size: int) -> Image.Image:
         radius=36 * f,
         fill=(91, 159, 224, 255),
     )
-    def eye(cx: float, cy: float, look: float) -> None:
-        rx, ry = 17 * f, 12 * f
-        d.ellipse(
-            [cx - rx, cy - ry, cx + rx, cy + ry],
-            fill=(255, 255, 255, 40),
-        )
-        d.ellipse(
-            [cx - rx, cy - ry, cx + rx, cy + ry],
-            outline=(255, 255, 255, 255),
-            width=max(1, round(4.4 * f)),
-        )
-        ix = cx + look * 3.2 * f
-        r = 7.0 * f
-        d.ellipse([ix - r, cy - r, ix + r, cy + r], fill=(232, 242, 250, 255))
-        r2 = 3.4 * f
-        d.ellipse(
-            [ix - r2, cy - r2, ix + r2, cy + r2],
-            fill=(26, 42, 56, 255),
-        )
-        hx, hy, hr = ix + 1.6 * f, cy - 1.6 * f, 1.5 * f
-        d.ellipse(
-            [hx - hr, hy - hr, hx + hr, hy + hr],
-            fill=(255, 255, 255, 242),
-        )
-
-    def cubic(p0, p1, p2, p3, steps=24):
-        pts = []
-        for i in range(steps + 1):
-            t = i / steps
-            u = 1 - t
-            x = (
-                u * u * u * p0[0]
-                + 3 * u * u * t * p1[0]
-                + 3 * u * t * t * p2[0]
-                + t * t * t * p3[0]
-            )
-            y = (
-                u * u * u * p0[1]
-                + 3 * u * u * t * p1[1]
-                + 3 * u * t * t * p2[1]
-                + t * t * t * p3[1]
-            )
-            pts.append((x * f, y * f))
-        return pts
-
-    wave = cubic((54, 66), (58.5, 54), (61.5, 54), (64, 64))
-    wave += cubic((64, 64), (66.5, 74), (69.5, 74), (74, 66))[1:]
-    wr = max(1.2 * f, 1.6)
-    for x, y in wave:
-        d.ellipse([x - wr, y - wr, x + wr, y + wr], fill=(255, 255, 255, 240))
-
-    eye(34 * f, 64 * f, 1.0)
-    eye(94 * f, 64 * f, -1.0)
+    cx, cy, rx, ry = 64 * f, 64 * f, 40 * f, 25 * f
+    d.ellipse(
+        [cx - rx, cy - ry, cx + rx, cy + ry],
+        fill=(255, 255, 255, 36),
+    )
+    d.ellipse(
+        [cx - rx, cy - ry, cx + rx, cy + ry],
+        outline=(255, 255, 255, 255),
+        width=max(1, round(5 * f)),
+    )
+    r = 14.5 * f
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(232, 242, 250, 255))
+    r2 = 6.2 * f
+    d.ellipse([cx - r2, cy - r2, cx + r2, cy + r2], fill=(26, 42, 56, 255))
+    hx, hy, hr = 68.5 * f, 59.5 * f, 3 * f
+    d.ellipse(
+        [hx - hr, hy - hr, hx + hr, hy + hr],
+        fill=(255, 255, 255, 230),
+    )
     if hi != size:
         im = im.resize((size, size), Image.Resampling.LANCZOS)
     return im

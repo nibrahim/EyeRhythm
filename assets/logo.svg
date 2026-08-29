@@ -1,23 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
   <rect x="4" y="4" width="120" height="120" rx="36" fill="#5B9FE0"/>
-  <path
-    d="M54 66 C58.5 54 61.5 54 64 64 C66.5 74 69.5 74 74 66"
-    stroke="white"
-    stroke-width="3.4"
-    stroke-linecap="round"
-    fill="none"
-    opacity="0.92"
-  />
-  <g transform="rotate(-8 34 64)">
-    <ellipse cx="34" cy="64" rx="17" ry="12" fill="rgba(255,255,255,0.16)" stroke="white" stroke-width="4.4"/>
-    <circle cx="37.2" cy="64" r="7" fill="#E8F2FA"/>
-    <circle cx="37.8" cy="64" r="3.4" fill="#1A2A38"/>
-    <circle cx="39.4" cy="62.4" r="1.5" fill="white" opacity="0.95"/>
-  </g>
-  <g transform="rotate(8 94 64)">
-    <ellipse cx="94" cy="64" rx="17" ry="12" fill="rgba(255,255,255,0.16)" stroke="white" stroke-width="4.4"/>
-    <circle cx="90.8" cy="64" r="7" fill="#E8F2FA"/>
-    <circle cx="90.2" cy="64" r="3.4" fill="#1A2A38"/>
-    <circle cx="91.8" cy="62.4" r="1.5" fill="white" opacity="0.95"/>
-  </g>
+  <ellipse cx="64" cy="64" rx="40" ry="25" stroke="white" stroke-width="5" fill="rgba(255,255,255,0.14)"/>
+  <circle cx="64" cy="64" r="14.5" fill="#E8F2FA"/>
+  <circle cx="64" cy="64" r="6.2" fill="#1A2A38"/>
+  <circle cx="68.5" cy="59.5" r="3" fill="white" opacity="0.9"/>
 </svg>

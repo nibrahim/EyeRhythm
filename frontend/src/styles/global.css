@@ -142,6 +142,11 @@ button {
   margin-bottom: calc(var(--gap) * 0.9);
 }
 
+.er-logo {
+  display: block;
+  flex-shrink: 0;
+}
+
 .topbar__brand {
   display: flex;
   align-items: center;
