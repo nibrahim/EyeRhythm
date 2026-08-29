@@ -5,13 +5,16 @@ Local HTTP + WebSocket API for the React UI
 Serves:
 * Built static frontend (production) or is used with Vite dev proxy
 * GET  /api/health
+* GET  /api/license        — whether this copy must activate
+* POST /api/license/activate — first-run Lemon Squeezy key + machine id
 * GET  /api/state          — one-shot engine snapshot
 * POST /api/toggles/{name} — beep | alert | ontop | practice  body: {"value": bool?}
 * GET  /api/preview        — latest JPEG bytes (when camera panel open)
 * WS   /ws/stats           — live JSON snapshots (~10 Hz)
 * WS   /ws/preview         — live JPEG frames as binary (when client asks)
 
-Everything is localhost-only. No cloud. No analytics.
+The UI talks to localhost only. First-run license activation is the
+Python process calling Lemon Squeezy; blink data is never uploaded.
 """
 
 from __future__ import annotations
@@ -29,6 +32,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app import audit
+from app import license as app_license
 from app import preferences
 
 if TYPE_CHECKING:
@@ -95,6 +99,11 @@ def _load_quotes() -> list[dict[str, str]]:
 
 
 
+class LicenseActivateBody(BaseModel):
+    """JSON body for POST /api/license/activate."""
+    key: str = Field(default="", min_length=0, max_length=256)
+
+
 class ToggleBody(BaseModel):
     """JSON body for POST /api/toggles/{name}. Missing value = flip it."""
     value: bool | None = Field(
@@ -154,6 +163,31 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     def health():
         """“Is the local server alive?” — used by the UI / installers."""
         return {"ok": True, "service": "EyesRhythm"}
+
+    @app.get("/api/license")
+    def get_license():
+        """Whether this copy must activate, and whether it already has."""
+        return app_license.status()
+
+    @app.post("/api/license/activate")
+    def post_license_activate(body: LicenseActivateBody):
+        """
+        First-run activation: send the emailed key to Lemon Squeezy together
+        with this machine’s fingerprint. Later launches stay offline.
+        """
+        try:
+            status = app_license.activate(body.key)
+        except app_license.LicenseNetworkError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except app_license.LicenseError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        # Camera stays off until this copy is activated.
+        if status.get("activated"):
+            try:
+                engine.start()
+            except Exception:
+                pass
+        return status
 
     @app.get("/api/state")
     def state():

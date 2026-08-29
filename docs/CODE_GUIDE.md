@@ -8,12 +8,13 @@ How the project fits together after the React UI rewrite.
 
 1. Opens the **webcam** in the background  
 2. Detects **face + blinks** (MediaPipe)  
-3. Shows a **launch splash** (ocular-comfort self-check + on-device notices),
-   then a **React dashboard** in a compact desktop window  
+3. On packaged first launch, asks for the **Lemon Squeezy license key**
+   (internet once), then shows a **launch splash** (ocular-comfort self-check
+   + notices), then a **React dashboard** in a compact desktop window  
 4. Optionally **beeps** on blinks or when ORI stays below 50 for 3 min in the last 5 min  
 5. Saves **today’s** blink count and face-time to a local JSON file  
 
-Nothing is uploaded. Privacy is by design. Camera preview is collapsed by default.
+Blink data is not uploaded. Privacy is by design. Camera preview is collapsed by default.
 
 ---
 
@@ -50,6 +51,7 @@ Nothing is uploaded. Privacy is by design. Camera preview is collapsed by defaul
 | `app/main.py` | Start engine + HTTP + desktop window |
 | `app/engine.py` | Camera, detector, stats, beeps/alerts |
 | `app/frame_pacer.py` | Adaptive FPS: 30 face / post-blink sleep / 1 no-face |
+| `app/license.py` | Lemon Squeezy activate + local license file |
 | `app/server.py` | Local API for the UI |
 | `app/regularity.py` | Inter-blink CV → score 0–100 |
 | `app/beeper.py` | Sounds |
@@ -182,6 +184,26 @@ History is kept across days in the same file.
 
 ---
 
+## License activation (packaged copies)
+
+Paid Mac/Windows builds require a Lemon Squeezy key on **first launch**
+(internet once). The key plus a hashed machine id are sent to Lemon Squeezy;
+the result is stored in `~/.eyerhythm_blinkcounter/license.json`. Later
+launches stay offline.
+
+Running from source does not ask for a key. Overrides:
+
+* `--require-license` / `EYERHYTHM_REQUIRE_LICENSE=1` — show the gate anyway
+* `--skip-license` / `EYERHYTHM_SKIP_LICENSE=1` — skip even when packaged
+
+The dashboard UI talks only to localhost. Python is the process that calls
+`https://api.lemonsqueezy.com/v1/licenses/activate`. Fill store/variant ids
+in `app/license.py` after the Lemon Squeezy products exist.
+
+UI: `frontend/src/components/LicenseScreen.tsx`.
+
+---
+
 ## Launch splash
 
 On every start, a same-theme overlay covers the dashboard until **Start** or
@@ -245,7 +267,9 @@ Useful flags:
 * `--camera 1` — second webcam  
 * `--browser` — system browser instead of pywebview  
 * `--port 8742` — local API port  
-* `--skip-checks` — skip startup dependency checks  
+* `--skip-checks` — skip startup dependency checks
+* `--require-license` — Lemon Squeezy gate even from source
+* `--skip-license` — skip the license gate  
 
 ---
 
@@ -255,7 +279,7 @@ Useful flags:
 * Daily screen-time / blink persistence  
 * Beep + low-ORI alert behaviour  
 * Camera reconnect after sleep/wake  
-* Offline-only design  
+* Offline after a one-time license activation  
 
 ## What changed
 

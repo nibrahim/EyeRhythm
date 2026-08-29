@@ -45,7 +45,7 @@ export type EyeComfortId = (typeof EYE_COMFORT_OPTIONS)[number]["id"];
 const NOTICES = [
   {
     title: "On-device and private",
-    body: "EyesRhythm is fully offline in normal use. Camera frames and blink metrics are processed on this computer only — nothing is uploaded, and no internet connection is required. Your ocular data stays with you.",
+    body: "After this copy is activated, EyesRhythm is fully offline in normal use. Camera frames and blink metrics are processed on this computer only — nothing is uploaded. First launch needed the internet once so Lemon Squeezy could bind your key to this machine.",
   },
   {
     title: "A wellness companion, not a medical device",

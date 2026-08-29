@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app import license as app_license  # noqa: E402
 from app import preferences  # noqa: E402
 from app.engine import EyeRhythmEngine, MODEL_PATH  # noqa: E402
 from app.server import run_server, UI_DIST  # noqa: E402
@@ -390,7 +391,10 @@ def _open_webview(
     def _boot() -> None:
         # Start the camera only after the native window exists. Otherwise a
         # failed WebView2 init looked like “camera blinks, then nothing”.
+        # Packaged copies also wait until the Lemon Squeezy key is activated.
         if not start_engine:
+            return
+        if app_license.is_required() and not app_license.is_activated():
             return
         try:
             engine.start()
@@ -431,7 +435,21 @@ def main() -> None:
                         help="skip dependency / build checks")
     parser.add_argument("--no-engine", action="store_true",
                         help="UI only (dev; no camera) — not for normal use")
+    parser.add_argument(
+        "--require-license",
+        action="store_true",
+        help="ask for a Lemon Squeezy key even when running from source",
+    )
+    parser.add_argument(
+        "--skip-license",
+        action="store_true",
+        help="skip license activation even in a packaged build",
+    )
     args = parser.parse_args()
+    if args.skip_license:
+        app_license.set_enforcement(False)
+    elif args.require_license:
+        app_license.set_enforcement(True)
 
     if not args.skip_checks:
         issues = _startup_console_checks(args.camera)
@@ -486,10 +504,16 @@ def main() -> None:
         while True:
             time.sleep(0.5)
 
+    def _start_engine_if_licensed() -> None:
+        if args.no_engine:
+            return
+        if app_license.is_required() and not app_license.is_activated():
+            return
+        engine.start()
+
     try:
         if use_browser:
-            if not args.no_engine:
-                engine.start()
+            _start_engine_if_licensed()
             _run_browser()
         else:
             # Normal path: a compact desktop window wrapping the same UI.
@@ -507,8 +531,7 @@ def main() -> None:
                     "WebView2 Runtime, then try again.\n\n"
                     f"({exc})",
                 )
-                if not args.no_engine:
-                    engine.start()
+                _start_engine_if_licensed()
                 _run_browser()
     except KeyboardInterrupt:
         _log("interrupted")

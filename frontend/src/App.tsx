@@ -14,7 +14,8 @@
  * restored from local preferences.
  */
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
-import { fetchPreferences, savePreferences, setToggle } from "./api";
+import { fetchLicense, fetchPreferences, savePreferences, setToggle } from "./api";
+import { LicenseScreen } from "./components/LicenseScreen";
 import {
   measureCompactOuterHeight,
   setCompactLayout,
@@ -54,6 +55,11 @@ export default function App() {
   const [prefsReady, setPrefsReady] = useState(false);
   // Launch splash: comfort check + notices, until Start or 3 minutes.
   const [splashOpen, setSplashOpen] = useState(true);
+  // Packaged copies wait here until the emailed key is activated.
+  const [licenseGate, setLicenseGate] = useState<"pending" | "needed" | "ok">(
+    "pending",
+  );
+  const [licensePlatform, setLicensePlatform] = useState("this computer");
 
   // Session-wide Trace history: starts at boot, survives avatar switches + minimize.
   const present = state.face_found && !state.off_screen;
@@ -67,6 +73,25 @@ export default function App() {
   useEffect(() => {
     // Wait for the desktop window to inject its resize/fullscreen helpers.
     void whenBridgeReady();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const license = await fetchLicense();
+        if (cancelled) return;
+        const needsKey = Boolean(license.required && !license.activated);
+        setLicensePlatform(license.platform_label || "this computer");
+        setLicenseGate(needsKey ? "needed" : "ok");
+      } catch {
+        // If the local API is still coming up, do not trap the user.
+        if (!cancelled) setLicenseGate("ok");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Restore last avatar (and confirm prefs API is up).
@@ -131,7 +156,7 @@ export default function App() {
   // Hug compact content so the gap under the buttons matches the gap
   // between the title bar and the avatar card.
   useLayoutEffect(() => {
-    if (!compact || splashOpen) return;
+    if (!compact || splashOpen || licenseGate !== "ok") return;
     let cancelled = false;
     const id = window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
@@ -144,12 +169,12 @@ export default function App() {
       cancelled = true;
       window.cancelAnimationFrame(id);
     };
-  }, [compact, splashOpen, dock]);
+  }, [compact, splashOpen, dock, licenseGate]);
 
   // Keyboard shortcuts (same letters shown on the bottom buttons).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (splashOpen) return;
+      if (splashOpen || licenseGate !== "ok") return;
       const t = e.target as HTMLElement | null;
       // Do not steal keys while someone is typing in a field.
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
@@ -165,7 +190,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [avatarId, compact, dock, persistAvatar, persistCompact, persistDock, splashOpen]);
+  }, [avatarId, compact, dock, persistAvatar, persistCompact, persistDock, splashOpen, licenseGate]);
 
   // Colour of each card: good / warn / bad / idle based on the live number.
   // “—” means we do not have a number yet (no face, or still warming up).
@@ -339,8 +364,29 @@ export default function App() {
       {/* Full-screen practice: countdown + ball/string visual coach */}
       <PracticeScreen state={state} />
 
-      {splashOpen ? (
+      {licenseGate === "needed" ? (
+        <LicenseScreen
+          platformLabel={licensePlatform}
+          onActivated={() => setLicenseGate("ok")}
+        />
+      ) : null}
+
+      {licenseGate === "ok" && splashOpen ? (
         <SplashScreen onDone={() => setSplashOpen(false)} />
+      ) : null}
+
+      {licenseGate === "pending" ? (
+        <div className="splash" role="status" aria-live="polite">
+          <div className="splash__panel">
+            <header className="splash__head">
+              <Logo size={32} />
+              <div className="splash__brand">
+                <div className="splash__title">EyesRhythm</div>
+                <div className="splash__tag">Checking this copy…</div>
+              </div>
+            </header>
+          </div>
+        </div>
       ) : null}
     </div>
   );

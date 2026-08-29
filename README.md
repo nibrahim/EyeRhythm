@@ -4,9 +4,9 @@
 
 Every day millions of knowledge workers, students and creators spend hours staring at screens. Research from the American Academy of Ophthalmology shows that the spontaneous blink rate drops by **half or more** during computer use. Fewer blinks → dry eyes, fatigue, blurred vision, and the classic symptoms of Computer Vision Syndrome.
 
-EyesRhythm is a lightweight, **completely offline** open-source companion that quietly watches your blink rate through the built-in webcam and gently nudges you back toward a healthy rhythm (~15–20 blinks per minute). No accounts, no cloud, no analytics, no video ever leaves your machine.
+EyesRhythm is a lightweight, **on-device** open-source companion that quietly watches your blink rate through the built-in webcam and gently nudges you back toward a healthy rhythm (~15–20 blinks per minute). No accounts, no cloud, no analytics, no video ever leaves your machine. Packaged copies activate once with a Lemon Squeezy license key (internet required that first launch only).
 
-> **Privacy first.** Once installed, EyesRhythm runs 100 % offline. Nothing is uploaded. Nothing is shared. Local JSON under `~/.eyerhythm_blinkcounter/` holds today’s blink count and screen-time minutes (resets at midnight), plus an optional research log of inter-blink interval stats per screen-time hour.
+> **Privacy first.** After activation, EyesRhythm runs offline. Camera frames are not uploaded. Local JSON under `~/.eyerhythm_blinkcounter/` holds today’s blink count and screen-time minutes (resets at midnight), plus an optional research log of inter-blink interval stats per screen-time hour. The license file in that same folder is the only record of activation.
 
 ---
 

@@ -1,7 +1,9 @@
 /**
  * Site copy and knobs — edit here as you iterate.
- * “Get a copy” is a reservation only. Installers are not on this site
- * until payment and licensing are wired.
+ *
+ * Installers are never hosted here. After you create the two Lemon Squeezy
+ * products (macOS and Windows), paste their checkout URLs below and set
+ * ``comingSoon`` to false.
  */
 export const site = {
   name: "EyesRhythm",
@@ -16,7 +18,7 @@ export const site = {
   cta: "Get a copy",
   /** Hold the public site to a single coming-soon screen. */
   comingSoon: true,
-  /** Keep false until checkout and license keys exist. No public installers. */
+  /** Keep false — installers go out from Lemon Squeezy, not this origin. */
   downloadsOpen: false,
   price: {
     amount: 10,
@@ -25,4 +27,25 @@ export const site = {
     cadence: "one-time",
     updates: "Feature updates included for six months",
   },
+  /**
+   * Lemon Squeezy buy links (Share → Checkout URL) for each OS variant.
+   * Leave empty until the store products exist. Never put both OS files
+   * on one product — a purchase is Mac or Windows, not both.
+   */
+  lemonSqueezy: {
+    checkoutMac: "",
+    checkoutWindows: "",
+  },
 } as const;
+
+export function checkoutUrl(platform: "mac" | "windows"): string {
+  const url =
+    platform === "mac"
+      ? site.lemonSqueezy.checkoutMac
+      : site.lemonSqueezy.checkoutWindows;
+  return /^https:\/\//i.test(url) ? url : "";
+}
+
+export function checkoutReady(): boolean {
+  return Boolean(checkoutUrl("mac") && checkoutUrl("windows"));
+}

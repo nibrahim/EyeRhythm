@@ -1,5 +1,9 @@
 ---
-import { site } from "../config";
+import { site, checkoutReady, checkoutUrl } from "../config";
+
+const macUrl = checkoutUrl("mac");
+const winUrl = checkoutUrl("windows");
+const live = checkoutReady();
 ---
 
 <dialog class="modal" id="purchase-dialog" aria-labelledby="purchase-title">
@@ -7,57 +11,59 @@ import { site } from "../config";
     <div class="modal__head">
       <div>
         <p class="kicker"><span class="kicker__dot"></span>{site.cta}</p>
-        <h2 id="purchase-title">A copy for your desk</h2>
+        <h2 id="purchase-title">Choose one computer</h2>
       </div>
       <button class="modal__close" type="button" data-close-purchase aria-label="Close">
         ×
       </button>
     </div>
     <p class="muted">
-      {site.price.label} one time. Mac and Windows. {site.price.updates}.
-      The app is not available to download yet. This note only keeps your
-      place until checkout and licensing are ready.
+      {site.price.label} one time. Pick macOS or Windows — not both. Lemon
+      Squeezy takes payment, emails a unique license key to the address you
+      give at checkout, and sends that OS’s installer.
     </p>
     <div class="modal__price">
       <strong>{site.price.label}</strong>
-      <span class="muted">one-time</span>
+      <span class="muted">one-time · one OS</span>
     </div>
 
-    <form id="purchase-form" novalidate>
-      <label class="field">
-        <span>Name</span>
-        <input name="name" type="text" autocomplete="name" required />
-      </label>
-      <label class="field">
-        <span>Email</span>
-        <input name="email" type="email" autocomplete="email" required />
-      </label>
-      <label class="field">
-        <span>Computer</span>
-        <select name="platform">
-          <option value="both" selected>Mac and Windows</option>
-          <option value="mac">macOS</option>
-          <option value="windows">Windows</option>
-        </select>
-      </label>
-      <label class="field">
-        <span>Note (optional)</span>
-        <textarea name="note" placeholder="Anything we should know"></textarea>
-      </label>
+    <form id="purchase-form">
+      <p class="os-label">Which copy?</p>
+      <div class="os-picks" role="radiogroup" aria-label="Operating system">
+        <label class="os-pick">
+          <input type="radio" name="platform" value="mac" data-checkout={macUrl} />
+          <span class="os-pick__name">macOS</span>
+          <span class="os-pick__meta">Mac app + license key</span>
+        </label>
+        <label class="os-pick">
+          <input type="radio" name="platform" value="windows" data-checkout={winUrl} />
+          <span class="os-pick__name">Windows</span>
+          <span class="os-pick__meta">Windows app + license key</span>
+        </label>
+      </div>
       <p class="form-error" data-form-error>
-        Please add a name and a valid email.
+        Choose macOS or Windows. A purchase is for one operating system.
       </p>
-      <button class="btn btn--primary" type="submit">{site.cta}</button>
+      {
+        live ? (
+          <button class="btn btn--primary" type="submit" data-checkout-go>
+            Continue to checkout
+          </button>
+        ) : (
+          <button class="btn btn--primary" type="button" disabled>
+            Checkout links not connected yet
+          </button>
+        )
+      }
     </form>
-
-    <div class="success" data-form-success>
-      <h3>Thank you.</h3>
-      <p>
-        Your note is saved in this browser only. Nothing was downloaded, and
-        nothing was sent to a server. When checkout is ready, we will write
-        to this email about the {site.price.label} copy.
-      </p>
-      <p data-mailto-slot></p>
-    </div>
+    {
+      live ? null : (
+        <p class="muted checkout-hint">
+          Paste the Lemon Squeezy checkout URLs into{" "}
+          <code>website/src/config.ts</code>, then set <code>comingSoon</code>{" "}
+          to false.
+        </p>
+      )
+    }
   </div>
 </dialog>

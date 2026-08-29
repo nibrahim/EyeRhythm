@@ -5,8 +5,11 @@
  * The dashboard never talks to the internet. All of these helpers call
  * `http://127.0.0.1:8742` (or whatever port this window was opened on):
  *
- * * REST  — one-shot questions (“save this avatar”, “flip Beep”)
+ * * REST  — one-shot questions (“save this avatar”, “flip Beep”, “activate”)
  * * WebSocket — a live pipe of blink numbers (~10 times a second)
+ *
+ * License activation is forwarded by Python to Lemon Squeezy. Blink data
+ * stays on this machine.
  *
  * If a call fails, the UI stays on its last known values rather than crashing.
  */
@@ -107,6 +110,51 @@ export async function fetchQuotes(): Promise<QuotesPayload> {
   return { ...data, quotes };
 }
 
+
+export interface LicenseStatus {
+  required: boolean;
+  activated: boolean;
+  platform: "mac" | "windows" | "other" | string;
+  platform_label: string;
+  email?: string;
+}
+
+function apiErrorMessage(data: unknown, fallback: string): string {
+  if (data && typeof data === "object" && "detail" in data) {
+    const detail = (data as { detail: unknown }).detail;
+    if (typeof detail === "string" && detail.trim()) return detail;
+    if (Array.isArray(detail) && detail.length > 0) {
+      const first = detail[0];
+      if (first && typeof first === "object" && "msg" in first) {
+        return String((first as { msg: unknown }).msg);
+      }
+    }
+  }
+  return fallback;
+}
+
+/** Whether this copy must activate, and whether it already has. */
+export async function fetchLicense(): Promise<LicenseStatus> {
+  const res = await fetch("/api/license", { cache: "no-store" });
+  if (!res.ok) throw new Error("license status failed");
+  return res.json();
+}
+
+/** First-run: send the emailed key. Needs the internet once. */
+export async function activateLicense(key: string): Promise<LicenseStatus> {
+  const res = await fetch("/api/license/activate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      apiErrorMessage(data, "Could not activate this license key."),
+    );
+  }
+  return data as LicenseStatus;
+}
 
 function wsBase(): string {
   // Same host as the page; use the encrypted `wss` only if the page is https.

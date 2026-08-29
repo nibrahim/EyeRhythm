@@ -1,5 +1,3 @@
-import { site } from "../config";
-
 function onReady(fn: () => void) {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", fn);
@@ -39,21 +37,26 @@ function initPurchase() {
 
   const openers = document.querySelectorAll("[data-open-purchase]");
   const closers = document.querySelectorAll("[data-close-purchase]");
-
   const form = dialog.querySelector<HTMLFormElement>("#purchase-form");
-  const success = dialog.querySelector("[data-form-success]");
   const error = dialog.querySelector("[data-form-error]");
 
+  const selectPlatform = (platform: string) => {
+    const input = dialog.querySelector<HTMLInputElement>(
+      `input[name="platform"][value="${platform}"]`,
+    );
+    if (input) input.checked = true;
+  };
+
   const reset = () => {
-    form?.removeAttribute("style");
     form?.reset();
-    success?.classList.remove("is-on");
     error?.classList.remove("is-on");
   };
 
   openers.forEach((btn) => {
     btn.addEventListener("click", () => {
       reset();
+      const pref = btn.getAttribute("data-open-purchase");
+      if (pref === "mac" || pref === "windows") selectPlatform(pref);
       dialog.showModal();
     });
   });
@@ -67,60 +70,31 @@ function initPurchase() {
   });
 }
 
-function validEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
 function initForm() {
   const form = document.querySelector<HTMLFormElement>("#purchase-form");
   const error = document.querySelector("[data-form-error]");
-  const success = document.querySelector("[data-form-success]");
-  const mailtoSlot = document.querySelector("[data-mailto-slot]");
   if (!form) return;
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    const data = new FormData(form);
-    const name = String(data.get("name") || "").trim();
-    const email = String(data.get("email") || "").trim();
-    const platform = String(data.get("platform") || "both");
-    const note = String(data.get("note") || "").trim();
-
-    if (!name || !validEmail(email)) {
+    const chosen = form.querySelector<HTMLInputElement>(
+      'input[name="platform"]:checked',
+    );
+    const url = chosen?.getAttribute("data-checkout") || "";
+    if (!chosen) {
       error?.classList.add("is-on");
       return;
     }
     error?.classList.remove("is-on");
-
-    const order = {
-      name,
-      email,
-      platform,
-      note,
-      amount: site.price.amount,
-      currency: site.price.currency,
-      createdAt: new Date().toISOString(),
-    };
-
-    try {
-      const key = "eyesrhythm-license-reservations";
-      const prev = JSON.parse(localStorage.getItem(key) || "[]") as unknown[];
-      prev.push(order);
-      localStorage.setItem(key, JSON.stringify(prev));
-    } catch {
-      /* private mode */
+    if (!/^https:\/\//i.test(url)) {
+      error?.classList.add("is-on");
+      if (error) {
+        error.textContent =
+          "Checkout for that OS is not connected yet. Paste the Lemon Squeezy URL in config.ts.";
+      }
+      return;
     }
-
-    form.style.display = "none";
-    success?.classList.add("is-on");
-
-    if (site.contactEmail && mailtoSlot) {
-      const body = encodeURIComponent(
-        `Name: ${name}\nEmail: ${email}\nPlatform: ${platform}\nNote: ${note}\n`,
-      );
-      const subject = encodeURIComponent("EyesRhythm license reservation");
-      mailtoSlot.innerHTML = `<a href="mailto:${site.contactEmail}?subject=${subject}&body=${body}">Email this reservation</a>`;
-    }
+    window.location.assign(url);
   });
 }
 

@@ -1,5 +1,8 @@
 ---
-import { site } from "../config";
+import { site, checkoutUrl } from "../config";
+
+const macUrl = checkoutUrl("mac");
+const winUrl = checkoutUrl("windows");
 ---
 
 <section class="get" id="get">
@@ -7,21 +10,52 @@ import { site } from "../config";
     <p class="kicker"><span class="kicker__dot"></span>A copy for your desk</p>
     <h2 class="display">Keep it nearby. Pay once.</h2>
     <p class="lede">
-      {site.price.label} one time, Mac and Windows. {site.price.updates}.
-      No download yet — leave your name and we will write when checkout is
-      ready.
+      {site.price.label} one time, macOS or Windows — not both.
+      {site.price.updates}. After payment, Lemon Squeezy emails your license
+      key and that OS’s installer. First launch needs the internet once.
     </p>
     <div class="ticket">
       <p class="ticket__price">{site.price.label}</p>
-      <p class="ticket__sub">one-time · Mac and Windows</p>
+      <p class="ticket__sub">one-time · one computer · one OS</p>
       <ul>
-        <li>Yours to run on this computer</li>
-        <li>Feature updates included for six months</li>
-        <li>A small way to thank the person who built it</li>
+        <li>Unique license key, emailed to you</li>
+        <li>Activate on first run, then fully offline</li>
+        <li>{site.price.updates}</li>
       </ul>
-      <button class="btn btn--primary" type="button" data-open-purchase>
-        {site.cta}
-      </button>
+      <div class="os-row">
+        {
+          macUrl ? (
+            <a class="btn btn--primary" href={macUrl} data-download-card="mac">
+              macOS
+            </a>
+          ) : (
+            <button
+              class="btn btn--primary"
+              type="button"
+              data-open-purchase="mac"
+              data-download-card="mac"
+            >
+              macOS
+            </button>
+          )
+        }
+        {
+          winUrl ? (
+            <a class="btn btn--primary" href={winUrl} data-download-card="windows">
+              Windows
+            </a>
+          ) : (
+            <button
+              class="btn btn--primary"
+              type="button"
+              data-open-purchase="windows"
+              data-download-card="windows"
+            >
+              Windows
+            </button>
+          )
+        }
+      </div>
     </div>
   </div>
 </section>
@@ -78,5 +112,21 @@ import { site } from "../config";
     list-style: none;
     display: grid;
     gap: 6px;
+  }
+
+  .os-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .os-row .btn {
+    width: 100%;
+  }
+
+  .os-row [data-download-card].is-likely {
+    box-shadow: 0 0 0 2px rgba(91, 159, 224, 0.45);
   }
 </style>

@@ -1,5 +1,8 @@
 ---
-import { site } from "../config";
+import { site, checkoutUrl } from "../config";
+
+const macUrl = checkoutUrl("mac");
+const winUrl = checkoutUrl("windows");
 ---
 
 <section class="section" id="purchase">
@@ -8,20 +11,16 @@ import { site } from "../config";
       <p class="kicker"><span class="kicker__dot"></span>A license, not a subscription</p>
       <h2 class="display">Pay once. Keep it on your machine.</h2>
       <p class="lede">
-        EyesRhythm is yours to run locally. A personal license covers Mac and
-        Windows, with no account to renew and no cloud seat to lose.
+        EyesRhythm is yours to run locally. Pick macOS or Windows at checkout.
+        Lemon Squeezy emails a unique key; first launch binds it to that
+        computer. After that, nothing phones home.
       </p>
       <ul>
-        <li>Lifetime personal use on your computers</li>
-        <li>macOS and Windows builds included</li>
-        <li>Still fully offline — nothing to activate in the cloud</li>
+        <li>One-time personal use on one computer</li>
+        <li>macOS or Windows — not both from one purchase</li>
+        <li>Internet once, to activate; blink data stays on the machine</li>
         <li>Supports the work of keeping it quiet and private</li>
       </ul>
-      <p class="buy__note">
-        Checkout is not wired yet. You can reserve a license now; we will
-        follow up when payment is live. Your details stay in this browser until
-        then.
-      </p>
     </div>
     <aside class="card ticket">
       <p class="ticket__kicker">Personal license</p>
@@ -29,10 +28,27 @@ import { site } from "../config";
         <strong>{site.price.label}</strong>
         <span>{site.price.cadence}</span>
       </p>
-      <p class="ticket__sub">Both platforms · no subscription</p>
-      <button class="btn btn--primary" type="button" data-open-purchase>
-        {site.cta}
-      </button>
+      <p class="ticket__sub">One OS · no subscription</p>
+      <div class="os-row">
+        {
+          macUrl ? (
+            <a class="btn btn--primary" href={macUrl}>macOS</a>
+          ) : (
+            <button class="btn btn--primary" type="button" data-open-purchase="mac">
+              macOS
+            </button>
+          )
+        }
+        {
+          winUrl ? (
+            <a class="btn btn--primary" href={winUrl}>Windows</a>
+          ) : (
+            <button class="btn btn--primary" type="button" data-open-purchase="windows">
+              Windows
+            </button>
+          )
+        }
+      </div>
     </aside>
   </div>
 </section>
@@ -56,12 +72,6 @@ import { site } from "../config";
     display: grid;
     gap: 8px;
     color: var(--text-soft);
-  }
-
-  .buy__note {
-    font-size: 0.92rem;
-    color: var(--text-soft);
-    max-width: 38rem;
   }
 
   .ticket {
@@ -97,7 +107,14 @@ import { site } from "../config";
     color: var(--text-soft);
   }
 
-  .ticket .btn {
+  .os-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .os-row .btn {
     width: 100%;
   }
 

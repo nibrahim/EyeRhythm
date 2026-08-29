@@ -480,6 +480,62 @@ h3 {
   margin-top: 18px;
 }
 
+.os-label {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.os-picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.os-pick {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 14px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--stroke-strong);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.os-pick input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.os-pick:has(input:checked) {
+  border-color: rgba(91, 159, 224, 0.7);
+  background: #e4eef8;
+  box-shadow: 0 0 0 2px rgba(91, 159, 224, 0.22);
+}
+
+.os-pick__name {
+  font-weight: 650;
+  font-size: 1rem;
+}
+
+.os-pick__meta {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.checkout-hint {
+  margin-top: 12px;
+  font-size: 0.88rem;
+}
+
+.checkout-hint code {
+  font-size: 0.86em;
+}
+
 .field {
   display: grid;
   gap: 6px;
