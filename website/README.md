@@ -48,7 +48,7 @@ Keep the GitHub repo **private**. Do not make a public GitHub Release — that w
 Do not put `.zip` / `.dmg` / `.exe` in `website/public`. CI will fail if you do.
 `downloadsOpen` in `src/config.ts` stays `false` until checkout and license keys exist.
 
-When you are ready to take $10 CAD:
+When you are ready to take $10:
 
 1. Create the product on Lemon Squeezy or Paddle (they take the card).
 2. Point **Get a copy** at that checkout URL (HTTPS redirect).

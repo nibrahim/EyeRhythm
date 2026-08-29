@@ -18,8 +18,8 @@ export const site = {
   downloadsOpen: false,
   price: {
     amount: 10,
-    currency: "CAD",
-    label: "$10 CAD",
+    currency: "USD",
+    label: "$10",
     cadence: "one-time",
     updates: "Feature updates included for six months",
   },

@@ -13,44 +13,31 @@ import DashboardMock from "./DashboardMock.astro";
         <p class="kicker"><span class="kicker__dot"></span>Why it exists</p>
         <h2 class="display">Your eyes work hard for you. Screens make them work worse.</h2>
         <p>
-          During focused computer use, people blink far less often than they do
-          in conversation. That drop is a well-known driver of digital eye
-          strain: dryness, grit, fatigue, and blurred vision.
-        </p>
-        <p>
-          The problem is not that you “forget to care.” Attention narrows, the
-          face stills, and blinking becomes sparse and uneven — and you rarely
-          notice until the eyes already hurt.
+          Focused computer use often cuts blink rate in half. Sparse, uneven
+          blinking is a known driver of digital eye strain — dryness, grit,
+          fatigue, blurred vision — and it is easy not to notice until the eyes
+          already hurt.
         </p>
       </article>
       <article>
         <p class="kicker"><span class="kicker__dot"></span>What rhythm means</p>
         <h2 class="display">Rate and regularity, together.</h2>
         <p>
-          Rate answers how often. Regularity answers how steady. Either one
-          alone is incomplete: enough blinks can still arrive in bursts and
-          droughts, and a perfectly even but very slow pattern still leaves the
-          surface under-refreshed.
-        </p>
-        <p>
-          EyesRhythm folds both into the <strong>Ocular Rhythm Index</strong> —
-          a 0–100 glance for “is my blink cadence supporting me right now?” A
-          healthy desk cadence is often around 15–20 blinks per minute.
+          Rate is how often. Regularity is how steady. Enough blinks can still
+          arrive in bursts and droughts; a slow but even pattern still leaves
+          the surface dry. EyesRhythm folds both into the
+          <strong>Ocular Rhythm Index</strong> (0–100). A healthy desk cadence
+          is often around 15–20 blinks per minute.
         </p>
       </article>
       <article>
         <p class="kicker"><span class="kicker__dot"></span>The companion</p>
         <h2 class="display">It watches, scores, and, if you ask, gently nudges.</h2>
         <p>
-          Live rate, regularity, and ORI on a compact window. Optional alert if
-          ORI stays low for a meaningful stretch — not a single bad second.
-          Optional beep on each counted blink. Practice is a two-minute
-          full-screen coach so the habit is easier to feel, not only to measure.
-        </p>
-        <p>
-          It is a wellness companion, not a medical device. Persistent
-          discomfort or a change in vision belongs with a licensed eye-care
-          professional.
+          ORI on a compact window, with optional alert if it stays low and an
+          optional beep on each blink. Practice is a two-minute coach so the
+          habit is easier to feel. A wellness companion, not a medical device —
+          lasting discomfort belongs with an eye-care professional.
         </p>
       </article>
     </div>
@@ -60,28 +47,29 @@ import DashboardMock from "./DashboardMock.astro";
 <style>
   .story {
     background: var(--band);
-    padding: clamp(48px, 8vw, 96px) 0;
+    padding: clamp(40px, 7vw, 88px) 0;
   }
 
   .story__grid {
     display: grid;
-    gap: 40px;
+    gap: 28px;
   }
 
   .story__pin {
-    display: none;
+    display: grid;
+    justify-items: center;
   }
 
   .story__chapters {
     display: grid;
-    gap: 8px;
+    gap: 4px;
   }
 
   article {
     display: grid;
-    gap: 16px;
+    gap: 12px;
     justify-items: start;
-    padding: 28px 0 48px;
+    padding: 20px 0 28px;
   }
 
   article p {
@@ -95,7 +83,7 @@ import DashboardMock from "./DashboardMock.astro";
   }
 
   .story__caption {
-    margin-top: 16px;
+    margin-top: 14px;
     font-size: 0.86rem;
     color: var(--text-soft);
     text-align: center;
@@ -106,20 +94,18 @@ import DashboardMock from "./DashboardMock.astro";
     .story__grid {
       grid-template-columns: 0.9fr 1.1fr;
       align-items: start;
-      gap: 64px;
+      gap: 56px;
     }
 
     .story__pin {
-      display: grid;
-      justify-items: center;
       position: sticky;
-      top: calc(var(--nav-h) + 36px);
+      top: calc(var(--nav-h) + 28px);
     }
 
     article {
-      min-height: 72vh;
-      align-content: center;
-      padding: 48px 0;
+      min-height: 0;
+      align-content: start;
+      padding: 28px 0 40px;
     }
   }
 </style>

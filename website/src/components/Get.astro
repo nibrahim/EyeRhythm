@@ -7,13 +7,13 @@ import { site } from "../config";
     <p class="kicker"><span class="kicker__dot"></span>A copy for your desk</p>
     <h2 class="display">Keep it nearby. Pay once.</h2>
     <p class="lede">
-      {site.price.label} one time. Mac and Windows. {site.price.updates}.
-      There is no download yet — payment and licensing are still being set
-      up. Leave your name and we will write when a copy can be paid for.
+      {site.price.label} one time, Mac and Windows. {site.price.updates}.
+      No download yet — leave your name and we will write when checkout is
+      ready.
     </p>
     <div class="ticket">
       <p class="ticket__price">{site.price.label}</p>
-      <p class="ticket__sub">CAD · one-time · both platforms</p>
+      <p class="ticket__sub">one-time · Mac and Windows</p>
       <ul>
         <li>Yours to run on this computer</li>
         <li>Feature updates included for six months</li>
@@ -28,7 +28,7 @@ import { site } from "../config";
 
 <style>
   .get {
-    padding: clamp(64px, 9vw, 120px) 0;
+    padding: clamp(48px, 8vw, 88px) 0;
     background: var(--band);
     text-align: center;
   }

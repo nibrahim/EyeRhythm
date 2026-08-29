@@ -55,7 +55,7 @@
   --radius-pill: 980px;
   --wrap: 1120px;
   --gutter: clamp(20px, 4.5vw, 48px);
-  --section: clamp(80px, 11vw, 140px);
+  --section: clamp(56px, 8vw, 112px);
   --nav-h: 56px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   color-scheme: light;
@@ -69,6 +69,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--nav-h) + 10px);
 }
 
 html,
@@ -366,6 +367,12 @@ h3 {
   display: none;
   align-items: center;
   gap: 8px;
+}
+
+.nav__cta .btn {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 0.8rem;
 }
 
 .nav__toggle {
@@ -720,7 +727,8 @@ h3 {
   margin: 0;
   font-size: 0.82rem;
   color: var(--text-soft);
-  max-width: 40rem;
+  max-width: none;
+  width: 100%;
 }
 
 @media (min-width: 800px) {
