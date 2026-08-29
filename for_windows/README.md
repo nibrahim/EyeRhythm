@@ -25,6 +25,9 @@ for_windows/
 1. Produce **`EyesRhythm-Windows.zip`** (see below).
 2. Send that zip (email, Drive, USB).
 3. They unzip it and double-click **`EyesRhythm.exe`**.
+   If Windows opened the dashboard in a browser instead of a window, the zip
+   was treated as downloaded: run **`Unblock-and-run.bat`** once, or
+   right-click the zip → Properties → Unblock before extracting.
 
 ```
 EyesRhythm\

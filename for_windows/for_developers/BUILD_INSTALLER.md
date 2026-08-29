@@ -99,6 +99,7 @@ Crash log if it dies on start:
 | `pyinstaller` not found | `pip install pyinstaller` inside the activated venv |
 | Inno Setup not found | Install from https://jrsoftware.org/isinfo.php and re-run |
 | Missing DLLs / mediapipe errors at runtime | Use `EyeRhythm.spec` (already has `--collect-all mediapipe` / `cv2`) |
+| Opens in the browser, error mentions Python.Runtime.dll | Downloaded zip is blocked. Rebuild includes an unblock hook; or run Unblock-and-run.bat / right-click zip → Properties → Unblock |
 | Blank window / no UI | WebView2 missing — Edge on Windows 10/11 usually provides it; the app falls back to the system browser |
 | Camera fails after install | Normal – Windows asks for permission on first use |
 | Large file size | Expected (MediaPipe + OpenCV) |

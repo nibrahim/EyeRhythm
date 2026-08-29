@@ -503,8 +503,12 @@ def main() -> None:
                     "EyesRhythm",
                     "The EyesRhythm desktop window could not open, so the "
                     "dashboard will open in your browser instead.\n\n"
-                    "For the normal app window, install Microsoft Edge "
-                    "WebView2 Runtime, then try again.\n\n"
+                    "If this copy came from email, WhatsApp, or a download, "
+                    "Windows may have blocked the files. Double-click "
+                    "Unblock-and-run.bat in the same folder as EyesRhythm.exe "
+                    "(or right-click the zip → Properties → Unblock, extract "
+                    "again). Then install Microsoft Edge WebView2 Runtime if "
+                    "Windows still cannot open a window.\n\n"
                     f"({exc})",
                 )
                 if not args.no_engine:
