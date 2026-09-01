@@ -18,7 +18,7 @@ code you already run from source.
 import sys
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 # Dock / taskbar icon: .icns on Mac, .ico on Windows.
 _ICON = Path("assets") / ("EyeRhythm.icns" if sys.platform == "darwin" else "EyeRhythm.ico")
@@ -114,11 +114,21 @@ hiddenimports = [
     'starlette',
     'sniffio',
     'mediapipe',
+    'mediapipe.python',
+    'mediapipe.python.solutions',
+    'mediapipe.python.solutions.drawing_utils',
+    'mediapipe.python.solutions.drawing_styles',
     'mediapipe.tasks',
     'mediapipe.tasks.python',
     'mediapipe.tasks.python.vision',
     'mediapipe.tasks.python.vision.face_landmarker',
+    'matplotlib',
+    'matplotlib.pyplot',
 ]
+# Pull every mediapipe.python / tasks submodule so Windows freezes don't miss
+# ``mediapipe.python`` (Face Landmarker + Image bindings live there).
+hiddenimports += collect_submodules('mediapipe.python')
+hiddenimports += collect_submodules('mediapipe.tasks')
 # MediaPipe + OpenCV ship native libs; slim mediapipe so JAX/SciPy stay out.
 _collect('mediapipe', slim=True)
 _collect('cv2')
