@@ -57,6 +57,29 @@ Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Com
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
+procedure InitializeWizard();
+begin
+  // Hide per-file paths on the Installing page (progress bar stays).
+  WizardForm.FilenameLabel.Visible := False;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = wpInstalling then
+  begin
+    WizardForm.FilenameLabel.Visible := False;
+    // Keep StatusLabel ("Installing...") — only suppress the file list line.
+    WizardForm.StatusLabel.Caption := 'Installing EyesRhythm…';
+  end;
+end;
+
+procedure CurInstallProgressChanged(CurProgress, MaxProgress: Integer);
+begin
+  // Inno refreshes the filename caption on each file — clear it every tick.
+  WizardForm.FilenameLabel.Caption := '';
+  WizardForm.FilenameLabel.Visible := False;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
