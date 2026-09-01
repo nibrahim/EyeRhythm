@@ -68,6 +68,58 @@ def _log_path() -> Path:
     return Path.home() / "EyesRhythm_crash.log"
 
 
+def _windows_add_dll_dirs(*roots: str) -> None:
+    """
+    Python 3.8+ on Windows no longer searches PATH for extension-module DLLs.
+    NumPy 2 / OpenCV ship native libs under ``*.libs`` next to the package —
+    without ``os.add_dll_directory``, ``_multiarray_umath`` fails to load.
+    """
+    if sys.platform != "win32":
+        return
+    add = getattr(os, "add_dll_directory", None)
+    seen: set[str] = set()
+
+    def _add(path: str) -> None:
+        if not path or not os.path.isdir(path):
+            return
+        key = os.path.normcase(os.path.abspath(path))
+        if key in seen:
+            return
+        seen.add(key)
+        if add is not None:
+            try:
+                add(path)
+            except (OSError, ValueError):
+                pass
+
+    for root in roots:
+        if not root or not os.path.isdir(root):
+            continue
+        _add(root)
+        try:
+            for name in os.listdir(root):
+                if name.lower().endswith(".libs") or name.lower() in {
+                    "cv2",
+                    "numpy",
+                    "mediapipe",
+                    "webview",
+                }:
+                    _add(os.path.join(root, name))
+                # Nested: numpy.libs sits beside the numpy package folder.
+                if name.lower() == "numpy.libs" or name.lower().endswith(".libs"):
+                    _add(os.path.join(root, name))
+        except OSError:
+            pass
+        # Explicit well-known locations under PyInstaller _internal.
+        for sub in (
+            "numpy.libs",
+            "cv2",
+            os.path.join("cv2", ".libs"),
+            os.path.join("webview", "lib"),
+        ):
+            _add(os.path.join(root, sub))
+
+
 def _bootstrap_frozen() -> None:
     """
     Windowed Windows freezes have no console: sys.stdout/stderr are None,
@@ -86,13 +138,29 @@ def _bootstrap_frozen() -> None:
 
     frozen = bool(getattr(sys, "frozen", False))
     meipass = getattr(sys, "_MEIPASS", None)
-    if meipass:
-        bits = [str(meipass)]
-        for sub in ("webview/lib", "webview\\lib"):
-            extra = os.path.join(str(meipass), sub)
-            if os.path.isdir(extra):
-                bits.append(extra)
+    exe_dir = ""
+    exe = getattr(sys, "executable", "") or ""
+    if exe:
+        exe_dir = os.path.dirname(os.path.abspath(exe))
+
+    if meipass or exe_dir:
+        bits = []
+        if meipass:
+            bits.append(str(meipass))
+        if exe_dir:
+            bits.append(exe_dir)
+        for root in list(bits):
+            for sub in (
+                "webview/lib",
+                "webview\\lib",
+                "numpy.libs",
+                "cv2",
+            ):
+                extra = os.path.join(root, sub)
+                if os.path.isdir(extra):
+                    bits.append(extra)
         os.environ["PATH"] = os.pathsep.join(bits) + os.pathsep + os.environ.get("PATH", "")
+        _windows_add_dll_dirs(*(bits + ([str(meipass)] if meipass else [])))
 
     if sys.platform == "win32":
         # pywebview uses pythonnet. Default "coreclr" needs a separate .NET

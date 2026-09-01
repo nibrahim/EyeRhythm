@@ -27,12 +27,14 @@ ICON = str(_ICON) if _ICON.is_file() else None
 # MediaPipe's collect_all pulls optional ML stacks (JAX / SciPy) that Face
 # Landmarker never uses. Keep those out so Mac stays near the Windows zip size.
 # Matplotlib must stay: ``import mediapipe`` always loads solutions.drawing_utils.
+# Do not match bare "libscipy_openblas" — NumPy's wheel uses that filename too.
 _BLOAT_TOKENS = (
     "/jaxlib/",
     "/jax/",
+    "\\jax\\",
     "/scipy/",
+    "\\scipy\\",
     "jaxlib",
-    "libscipy_openblas64_",  # scipy wheel only; keep numpy's openblas dylibs
 )
 _BLOAT_IMPORTS = frozenset(
     {
@@ -51,6 +53,10 @@ _BLOAT_IMPORTS = frozenset(
 
 def _is_bloat_path(path: str) -> bool:
     lowered = path.replace("\\", "/").lower()
+    # Never strip NumPy's own OpenBLAS (lives under numpy.libs; filename still
+    # contains libscipy_openblas — that name is historical, not the scipy package).
+    if "/numpy.libs/" in lowered or "\\numpy.libs\\" in path.replace("/", "\\").lower():
+        return False
     return any(token.lower() in lowered for token in _BLOAT_TOKENS)
 
 
