@@ -24,13 +24,57 @@ from PyInstaller.utils.hooks import collect_all
 _ICON = Path("assets") / ("EyeRhythm.icns" if sys.platform == "darwin" else "EyeRhythm.ico")
 ICON = str(_ICON) if _ICON.is_file() else None
 
+# MediaPipe's collect_all pulls optional ML stacks (JAX / SciPy) that Face
+# Landmarker never uses. Keep those out so Mac stays near the Windows zip size.
+# Matplotlib must stay: ``import mediapipe`` always loads solutions.drawing_utils.
+_BLOAT_TOKENS = (
+    "/jaxlib/",
+    "/jax/",
+    "/scipy/",
+    "jaxlib",
+    "libscipy_openblas64_",  # scipy wheel only; keep numpy's openblas dylibs
+)
+_BLOAT_IMPORTS = frozenset(
+    {
+        "jax",
+        "jaxlib",
+        "scipy",
+        "tensorboard",
+        "tensorflow",
+        "torch",
+        "sklearn",
+        "IPython",
+        "notebook",
+    }
+)
 
-def _collect(package: str) -> None:
+
+def _is_bloat_path(path: str) -> bool:
+    lowered = path.replace("\\", "/").lower()
+    return any(token.lower() in lowered for token in _BLOAT_TOKENS)
+
+
+def _filter_bloat(items):
+    kept = []
+    for item in items:
+        parts = [str(p) for p in item[:2]]
+        if any(_is_bloat_path(p) for p in parts):
+            continue
+        kept.append(item)
+    return kept
+
+
+def _collect(package: str, *, slim: bool = False) -> None:
     """Pull data files, native libs, and hidden imports for a package."""
     tmp_ret = collect_all(package)
-    datas.extend(tmp_ret[0])
-    binaries.extend(tmp_ret[1])
-    hiddenimports.extend(tmp_ret[2])
+    pkg_datas, pkg_binaries, pkg_hidden = tmp_ret
+    if slim:
+        pkg_datas = _filter_bloat(pkg_datas)
+        pkg_binaries = _filter_bloat(pkg_binaries)
+        pkg_hidden = [name for name in pkg_hidden if name.split(".", 1)[0] not in _BLOAT_IMPORTS]
+    datas.extend(pkg_datas)
+    binaries.extend(pkg_binaries)
+    hiddenimports.extend(pkg_hidden)
 
 
 # Extra files copied next to the frozen binary (not discovered from imports).
@@ -63,9 +107,14 @@ hiddenimports = [
     'anyio._backends._asyncio',
     'starlette',
     'sniffio',
+    'mediapipe',
+    'mediapipe.tasks',
+    'mediapipe.tasks.python',
+    'mediapipe.tasks.python.vision',
+    'mediapipe.tasks.python.vision.face_landmarker',
 ]
-# MediaPipe and OpenCV ship many .so/.dll files; collect_all grabs them all.
-_collect('mediapipe')
+# MediaPipe + OpenCV ship native libs; slim mediapipe so JAX/SciPy stay out.
+_collect('mediapipe', slim=True)
 _collect('cv2')
 
 # Windows desktop window is Edge WebView2 via pywebview. Those backends are
@@ -100,10 +149,12 @@ a = Analysis(
     runtime_hooks=[
         str(Path("for_windows") / "rthook_unblock_dlls.py"),
     ],
-    excludes=[],
+    excludes=sorted(_BLOAT_IMPORTS),
     noarchive=False,
     optimize=0,
 )
+a.binaries = _filter_bloat(a.binaries)
+a.datas = _filter_bloat(a.datas)
 pyz = PYZ(a.pure)
 
 # The actual executable (no console window — this is a desktop app).

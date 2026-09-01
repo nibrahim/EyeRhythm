@@ -45,7 +45,7 @@ export type EyeComfortId = (typeof EYE_COMFORT_OPTIONS)[number]["id"];
 const NOTICES = [
   {
     title: "On-device and private",
-    body: "After this copy is activated, EyesRhythm is fully offline in normal use. Camera frames and blink metrics are processed on this computer only — nothing is uploaded. First launch needed the internet once so Lemon Squeezy could bind your key to this machine.",
+    body: "After this copy is activated, EyesRhythm is fully offline in normal use. Camera frames and blink metrics are processed on this computer only — nothing is uploaded. First launch needed the internet once so Dodo Payments could bind your key to this machine.",
   },
   {
     title: "A wellness companion, not a medical device",
@@ -53,7 +53,7 @@ const NOTICES = [
   },
   {
     title: "Ocular Rhythm Index (ORI)",
-    body: "ORI combines blink rate and inter-blink regularity into a 0–100 score of blink cadence during screen use. Reduced blink frequency and incomplete blinking are associated with tear-film instability and digital eye strain. With Alert on, an audible cue can sound if ORI stays below 50 for 3 minutes in the last 5, prompting a healthier blink rhythm.",
+    body: "ORI combines blink rate and inter-blink regularity into a 0–100 score of blink cadence during screen use. Reduced blink frequency and incomplete blinking are associated with tear-film instability and digital eye strain. With Alert on, an audible cue can sound if ORI stays below the threshold (default 50) for the duration you set in Settings (default 3 minutes in the last 5), prompting a healthier blink rhythm.",
   },
 ] as const;
 

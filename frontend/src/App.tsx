@@ -240,7 +240,9 @@ export default function App() {
         <div className="topbar__status">
           <span
             className={`status-dot ${
-              connected && state.camera_ok
+              connected &&
+              state.camera_ok &&
+              (state.camera_message === "live" || !state.camera_message)
                 ? "ok"
                 : connected
                   ? "warn"
@@ -250,7 +252,8 @@ export default function App() {
           <span className="status-text">
             {!connected
               ? "Connecting…"
-              : state.camera_ok
+              : state.camera_ok &&
+                  (state.camera_message === "live" || !state.camera_message)
                 ? "Live"
                 : state.camera_message || "Camera"}
           </span>
@@ -350,12 +353,19 @@ export default function App() {
             practicePhase={state.practice_phase ?? "off"}
             countdownS={state.practice_countdown_s ?? 0}
             remainingS={state.practice_remaining_s ?? 0}
+            oriThreshold={state.ori_threshold ?? 50}
+            alertLowMinutes={state.alert_low_minutes ?? 3}
           />
         </section>
       </main>
 
       <div className="shell-footer">
         <ControlsBar state={state} />
+        <p className="footer-disclaimer">
+          <strong>For general wellness use only.</strong> EyesRhythm is not a
+          medical device and does not diagnose, treat, cure, or prevent disease —
+          full disclaimer in Settings → About.
+        </p>
       </div>
       </div>
 

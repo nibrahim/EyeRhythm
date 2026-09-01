@@ -6,16 +6,17 @@
  */
 
 import { useState } from "react";
+import { AboutPanel } from "./AboutPanel";
 import { ReportsPanel } from "./ReportsPanel";
 import { SettingsPanel } from "./SettingsPanel";
 
-type Tab = "settings" | "reports";
+type Tab = "settings" | "reports" | "about";
 
 export function DockPanel() {
   const [tab, setTab] = useState<Tab>("settings");
 
   return (
-    <aside className="dock" aria-label="Settings and reports">
+    <aside className="dock" aria-label="Settings, reports, and about">
       <div className="dock__tabs" role="tablist">
         <button
           type="button"
@@ -35,9 +36,24 @@ export function DockPanel() {
         >
           Reports
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "about"}
+          className={`dock__tab${tab === "about" ? " is-active" : ""}`}
+          onClick={() => setTab("about")}
+        >
+          About
+        </button>
       </div>
       <div className="dock__body">
-        {tab === "settings" ? <SettingsPanel /> : <ReportsPanel />}
+        {tab === "settings" ? (
+          <SettingsPanel />
+        ) : tab === "reports" ? (
+          <ReportsPanel />
+        ) : (
+          <AboutPanel />
+        )}
       </div>
     </aside>
   );

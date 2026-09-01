@@ -6,7 +6,7 @@ Serves:
 * Built static frontend (production) or is used with Vite dev proxy
 * GET  /api/health
 * GET  /api/license        — whether this copy must activate
-* POST /api/license/activate — first-run Lemon Squeezy key + machine id
+* POST /api/license/activate — first-run Dodo Payments key + machine id
 * GET  /api/state          — one-shot engine snapshot
 * POST /api/toggles/{name} — beep | alert | ontop | practice  body: {"value": bool?}
 * GET  /api/preview        — latest JPEG bytes (when camera panel open)
@@ -14,7 +14,7 @@ Serves:
 * WS   /ws/preview         — live JPEG frames as binary (when client asks)
 
 The UI talks to localhost only. First-run license activation is the
-Python process calling Lemon Squeezy; blink data is never uploaded.
+Python process calling Dodo Payments; blink data is never uploaded.
 """
 
 from __future__ import annotations
@@ -124,6 +124,7 @@ class PreferencesPatch(BaseModel):
     eye_comfort: str | None = None
     dock: bool | None = None
     ori_threshold: float | None = None
+    alert_low_minutes: float | None = None
     writing_angle_deg: float | None = None
     turn_angle_deg: float | None = None
     close_delta: float | None = None
@@ -133,6 +134,7 @@ class PreferencesPatch(BaseModel):
 class SettingsPatch(BaseModel):
     """Live Settings-dock knobs. Any subset is applied immediately."""
     ori_threshold: float | None = None
+    alert_low_minutes: float | None = None
     writing_angle_deg: float | None = None
     turn_angle_deg: float | None = None
     close_delta: float | None = None
@@ -172,7 +174,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     @app.post("/api/license/activate")
     def post_license_activate(body: LicenseActivateBody):
         """
-        First-run activation: send the emailed key to Lemon Squeezy together
+        First-run activation: send the emailed key to Dodo Payments together
         with this machine’s fingerprint. Later launches stay offline.
         """
         try:
@@ -244,6 +246,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
             k: patch.pop(k)
             for k in (
                 "ori_threshold",
+                "alert_low_minutes",
                 "writing_angle_deg",
                 "turn_angle_deg",
                 "close_delta",

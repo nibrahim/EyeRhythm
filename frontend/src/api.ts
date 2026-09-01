@@ -8,7 +8,7 @@
  * * REST  — one-shot questions (“save this avatar”, “flip Beep”, “activate”)
  * * WebSocket — a live pipe of blink numbers (~10 times a second)
  *
- * License activation is forwarded by Python to Lemon Squeezy. Blink data
+ * License activation is forwarded by Python to Dodo Payments. Blink data
  * stays on this machine.
  *
  * If a call fails, the UI stays on its last known values rather than crashing.
@@ -28,6 +28,7 @@ export interface Preferences {
   eye_comfort?: string;
   dock?: boolean;
   ori_threshold?: number;
+  alert_low_minutes?: number;
   writing_angle_deg?: number;
   turn_angle_deg?: number;
   close_delta?: number;
@@ -35,6 +36,7 @@ export interface Preferences {
 
 export interface LiveSettings {
   ori_threshold: number;
+  alert_low_minutes: number;
   writing_angle_deg: number;
   turn_angle_deg: number;
   close_delta: number;

@@ -6,6 +6,8 @@ interface Props {
   practicePhase: string;
   countdownS: number;
   remainingS: number;
+  oriThreshold?: number;
+  alertLowMinutes?: number;
 }
 
 // Used if quotes.json cannot be loaded (offline / first-run edge case).
@@ -63,6 +65,8 @@ export function InfoQuoteCard({
   practicePhase,
   countdownS,
   remainingS,
+  oriThreshold = 50,
+  alertLowMinutes = 3,
 }: Props) {
   const [quotes, setQuotes] = useState<QuoteItem[]>(FALLBACK);
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -152,7 +156,7 @@ export function InfoQuoteCard({
             <strong>Beep</strong> — sound on each blink
           </li>
           <li>
-            <strong>Alert</strong> — warn if ORI stays below 50 for 3 min in the last 5
+            <strong>Alert</strong> — warn if ORI stays below {Math.round(oriThreshold)} for {Math.round(alertLowMinutes)} min in the last 5
           </li>
           <li>
             <strong>Practice</strong> — 2‑min blink coach

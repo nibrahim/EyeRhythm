@@ -42,6 +42,10 @@ echo "Installing PyInstaller if needed..."
 python3 -m pip install -q pyinstaller
 
 echo
+echo "Tip: if the .app is still huge, remove unused ML extras from the venv:"
+echo "  pip uninstall -y jax jaxlib scipy matplotlib"
+echo "  (keep opencv-contrib-python — MediaPipe requires it)"
+echo
 echo "Building EyesRhythm (this can take a few minutes)..."
 # Prefer the checked-in spec so macOS privacy keys (camera) are baked in.
 # Fall back to the equivalent CLI if the spec is missing.
@@ -113,6 +117,9 @@ if [ -d "dist/EyesRhythm.app" ]; then
     stamp_macos_camera_usage "$ROOT/dist/EyesRhythm.app"
     echo "SUCCESS:  dist/EyesRhythm.app"
     echo "First open: right-click → Open, then Allow the camera."
+    echo
+    echo "Drag-to-Applications installer:"
+    echo "  ./for_mac/make_dmg.sh   →  dist/EyesRhythm.dmg"
 elif [ -f "dist/EyesRhythm/EyesRhythm" ]; then
     echo "SUCCESS:  dist/EyesRhythm/EyesRhythm"
 else

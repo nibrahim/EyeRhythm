@@ -1,5 +1,5 @@
 /**
- * First-run license gate: paste the Lemon Squeezy key from the purchase email.
+ * First-run license gate: paste the Dodo Payments key from the purchase email.
  *
  * Packaged Mac/Windows copies require this once, with the internet.
  * Later launches read a local file and stay offline.
@@ -41,7 +41,7 @@ export function LicenseScreen({ platformLabel, onActivated }: Props) {
         onActivated();
         return;
       }
-      setError("Lemon Squeezy did not activate this key.");
+      setError("Checkout did not activate this key.");
     } catch (err) {
       setError(
         err instanceof Error
@@ -74,7 +74,7 @@ export function LicenseScreen({ platformLabel, onActivated }: Props) {
         <div className="splash__body">
           <h2 className="splash__question">Paste your license key</h2>
           <p className="splash__lead">
-            It is in the email Lemon Squeezy sent after you paid. This{" "}
+            It is in the email Dodo Payments sent after you paid. This{" "}
             {platformLabel} computer needs the internet once. After that,
             EyesRhythm stays on this machine.
           </p>
@@ -128,7 +128,7 @@ export function LicenseScreen({ platformLabel, onActivated }: Props) {
                 <div className="splash__note-title">Then you are offline</div>
                 <p className="splash__note-body">
                   Camera frames and blink metrics never leave this computer.
-                  Activation only tells Lemon Squeezy that this machine may
+                  Activation only tells Dodo Payments that this machine may
                   run your copy.
                 </p>
               </div>
@@ -138,7 +138,7 @@ export function LicenseScreen({ platformLabel, onActivated }: Props) {
 
         <footer className="splash__foot">
           <span className="splash__hint">
-            {busy ? "Talking to Lemon Squeezy…" : "Needs the internet this once"}
+            {busy ? "Talking to checkout…" : "Needs the internet this once"}
           </span>
           <button
             type="button"

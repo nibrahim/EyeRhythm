@@ -1,5 +1,5 @@
 /**
- * Live Settings dock: ORI threshold, writing angle, blink sensitivity.
+ * Live Settings dock: ORI threshold, alert duration, writing angle, blink sensitivity.
  * Changes apply immediately; each committed change is written to audit.json.
  */
 
@@ -14,6 +14,7 @@ import {
 
 const DEFAULTS: LiveSettings = {
   ori_threshold: 50,
+  alert_low_minutes: 3,
   writing_angle_deg: 20,
   turn_angle_deg: 50,
   close_delta: 0.18,
@@ -24,6 +25,8 @@ export function SettingsPanel() {
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const timerRef = useRef<number | null>(null);
   const pendingRef = useRef<Partial<LiveSettings>>({});
+
+  const [restoring, setRestoring] = useState(false);
 
   const reloadAudit = useCallback(() => {
     void fetchAudit(8)
@@ -75,8 +78,39 @@ export function SettingsPanel() {
     commit({ [key]: raw });
   };
 
+  const restoreDefaults = () => {
+    if (restoring) return;
+    if (timerRef.current != null) window.clearTimeout(timerRef.current);
+    pendingRef.current = {};
+    setRestoring(true);
+    setValues(DEFAULTS);
+    void saveSettings({ ...DEFAULTS })
+      .then((s) => {
+        setValues({ ...DEFAULTS, ...s });
+        reloadAudit();
+      })
+      .catch(() => {
+        /* engine restarting */
+      })
+      .finally(() => setRestoring(false));
+  };
+
   return (
     <div className="settings">
+      <div className="settings__intro">
+        <p className="settings__help">
+          Default settings can be changed to suit your convenience and your
+          experience with the app.
+        </p>
+        <button
+          type="button"
+          className="settings__restore"
+          disabled={restoring}
+          onClick={restoreDefaults}
+        >
+          {restoring ? "Restoring…" : "Restore defaults"}
+        </button>
+      </div>
       <label className="settings__field">
         <div className="settings__row">
           <span className="settings__name">ORI threshold</span>
@@ -91,9 +125,30 @@ export function SettingsPanel() {
           onChange={(e) => setNum("ori_threshold", Number(e.target.value))}
         />
         <p className="settings__help">
-          Low-ORI line for Alert and Trace (default 50). Alert beeps after ORI
-          stays below this for 3 minutes in the last 5. The red dotted Trace
+          Low-ORI line for Alert and Trace (default 50). The red dotted Trace
           line moves with this value.
+        </p>
+      </label>
+
+      <label className="settings__field">
+        <div className="settings__row">
+          <span className="settings__name">Alert duration</span>
+          <span className="settings__value">
+            {Math.round(values.alert_low_minutes)} min
+          </span>
+        </div>
+        <input
+          type="range"
+          min={1}
+          max={5}
+          step={1}
+          value={values.alert_low_minutes}
+          onChange={(e) => setNum("alert_low_minutes", Number(e.target.value))}
+        />
+        <p className="settings__help">
+          How long ORI must stay below the threshold, in total, during the last
+          5 minutes before Alert beeps (default 3). The 5-minute window does not
+          change. 1 is sooner; 5 waits for almost the whole Trace window.
         </p>
       </label>
 

@@ -2,7 +2,3 @@
 /download  /  302
 /downloads  /  302
 /downloads/*  /  302
-# Hold public pages until checkout is ready (comingSoon in src/config.ts).
-/journal  /  302
-/journal/*  /  302
-/privacy  /  302

@@ -1,5 +1,5 @@
 # Cloudflare Pages headers — HTTPS, cache, and a tight first-party CSP.
-# Checkout will live on Lemon Squeezy / Paddle (redirect), not on this origin.
+# Checkout lives on Dodo Payments (redirect), not on this origin.
 # When you add an embedded checkout, extend script-src / frame-src / connect-src
 # to that provider only — never 'unsafe-eval', never a wildcard for all HTTPS.
 

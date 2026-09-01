@@ -391,7 +391,7 @@ def _open_webview(
     def _boot() -> None:
         # Start the camera only after the native window exists. Otherwise a
         # failed WebView2 init looked like “camera blinks, then nothing”.
-        # Packaged copies also wait until the Lemon Squeezy key is activated.
+        # Packaged copies also wait until the Dodo Payments key is activated.
         if not start_engine:
             return
         if app_license.is_required() and not app_license.is_activated():
@@ -438,7 +438,7 @@ def main() -> None:
     parser.add_argument(
         "--require-license",
         action="store_true",
-        help="ask for a Lemon Squeezy key even when running from source",
+        help="ask for a Dodo Payments key even when running from source",
     )
     parser.add_argument(
         "--skip-license",

@@ -218,13 +218,35 @@ button {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
   width: 100%;
   margin-top: calc(var(--gap) * 0.75);
   padding-top: 2px;
   padding-bottom: 2px;
   pointer-events: auto;
+}
+
+.footer-disclaimer {
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  padding: 0;
+  font-size: 0.68em;
+  line-height: 1.45;
+  color: var(--text-soft);
+  text-align: left;
+}
+
+.footer-disclaimer strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.app-shell.is-compact .footer-disclaimer {
+  font-size: 0.64em;
+  line-height: 1.4;
 }
 
 /* ---- hero (big avatar / Lens / Trace card) ------------------------------ */
@@ -1911,7 +1933,7 @@ button {
 .dock__tabs {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0;
   border-bottom: 1px solid var(--stroke);
   background: #f2f6fa;
@@ -1946,10 +1968,79 @@ button {
 }
 
 .settings,
-.reports {
+.reports,
+.about {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.about__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.78em;
+  line-height: 1.5;
+}
+
+.about__table th,
+.about__table td {
+  padding: 8px 10px;
+  border: 1px solid var(--stroke);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+}
+
+.about__table th {
+  width: 30%;
+  background: #f2f6fa;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.about__table td {
+  color: var(--text-soft);
+}
+
+.about__table a {
+  color: var(--blue-deep);
+  text-decoration: underline;
+}
+
+.settings__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.settings__intro .settings__help {
+  margin: 0;
+}
+
+.settings__restore {
+  appearance: none;
+  border: 1px solid var(--stroke);
+  background: #fff;
+  color: var(--blue-deep);
+  font: inherit;
+  font-size: 0.72em;
+  font-weight: 650;
+  padding: 5px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.settings__restore:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.settings__restore:not(:disabled):hover {
+  border-color: var(--blue);
 }
 
 .settings__field {

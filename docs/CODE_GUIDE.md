@@ -8,10 +8,10 @@ How the project fits together after the React UI rewrite.
 
 1. Opens the **webcam** in the background  
 2. Detects **face + blinks** (MediaPipe)  
-3. On packaged first launch, asks for the **Lemon Squeezy license key**
+3. On packaged first launch, asks for the **Dodo Payments license key**
    (internet once), then shows a **launch splash** (ocular-comfort self-check
    + notices), then a **React dashboard** in a compact desktop window  
-4. Optionally **beeps** on blinks or when ORI stays below 50 for 3 min in the last 5 min  
+4. Optionally **beeps** on blinks or when ORI stays below the threshold for the Alert duration (default 3 min in the last 5 min)  
 5. Saves **today’s** blink count and face-time to a local JSON file  
 
 Blink data is not uploaded. Privacy is by design. Camera preview is collapsed by default.
@@ -50,8 +50,9 @@ Blink data is not uploaded. Privacy is by design. Camera preview is collapsed by
 |------|------|
 | `app/main.py` | Start engine + HTTP + desktop window |
 | `app/engine.py` | Camera, detector, stats, beeps/alerts |
+| `app/camera_idle.py` | Battery: 1 min no-face → camera off; peek every 2 min; 30 s confirm |
 | `app/frame_pacer.py` | Adaptive FPS: 30 face / post-blink sleep / 1 no-face |
-| `app/license.py` | Lemon Squeezy activate + local license file |
+| `app/license.py` | Dodo Payments activate + local license file |
 | `app/server.py` | Local API for the UI |
 | `app/regularity.py` | Inter-blink CV → score 0–100 |
 | `app/beeper.py` | Sounds |
@@ -80,6 +81,17 @@ Optional camera panel: engine encodes low-res JPEG only while the panel is open.
 
 ---
 
+## Camera battery idle
+
+1 fps with no face still leaves the webcam open. After **60 s** with no
+MediaPipe face, the engine **releases** the camera. Every **2 minutes** it
+reopens for a peek: if nobody appears within a few seconds, it parks again;
+if a face stays for **30 s** (1 s blink grace), live tracking resumes.
+Practice or Lens wakes the camera immediately (no 30 s wait). Peeks do not
+count blinks or screen time.
+
+---
+
 ## Regularity score
 
 ```
@@ -95,9 +107,10 @@ Needs a few recent blinks before the UI shows a number.
 
 Composite 0–100 = 70 % rate score + 30 % regularity. Trace plots this
 single series (not rate and regularity as separate lines). Alert beeps
-when ORI has been below **50** for **3 minutes in total** out of the last
-**5 minutes** (the Trace window). Beeps stop the instant current ORI
-reaches 50.
+when ORI has been below the **ORI threshold** (default 50) for the
+**Alert duration** (default 3 minutes, 1–5 in Settings) in total out of
+the last **5 minutes** (the Trace window). Beeps stop the instant current
+ORI reaches the threshold.
 
 ---
 
@@ -186,8 +199,8 @@ History is kept across days in the same file.
 
 ## License activation (packaged copies)
 
-Paid Mac/Windows builds require a Lemon Squeezy key on **first launch**
-(internet once). The key plus a hashed machine id are sent to Lemon Squeezy;
+Paid Mac/Windows builds require a Dodo Payments key on **first launch**
+(internet once). The key plus a hashed machine id are sent to Dodo;
 the result is stored in `~/.eyerhythm_blinkcounter/license.json`. Later
 launches stay offline.
 
@@ -195,10 +208,11 @@ Running from source does not ask for a key. Overrides:
 
 * `--require-license` / `EYERHYTHM_REQUIRE_LICENSE=1` — show the gate anyway
 * `--skip-license` / `EYERHYTHM_SKIP_LICENSE=1` — skip even when packaged
+* `EYERHYTHM_DODO_TEST=1` — talk to Dodo test mode instead of live
 
 The dashboard UI talks only to localhost. Python is the process that calls
-`https://api.lemonsqueezy.com/v1/licenses/activate`. Fill store/variant ids
-in `app/license.py` after the Lemon Squeezy products exist.
+`https://live.dodopayments.com/licenses/activate`. Fill product ids
+in `app/license.py` after the Dodo products exist.
 
 UI: `frontend/src/components/LicenseScreen.tsx`.
 
@@ -241,7 +255,7 @@ Tunables in `app/engine.py`: `PRACTICE_COUNTDOWN_S`, `PRACTICE_INTERVAL_S`,
 | Key | Effect |
 |-----|--------|
 | B | Toggle beep on each counted blink |
-| A | Toggle low-ORI alert (3 min below 50 in last 5 min) |
+| A | Toggle low-ORI alert (duration set in Settings; default 3 min below threshold in last 5 min) |
 | P | Practice |
 | D | More / Less |
 | W | Settings / Hide settings |
@@ -268,7 +282,7 @@ Useful flags:
 * `--browser` — system browser instead of pywebview  
 * `--port 8742` — local API port  
 * `--skip-checks` — skip startup dependency checks
-* `--require-license` — Lemon Squeezy gate even from source
+* `--require-license` — Dodo Payments gate even from source
 * `--skip-license` — skip the license gate  
 
 ---

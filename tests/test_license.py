@@ -1,4 +1,4 @@
-"""Unit tests for Lemon Squeezy license activation (no network)."""
+"""Unit tests for Dodo Payments license activation (no network)."""
 
 from __future__ import annotations
 
@@ -13,23 +13,22 @@ from app import license as app_license
 
 def _activate_payload(
     *,
-    activated: bool = True,
-    error: str | None = None,
-    store_id: int = 11,
-    variant_id: int = 22,
-    variant_name: str = "macOS",
-    instance_id: str = "inst-1",
+    instance_id: str = "lki_1",
+    product_id: str = "pdt_mac",
+    product_name: str = "EyesRhythm for macOS",
+    email: str = "buyer@example.com",
 ) -> dict:
     return {
-        "activated": activated,
-        "error": error,
-        "instance": {"id": instance_id, "name": "abc"},
-        "meta": {
-            "store_id": store_id,
-            "variant_id": variant_id,
-            "variant_name": variant_name,
-            "product_name": "EyesRhythm",
-            "customer_email": "buyer@example.com",
+        "id": instance_id,
+        "business_id": "biz_1",
+        "name": "fp-1",
+        "license_key_id": "lic_1",
+        "created_at": "2026-01-01T00:00:00Z",
+        "product": {"product_id": product_id, "name": product_name},
+        "customer": {
+            "customer_id": "cus_1",
+            "name": "Buyer",
+            "email": email,
         },
     }
 
@@ -78,26 +77,29 @@ class LicenseTests(unittest.TestCase):
     def test_activate_saves_local_file(self) -> None:
         payload = _activate_payload()
         with (
-            patch.object(app_license, "_ls_call", return_value=payload),
+            patch.object(
+                app_license, "_dodo_call", return_value=(201, payload)
+            ),
             patch.object(app_license, "machine_fingerprint", return_value="fp-1"),
-            patch.object(app_license, "LS_STORE_ID", 11),
-            patch.object(app_license, "expected_variant_id", return_value=22),
+            patch.object(app_license, "DODO_PRODUCT_MAC", "pdt_mac"),
+            patch.object(app_license, "expected_product_id", return_value="pdt_mac"),
         ):
             status = app_license.activate("ER-TEST-KEY")
             self.assertTrue(status["activated"])
             self.assertTrue(app_license.is_activated())
         saved = json.loads(self._path.read_text(encoding="utf-8"))
         self.assertEqual(saved["license_key"], "ER-TEST-KEY")
-        self.assertEqual(saved["instance_id"], "inst-1")
+        self.assertEqual(saved["instance_id"], "lki_1")
         self.assertEqual(saved["instance_name"], "fp-1")
         self.assertEqual(saved["customer_email"], "buyer@example.com")
+        self.assertEqual(saved["provider"], "dodo")
 
     def test_copied_license_from_other_machine_is_rejected(self) -> None:
         self._path.write_text(
             json.dumps(
                 {
                     "license_key": "ER-TEST-KEY",
-                    "instance_id": "inst-1",
+                    "instance_id": "lki_1",
                     "instance_name": "other-machine",
                 }
             ),
@@ -106,23 +108,36 @@ class LicenseTests(unittest.TestCase):
         with patch.object(app_license, "machine_fingerprint", return_value="this-machine"):
             self.assertFalse(app_license.is_activated())
 
-    def test_wrong_variant_is_rejected(self) -> None:
-        payload = _activate_payload(variant_id=99, variant_name="Windows")
+    def test_wrong_product_is_rejected_and_deactivated(self) -> None:
+        payload = _activate_payload(
+            product_id="pdt_win",
+            product_name="EyesRhythm for Windows",
+        )
+        calls: list[tuple[str, dict]] = []
+
+        def fake_call(action: str, fields: dict) -> tuple[int, dict]:
+            calls.append((action, fields))
+            if action == "activate":
+                return 201, payload
+            return 200, {}
+
         with (
-            patch.object(app_license, "_ls_call", return_value=payload),
+            patch.object(app_license, "_dodo_call", side_effect=fake_call),
             patch.object(app_license, "current_platform", return_value="mac"),
-            patch.object(app_license, "LS_STORE_ID", 11),
-            patch.object(app_license, "LS_VARIANT_MAC", 22),
-            patch.object(app_license, "expected_variant_id", return_value=22),
+            patch.object(app_license, "DODO_PRODUCT_MAC", "pdt_mac"),
+            patch.object(app_license, "expected_product_id", return_value="pdt_mac"),
         ):
             with self.assertRaises(app_license.LicenseError) as ctx:
                 app_license.activate("ER-WIN-KEY")
         self.assertIn("not macOS", str(ctx.exception))
         self.assertFalse(self._path.exists())
+        self.assertEqual(calls[1][0], "deactivate")
+        self.assertEqual(calls[1][1]["license_key_instance_id"], "lki_1")
 
     def test_unknown_key(self) -> None:
-        payload = _activate_payload(activated=False, error="license_key not found")
-        with patch.object(app_license, "_ls_call", return_value=payload):
+        with patch.object(
+            app_license, "_dodo_call", return_value=(404, {"message": "not found"})
+        ):
             with self.assertRaises(app_license.LicenseError) as ctx:
                 app_license.activate("not-a-real-key")
         self.assertIn("not recognised", str(ctx.exception))
@@ -132,11 +147,14 @@ class LicenseTests(unittest.TestCase):
             app_license.activate("   ")
 
     def test_activation_limit_message(self) -> None:
-        payload = _activate_payload(
-            activated=False,
-            error="This license key has reached the activation limit.",
-        )
-        with patch.object(app_license, "_ls_call", return_value=payload):
+        with patch.object(
+            app_license,
+            "_dodo_call",
+            return_value=(
+                422,
+                {"message": "This license key has reached the activation limit."},
+            ),
+        ):
             with self.assertRaises(app_license.LicenseError) as ctx:
                 app_license.activate("ER-USED-ALREADY")
         self.assertIn("already used", str(ctx.exception))

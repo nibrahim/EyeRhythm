@@ -53,6 +53,8 @@ TURN_ANGLE_MIN = 20.0
 TURN_ANGLE_MAX = 80.0
 CLOSE_DELTA_MIN = 0.10
 CLOSE_DELTA_MAX = 0.30
+ALERT_LOW_MINUTES_MIN = 1.0
+ALERT_LOW_MINUTES_MAX = 5.0
 
 # First-launch values if the JSON file is missing or broken.
 _DEFAULTS: dict[str, Any] = {
@@ -67,6 +69,7 @@ _DEFAULTS: dict[str, Any] = {
     "eye_comfort": "",
     "dock": False,
     "ori_threshold": 50.0,
+    "alert_low_minutes": 3.0,
     "writing_angle_deg": 20.0,
     "turn_angle_deg": 50.0,
     "close_delta": 0.18,
@@ -131,6 +134,18 @@ def _sanitize(raw: dict[str, Any]) -> dict[str, Any]:
         ORI_THRESHOLD_MIN,
         ORI_THRESHOLD_MAX,
         50.0,
+    )
+    data["alert_low_minutes"] = float(
+        int(
+            round(
+                _clamp_float(
+                    raw.get("alert_low_minutes", data["alert_low_minutes"]),
+                    ALERT_LOW_MINUTES_MIN,
+                    ALERT_LOW_MINUTES_MAX,
+                    3.0,
+                )
+            )
+        )
     )
     data["writing_angle_deg"] = _clamp_float(
         raw.get("writing_angle_deg", data["writing_angle_deg"]),

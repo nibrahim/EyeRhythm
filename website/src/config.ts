@@ -1,7 +1,7 @@
 /**
  * Site copy and knobs — edit here as you iterate.
  *
- * Installers are never hosted here. After you create the two Lemon Squeezy
+ * Installers are never hosted here. After you create the two Dodo Payments
  * products (macOS and Windows), paste their checkout URLs below and set
  * ``comingSoon`` to false.
  */
@@ -17,32 +17,32 @@ export const site = {
   contactEmail: "",
   cta: "Get a copy",
   /** Hold the public site to a single coming-soon screen. */
-  comingSoon: true,
-  /** Keep false — installers go out from Lemon Squeezy, not this origin. */
+  comingSoon: false,
+  /** Keep false — installers go out from Dodo Payments, not this origin. */
   downloadsOpen: false,
   price: {
-    amount: 10,
+    amount: 12,
     currency: "USD",
-    label: "$10",
+    label: "$12",
     cadence: "one-time",
     updates: "Feature updates included for six months",
   },
   /**
-   * Lemon Squeezy buy links (Share → Checkout URL) for each OS variant.
-   * Leave empty until the store products exist. Never put both OS files
-   * on one product — a purchase is Mac or Windows, not both.
+   * Dodo Payments buy links (product → payment link / checkout URL)
+   * for each OS. Leave empty until the products exist. Never put both
+   * OS files on one product — a purchase is Mac or Windows, not both.
    */
-  lemonSqueezy: {
-    checkoutMac: "",
-    checkoutWindows: "",
+  dodo: {
+    checkoutMac:
+      "https://checkout.dodopayments.com/buy/pdt_0Nmc1Cv8LQYff3wqM6ULl?quantity=1",
+    checkoutWindows:
+      "https://checkout.dodopayments.com/buy/pdt_0Nmc1TZ9g5VKLY81Xi6pG?quantity=1",
   },
 } as const;
 
 export function checkoutUrl(platform: "mac" | "windows"): string {
   const url =
-    platform === "mac"
-      ? site.lemonSqueezy.checkoutMac
-      : site.lemonSqueezy.checkoutWindows;
+    platform === "mac" ? site.dodo.checkoutMac : site.dodo.checkoutWindows;
   return /^https:\/\//i.test(url) ? url : "";
 }
 

@@ -52,8 +52,9 @@ from collections import deque
 from dataclasses import dataclass, field
 
 import cv2
-import mediapipe as mp
 import numpy as np
+from mediapipe.python._framework_bindings.image import Image
+from mediapipe.python._framework_bindings.image_frame import ImageFormat
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
 
@@ -700,7 +701,7 @@ class BlinkDetector:
         # ---- Step 2: run MediaPipe face landmarker --------------------
         # OpenCV BGR → RGB (contiguous buffer required by MediaPipe).
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        mp_image = Image(image_format=ImageFormat.SRGB, data=rgb)
         detection = self._landmarker.detect_for_video(mp_image,
                                                       int(timestamp_ms))
 

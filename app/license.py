@@ -1,19 +1,20 @@
 """
-Lemon Squeezy license activation
+Dodo Payments license activation
 ================================
 
 Paid Mac/Windows builds ask for the key from the purchase email on first
-launch. The desktop app talks to Lemon Squeezy (unique keys, payment,
-activation store). Blink data still never leaves the machine.
+launch. The desktop app talks to Dodo (unique keys, payment, activation
+store). Blink data still never leaves the machine.
 
 Running from source does not require a key, so contributors can keep
 working. Packaged copies (PyInstaller) do. Override with::
 
     EYERHYTHM_REQUIRE_LICENSE=1   # force the gate (useful while developing)
     EYERHYTHM_SKIP_LICENSE=1      # skip even in a packaged build
+    EYERHYTHM_DODO_TEST=1         # talk to Dodo test mode, not live
 
-Fill ``LS_STORE_ID`` / ``LS_VARIANT_*`` after the Lemon Squeezy products
-exist so a key from some other store cannot unlock EyesRhythm.
+Fill ``DODO_PRODUCT_MAC`` / ``DODO_PRODUCT_WINDOWS`` after the Dodo
+products exist so a key bought for the other OS cannot unlock this copy.
 """
 
 from __future__ import annotations
@@ -25,7 +26,6 @@ import platform
 import subprocess
 import sys
 import urllib.error
-import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,16 +34,18 @@ from typing import Any
 from app.preferences import STORAGE_DIR
 
 LICENSE_FILE = STORAGE_DIR / "license.json"
-LS_LICENSE_API = "https://api.lemonsqueezy.com/v1/licenses"
+DODO_LIVE_API = "https://live.dodopayments.com"
+DODO_TEST_API = "https://test.dodopayments.com"
 
-# Paste numeric IDs from Lemon Squeezy → Products (or set env vars).
-# 0 means “not configured yet” — the key is still checked with Lemon Squeezy,
-# but the app cannot confirm it belongs to this store / OS variant.
-LS_STORE_ID = int(os.environ.get("EYERHYTHM_LS_STORE_ID", "0") or "0")
-LS_VARIANT_MAC = int(os.environ.get("EYERHYTHM_LS_VARIANT_MAC", "0") or "0")
-LS_VARIANT_WINDOWS = int(
-    os.environ.get("EYERHYTHM_LS_VARIANT_WINDOWS", "0") or "0"
-)
+# Paste product ids from Dodo → Products (pdt_…). Empty means “not
+# configured yet” — the key is still checked with Dodo, but the app
+# cannot confirm it belongs to this OS product.
+DODO_PRODUCT_MAC = os.environ.get(
+    "EYERHYTHM_DODO_PRODUCT_MAC", "pdt_0Nmc1Cv8LQYff3wqM6ULl"
+).strip()
+DODO_PRODUCT_WINDOWS = os.environ.get(
+    "EYERHYTHM_DODO_PRODUCT_WINDOWS", "pdt_0Nmc1TZ9g5VKLY81Xi6pG"
+).strip()
 
 _ENFORCEMENT: bool | None = None
 
@@ -53,7 +55,7 @@ class LicenseError(Exception):
 
 
 class LicenseNetworkError(LicenseError):
-    """Lemon Squeezy could not be reached."""
+    """Dodo Payments could not be reached."""
 
 
 def set_enforcement(required: bool | None) -> None:
@@ -89,13 +91,22 @@ def current_platform() -> str:
     return "other"
 
 
-def expected_variant_id() -> int:
+def dodo_api_base() -> str:
+    override = os.environ.get("EYERHYTHM_DODO_API", "").strip()
+    if override:
+        return override.rstrip("/")
+    if _env_flag("EYERHYTHM_DODO_TEST"):
+        return DODO_TEST_API
+    return DODO_LIVE_API
+
+
+def expected_product_id() -> str:
     plat = current_platform()
     if plat == "mac":
-        return LS_VARIANT_MAC
+        return DODO_PRODUCT_MAC
     if plat == "windows":
-        return LS_VARIANT_WINDOWS
-    return 0
+        return DODO_PRODUCT_WINDOWS
+    return ""
 
 
 def _license_path() -> Path:
@@ -104,7 +115,7 @@ def _license_path() -> Path:
 
 
 def normalize_key(raw: str) -> str:
-    """Strip spaces; keep hyphens so Lemon Squeezy sees the issued key."""
+    """Strip spaces; keep hyphens so Dodo sees the issued key."""
     return "".join(str(raw or "").split()).strip()
 
 
@@ -149,7 +160,7 @@ def _raw_machine_id() -> str:
 
 
 def machine_fingerprint() -> str:
-    """SHA-256 of the hardware id. This is what we send as instance_name."""
+    """SHA-256 of the hardware id. This is what we send as the instance name."""
     payload = f"eyesrhythm:{current_platform()}:{_raw_machine_id()}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
 
@@ -210,15 +221,33 @@ def status() -> dict[str, Any]:
     }
 
 
-def _post_form(url: str, fields: dict[str, str], timeout: float = 20.0) -> tuple[int, dict[str, Any]]:
-    data = urllib.parse.urlencode(fields).encode("utf-8")
+def _payload_message(payload: dict[str, Any]) -> str:
+    for key in ("message", "error", "detail"):
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        if isinstance(value, list) and value:
+            first = value[0]
+            if isinstance(first, str) and first.strip():
+                return first.strip()
+            if isinstance(first, dict):
+                nested = _payload_message(first)
+                if nested:
+                    return nested
+    return ""
+
+
+def _post_json(
+    url: str, fields: dict[str, str], timeout: float = 20.0
+) -> tuple[int, dict[str, Any]]:
+    data = json.dumps(fields).encode("utf-8")
     req = urllib.request.Request(
         url,
         data=data,
         method="POST",
         headers={
             "Accept": "application/json",
-            "Content-Type": "application/x-www-form-urlencoded",
+            "Content-Type": "application/json",
             "User-Agent": "EyesRhythm/2.0",
         },
     )
@@ -228,9 +257,9 @@ def _post_form(url: str, fields: dict[str, str], timeout: float = 20.0) -> tuple
             try:
                 parsed = json.loads(body) if body else {}
             except json.JSONDecodeError:
-                parsed = {"error": "Unexpected response from Lemon Squeezy"}
+                parsed = {"error": "Unexpected response from checkout"}
             if not isinstance(parsed, dict):
-                parsed = {"error": "Unexpected response from Lemon Squeezy"}
+                parsed = {"error": "Unexpected response from checkout"}
             return int(getattr(resp, "status", 200) or 200), parsed
     except urllib.error.HTTPError as exc:
         raw = exc.read().decode("utf-8", errors="replace") if exc.fp else ""
@@ -240,8 +269,8 @@ def _post_form(url: str, fields: dict[str, str], timeout: float = 20.0) -> tuple
             parsed = {}
         if not isinstance(parsed, dict):
             parsed = {}
-        if not parsed.get("error"):
-            parsed["error"] = raw.strip() or str(exc.reason or exc)
+        if not _payload_message(parsed) and raw.strip():
+            parsed["error"] = raw.strip()
         return int(exc.code), parsed
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise LicenseNetworkError(
@@ -249,53 +278,69 @@ def _post_form(url: str, fields: dict[str, str], timeout: float = 20.0) -> tuple
         ) from exc
 
 
-def _ls_call(action: str, fields: dict[str, str]) -> dict[str, Any]:
-    _status, payload = _post_form(f"{LS_LICENSE_API}/{action}", fields)
-    return payload
+def _dodo_call(action: str, fields: dict[str, str]) -> tuple[int, dict[str, Any]]:
+    return _post_json(f"{dodo_api_base()}/licenses/{action}", fields)
 
 
-def _reject_if_wrong_product(meta: dict[str, Any]) -> None:
-    try:
-        store_id = int(meta.get("store_id") or 0)
-        variant_id = int(meta.get("variant_id") or 0)
-    except (TypeError, ValueError):
-        store_id = 0
-        variant_id = 0
-    variant_name = str(meta.get("variant_name") or "")
-    if LS_STORE_ID and store_id and store_id != LS_STORE_ID:
-        raise LicenseError("This key is not an EyesRhythm license.")
-    expected = expected_variant_id()
-    if expected and variant_id and variant_id != expected:
-        other = "Windows" if current_platform() == "mac" else "macOS"
-        this = "macOS" if current_platform() == "mac" else "Windows"
-        hint = variant_name or other
-        raise LicenseError(
-            f"This key is for {hint}, not {this}. "
-            "Each purchase is one operating system."
-        )
+def _product_id_from(payload: dict[str, Any]) -> str:
+    product = payload.get("product")
+    if isinstance(product, dict):
+        return str(product.get("product_id") or "").strip()
+    return str(payload.get("product_id") or "").strip()
 
 
-def _friendly_ls_error(payload: dict[str, Any]) -> str:
-    err = str(payload.get("error") or "").strip()
+def _reject_if_wrong_product(payload: dict[str, Any], key: str) -> None:
+    product_id = _product_id_from(payload)
+    expected = expected_product_id()
+    if not expected or not product_id or product_id == expected:
+        return
+    instance_id = str(payload.get("id") or "").strip()
+    if instance_id:
+        try:
+            _dodo_call(
+                "deactivate",
+                {
+                    "license_key": key,
+                    "license_key_instance_id": instance_id,
+                },
+            )
+        except LicenseError:
+            pass
+    other = "Windows" if current_platform() == "mac" else "macOS"
+    this = "macOS" if current_platform() == "mac" else "Windows"
+    product = payload.get("product") if isinstance(payload.get("product"), dict) else {}
+    hint = str((product or {}).get("name") or other)
+    raise LicenseError(
+        f"This key is for {hint}, not {this}. "
+        "Each purchase is one operating system."
+    )
+
+
+def _friendly_dodo_error(status: int, payload: dict[str, Any]) -> str:
+    err = _payload_message(payload)
     lowered = err.lower()
-    if "not found" in lowered or "invalid" in lowered:
+    if status == 404 or "not found" in lowered or "invalid" in lowered:
         return "That license key was not recognised. Check the email from checkout."
-    if "activation limit" in lowered or "limit" in lowered:
+    if (
+        status == 422
+        or "activation limit" in lowered
+        or "limit reached" in lowered
+    ):
         return (
             "This key is already used on another computer. "
-            "If you reinstalled, open Lemon Squeezy → Licenses, "
+            "If you reinstalled, open the Dodo customer portal, "
             "deactivate the old machine, then try again."
         )
     if "expired" in lowered:
         return "This license key has expired."
-    if "disabled" in lowered or "inactive" in lowered:
+    if status == 403 or "disabled" in lowered or "inactive" in lowered:
         return "This license key is no longer active."
-    return err or "Lemon Squeezy could not activate this key."
+    return err or "Checkout could not activate this key."
 
 
 def activate(license_key: str) -> dict[str, Any]:
     """
-    Call Lemon Squeezy, bind this machine, save locally.
+    Call Dodo Payments, bind this machine, save locally.
 
     Subsequent launches read the local file and stay offline.
     """
@@ -306,29 +351,36 @@ def activate(license_key: str) -> dict[str, Any]:
         raise LicenseError("That does not look like a license key.")
 
     fingerprint = machine_fingerprint()
-    payload = _ls_call(
+    status_code, payload = _dodo_call(
         "activate",
-        {"license_key": key, "instance_name": fingerprint},
+        {"license_key": key, "name": fingerprint},
     )
-    if not payload.get("activated"):
-        raise LicenseError(_friendly_ls_error(payload))
+    if status_code not in {200, 201} or not str(payload.get("id") or "").strip():
+        raise LicenseError(_friendly_dodo_error(status_code, payload))
 
-    meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else {}
-    instance = payload.get("instance") if isinstance(payload.get("instance"), dict) else {}
-    instance_id = str(instance.get("id") or "").strip()
-    if not instance_id:
-        raise LicenseError("Lemon Squeezy did not return an activation id.")
+    _reject_if_wrong_product(payload, key)
 
-    _reject_if_wrong_product(meta)
+    instance_id = str(payload.get("id") or "").strip()
+    customer = (
+        payload.get("customer")
+        if isinstance(payload.get("customer"), dict)
+        else {}
+    )
+    product = (
+        payload.get("product")
+        if isinstance(payload.get("product"), dict)
+        else {}
+    )
 
     record = {
         "license_key": key,
         "instance_id": instance_id,
         "instance_name": fingerprint,
         "platform": current_platform(),
-        "customer_email": str(meta.get("customer_email") or ""),
-        "product_name": str(meta.get("product_name") or ""),
-        "variant_name": str(meta.get("variant_name") or ""),
+        "customer_email": str((customer or {}).get("email") or ""),
+        "product_name": str((product or {}).get("name") or ""),
+        "product_id": _product_id_from(payload),
+        "provider": "dodo",
         "activated_at": _utc_now(),
     }
     try:

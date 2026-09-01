@@ -7,7 +7,9 @@ Exposes a thread-safe snapshot of live metrics for the React UI via the API.
 
 Business logic matches the previous OpenCV-based main loop:
   camera → BlinkDetector → ScreenTimeTracker → optional Beeper / AlertMonitor
-  + reconnect after sleep/wake / stream loss.
+    + reconnect after sleep/wake / stream loss.
+  After 1 min with no face the webcam is released (battery); a 2 min peek
+  needs 30 s of face before full live mode resumes.
 
 The GUI is intentionally not here — only numbers, flags, and optional JPEG frames.
 """
@@ -41,6 +43,7 @@ from app.regularity import RegularityTracker
 # Blink-gated CPU pacing (30 fps + post-blink rest / 1 fps no-face).
 # Easy rollback: remove this import and restore the previous FACE_FPS=17 /
 # NO_FACE_FPS=3 constants + inline interval logic in the camera loop.
+from app.camera_idle import CameraIdlePolicy, SLEEP_BETWEEN_PEEKS_S
 from app.frame_pacer import FACE_FPS, FramePacer, NO_FACE_FPS
 
 # ---------------------------------------------------------------------------
@@ -410,12 +413,14 @@ class AlertMonitor:
         self,
         beeper: Beeper,
         threshold: float = ALERT_ORI_THRESHOLD,
+        low_duration_s: float = ALERT_LOW_DURATION_S,
         poll_s: float = ALERT_POLL_S,
         on_alert_beep=None,
         time_fn=time.monotonic,
     ):
         self._beeper = beeper
         self._threshold = threshold
+        self._low_duration_s = float(low_duration_s)
         self._poll_s = poll_s
         self._on_alert_beep = on_alert_beep
         self._time = time_fn
@@ -549,7 +554,7 @@ class AlertMonitor:
         # Immediate stop when current ORI is at/above the threshold again.
         if self._ori >= self._threshold:
             return False
-        return self._low_ori_duration_s(now) >= ALERT_LOW_DURATION_S
+        return self._low_ori_duration_s(now) >= self._low_duration_s
 
     def _on_face_reappeared(self, now: float) -> None:
         """Apply warmup after first face or after a long absence (caller holds lock)."""
@@ -595,6 +600,11 @@ class AlertMonitor:
         """Live-update the low-ORI line (caller already clamped)."""
         with self._lock:
             self._threshold = float(value)
+
+    def set_low_duration_s(self, value: float) -> None:
+        """Live-update how much of the 5-minute window must be low (caller clamped)."""
+        with self._lock:
+            self._low_duration_s = float(value)
 
     def stop(self) -> None:
         """Ask the beep thread to finish and wait a moment for it."""
@@ -781,6 +791,8 @@ class EngineSnapshot:
     off_screen: bool = False
     # Live Settings dock (also persisted). Frontend Trace uses ori_threshold.
     ori_threshold: float = ALERT_ORI_THRESHOLD
+    # Minutes of low ORI in the last 5 required before Alert beeps (default 3).
+    alert_low_minutes: float = 3.0
     writing_angle_deg: float = LOOK_DOWN_OFFSCREEN_DEG
     turn_angle_deg: float = LOOK_SIDE_OFFSCREEN_DEG
     close_delta: float = 0.18
@@ -849,6 +861,13 @@ class EyeRhythmEngine:
         self._ori_threshold = float(
             saved_prefs.get("ori_threshold", ALERT_ORI_THRESHOLD)
         )
+        self._alert_low_minutes = max(
+            int(preferences.ALERT_LOW_MINUTES_MIN),
+            min(
+                int(preferences.ALERT_LOW_MINUTES_MAX),
+                int(round(float(saved_prefs.get("alert_low_minutes", 3.0)))),
+            ),
+        )
         self._writing_angle_deg = float(
             saved_prefs.get("writing_angle_deg", LOOK_DOWN_OFFSCREEN_DEG)
         )
@@ -861,6 +880,7 @@ class EyeRhythmEngine:
         self._alert = AlertMonitor(
             self._beeper,
             threshold=self._ori_threshold,
+            low_duration_s=float(self._alert_low_minutes) * 60.0,
             on_alert_beep=self._note_alert_beep,
         )
         self._ori_log = OriHistory()
@@ -915,6 +935,7 @@ class EyeRhythmEngine:
             alert=self._states["alert"],
             ontop=self._states["ontop"],
             ori_threshold=self._ori_threshold,
+            alert_low_minutes=float(self._alert_low_minutes),
             writing_angle_deg=self._writing_angle_deg,
             turn_angle_deg=self._turn_angle_deg,
             close_delta=self._close_delta,
@@ -1005,6 +1026,7 @@ class EyeRhythmEngine:
         with self._lock:
             return {
                 "ori_threshold": float(self._ori_threshold),
+                "alert_low_minutes": float(self._alert_low_minutes),
                 "writing_angle_deg": float(self._writing_angle_deg),
                 "turn_angle_deg": float(self._turn_angle_deg),
                 "close_delta": float(self._close_delta),
@@ -1018,6 +1040,7 @@ class EyeRhythmEngine:
         """
         labels = {
             "ori_threshold": "ORI threshold",
+            "alert_low_minutes": "Alert duration",
             "writing_angle_deg": "Writing angle",
             "turn_angle_deg": "Turn angle",
             "close_delta": "Blink sensitivity",
@@ -1034,6 +1057,19 @@ class EyeRhythmEngine:
                     self._ori_threshold = v
                     self._alert.set_threshold(v)
                     changed.append(("ori_threshold", old, v))
+            if patch.get("alert_low_minutes") is not None:
+                v = max(
+                    int(preferences.ALERT_LOW_MINUTES_MIN),
+                    min(
+                        int(preferences.ALERT_LOW_MINUTES_MAX),
+                        int(round(float(patch["alert_low_minutes"]))),
+                    ),
+                )
+                old = float(self._alert_low_minutes)
+                if abs(float(v) - old) >= 0.05:
+                    self._alert_low_minutes = v
+                    self._alert.set_low_duration_s(float(v) * 60.0)
+                    changed.append(("alert_low_minutes", old, float(v)))
             if patch.get("writing_angle_deg") is not None:
                 v = max(
                     preferences.WRITING_ANGLE_MIN,
@@ -1065,11 +1101,13 @@ class EyeRhythmEngine:
             if changed:
                 preferences.save(
                     ori_threshold=self._ori_threshold,
+                    alert_low_minutes=float(self._alert_low_minutes),
                     writing_angle_deg=self._writing_angle_deg,
                     turn_angle_deg=self._turn_angle_deg,
                     close_delta=self._close_delta,
                 )
                 self._snap.ori_threshold = float(self._ori_threshold)
+                self._snap.alert_low_minutes = float(self._alert_low_minutes)
                 self._snap.writing_angle_deg = float(self._writing_angle_deg)
                 self._snap.turn_angle_deg = float(self._turn_angle_deg)
                 self._snap.close_delta = float(self._close_delta)
@@ -1443,6 +1481,93 @@ class EyeRhythmEngine:
 
     # ---- internals ----------------------------------------------------
 
+    def _camera_is_demanded(self) -> bool:
+        """True when Practice or Lens needs the webcam immediately."""
+        with self._lock:
+            if self._preview_wanted:
+                return True
+            if self._states.get("practice"):
+                return True
+            if self._practice_phase != "off":
+                return True
+        return False
+
+    def _publish_camera_idle(self, message: str, *, camera_ok: bool = False) -> None:
+        """Hold last numbers while the webcam is parked to save battery."""
+        held_reg = (
+            self._held_regularity
+            if self._held_regularity is not None
+            else self._regularity.score
+        )
+        self._publish(
+            face_found=False,
+            camera_ok=camera_ok,
+            camera_message=message,
+            continuous_bpm=round(self._held_bpm, 1),
+            average_bpm=self._screen_time.avg_blinks_per_minute,
+            **self._ori_fields(self._held_bpm, held_reg),
+            screen_time=self._screen_time.formatted(),
+            screen_time_seconds=self._screen_time.seconds_today,
+            blinks_today=self._screen_time.blinks_today,
+            fps=0.0,
+            regularity=held_reg,
+            regularity_ready=held_reg is not None,
+            regularity_gaps=self._regularity.gap_count,
+            face_angle_deg=None,
+            face_yaw_deg=None,
+            face_pitch_deg=None,
+            face_direction=None,
+            off_screen=False,
+            eyes_closed=False,
+        )
+
+    def _wait_parked_then_peek(
+        self,
+        cap: cv2.VideoCapture | None,
+        idle: CameraIdlePolicy,
+    ) -> cv2.VideoCapture | None:
+        """
+        Release the webcam, wait 2 minutes (or until Practice/Lens), then
+        reopen for a presence peek. Returns the new capture or None.
+        """
+        _release_camera(cap)
+        self._look_off_screen = False
+        self._screen_time.tick(False)
+        self._alert.update(None, False)
+        self._publish_camera_idle("Idle")
+        _log(
+            "camera off (no face for 1 min); next peek in "
+            f"{SLEEP_BETWEEN_PEEKS_S:.0f}s"
+        )
+
+        deadline = time.monotonic() + SLEEP_BETWEEN_PEEKS_S
+        while not self._stop.is_set():
+            if self._camera_is_demanded():
+                idle.reset_to_live()
+                new_cap = open_camera(self.camera_index, quiet=True)
+                if new_cap is not None:
+                    self._publish(camera_ok=True, camera_message="live")
+                    _log("camera on — Practice or Lens requested")
+                return new_cap
+            left = deadline - time.monotonic()
+            if left <= 0:
+                break
+            self._stop.wait(min(0.5, max(0.05, left)))
+
+        if self._stop.is_set():
+            return None
+
+        self._publish_camera_idle("Checking…")
+        new_cap = open_camera(self.camera_index, quiet=True)
+        if new_cap is None:
+            _log("camera peek failed — will sleep again")
+            idle.begin_sleep()
+            return None
+        idle.begin_peek(time.monotonic())
+        self._publish(camera_ok=True, camera_message="Checking…")
+        _log("camera peek (need 30 s of face to resume)")
+        return new_cap
+
     def _publish(self, **kwargs) -> None:
         """
         Copy the latest metrics into `_snap` so the WebSocket can send them.
@@ -1473,6 +1598,7 @@ class EyeRhythmEngine:
             self._snap.last_alert_beep_at = self._last_alert_beep_at
             self._snap.off_screen = self._look_off_screen
             self._snap.ori_threshold = float(self._ori_threshold)
+            self._snap.alert_low_minutes = float(self._alert_low_minutes)
             self._snap.writing_angle_deg = float(self._writing_angle_deg)
             self._snap.turn_angle_deg = float(self._turn_angle_deg)
             self._snap.close_delta = float(self._close_delta)
@@ -1682,6 +1808,8 @@ class EyeRhythmEngine:
         last_res = FrameResult()
         # Adaptive FPS / post-blink rest — see app/frame_pacer.py.
         pacer = FramePacer()
+        # Battery: release the webcam after 1 min with no face; peek every 2 min.
+        idle = CameraIdlePolicy()
         _log(
             f"low-power profile: process_width={PROCESS_MAX_WIDTH} "
             f"preview_width={PREVIEW_MAX_WIDTH} "
@@ -1692,6 +1820,13 @@ class EyeRhythmEngine:
             # Forever, until stop() is called: grab a frame, detect blinks,
             # update daily stats, then sleep according to the CPU pacer.
             while not self._stop.is_set():
+                if idle.phase == "sleep":
+                    cap = self._wait_parked_then_peek(cap, idle)
+                    pacer = FramePacer()
+                    read_fails = 0
+                    reopen_attempt = 0
+                    continue
+
                 loop_start = time.monotonic()
                 # In no-face mode the camera may buffer many frames; drain a few.
                 drain = 3 if pacer.should_drain_buffer() else 0
@@ -1742,7 +1877,12 @@ class EyeRhythmEngine:
                         reopen_attempt += 1
                         read_fails = 0
                         if cap is not None:
-                            self._publish(camera_ok=True, camera_message="live")
+                            msg = (
+                                "Checking…"
+                                if idle.phase == "peek"
+                                else "live"
+                            )
+                            self._publish(camera_ok=True, camera_message=msg)
                     time.sleep(0.02)
                     continue
 
@@ -1751,7 +1891,8 @@ class EyeRhythmEngine:
                         _log("camera stream healthy again")
                     read_fails = 0
                     reopen_attempt = 0
-                    self._publish(camera_ok=True, camera_message="live")
+                    msg = "Checking…" if idle.phase == "peek" else "live"
+                    self._publish(camera_ok=True, camera_message=msg)
 
                 # Keep full camera frame for Lens; process a smaller copy.
                 display_frame = frame
@@ -1778,9 +1919,22 @@ class EyeRhythmEngine:
                     continue
 
                 last_res = res
-                off_screen = self._update_look_down_offscreen(res)
+
+                if self._camera_is_demanded():
+                    idle.reset_to_live()
+                    next_phase = "live"
+                else:
+                    next_phase = idle.note_face(
+                        bool(res.face_found), time.monotonic()
+                    )
+                counting = next_phase == "live"
+
+                off_screen = (
+                    self._update_look_down_offscreen(res) if counting else False
+                )
                 if (
-                    off_screen
+                    counting
+                    and off_screen
                     and res.blink_just_counted
                     and self._detector is not None
                 ):
@@ -1791,7 +1945,7 @@ class EyeRhythmEngine:
                         ts_ms)
 
                 # On-screen = a face is found and the person is not looking down.
-                present = bool(res.face_found) and not off_screen
+                present = counting and bool(res.face_found) and not off_screen
                 self._sync_presence_hold(present, res, ts_ms)
                 self._screen_time.tick(present)
                 # Keep research hour buckets aligned with face-present time.
@@ -1802,7 +1956,7 @@ class EyeRhythmEngine:
                     pass
 
                 # A complete blink just finished (eyes opened again).
-                if res.blink_just_counted:
+                if counting and res.blink_just_counted:
                     self._screen_time.add_blink()
                     blink_mono = time.monotonic()
                     # Research: inter-blink gaps for every counted blink
@@ -1849,12 +2003,14 @@ class EyeRhythmEngine:
                 if not present and self._held_regularity is not None:
                     live_reg = self._held_regularity
                 live_ori = ocular_rhythm_index(live_bpm, live_reg)
-                self._alert.update(live_ori if present else None, present)
+                self._alert.update(
+                    live_ori if present else None, present and counting
+                )
                 try:
                     self._ori_log.sample(
                         live_ori if present else None,
                         present,
-                        blinks=1 if res.blink_just_counted else 0,
+                        blinks=1 if counting and res.blink_just_counted else 0,
                     )
                 except Exception:
                     pass
@@ -1884,7 +2040,9 @@ class EyeRhythmEngine:
                     face_found=res.face_found,
                     blink_score=round(res.blink_score, 3),
                     camera_ok=True,
-                    camera_message="live",
+                    camera_message=(
+                        "Checking…" if next_phase == "peek" else "live"
+                    ),
                     is_frontal=res.is_frontal,
                     has_glasses=res.has_glasses,
                     low_light=res.low_light,
@@ -1895,6 +2053,9 @@ class EyeRhythmEngine:
                     off_screen=off_screen,
                     running=True,
                 )
+
+                if next_phase == "sleep":
+                    continue
 
                 # Pace: full fps, or POST_BLINK_SLEEP_S after a blink, or 1 fps.
                 pacer.sleep_for_frame(loop_start)

@@ -6,6 +6,7 @@ Modules
 -------
 * ``main``         – process entry: engine + HTTP server + window
 * ``engine``       – camera loop, blink pipeline, beeps/alerts (business logic)
+* ``camera_idle``  – battery: 1 min no-face → camera off; peek every 2 min
 * ``frame_pacer``  – adaptive FPS (30 face / post-blink rest / 1 no-face)
 * ``server``       – FastAPI REST + WebSocket API for the React UI
 * ``preferences``  – last avatar, window size, Beep/Alert/On top

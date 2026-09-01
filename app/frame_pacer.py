@@ -13,6 +13,9 @@ Policy (from inter-blink research: mean IBI ≈ 3 s)
    then resume full rate for the next blink.
 3. While no face → drop to ``NO_FACE_FPS`` (default 1) until a face returns.
 
+This only slows processing. After a full minute with no face, ``camera_idle``
+releases the webcam (see that module).
+
 Nothing here changes blink counting, screen-time rules, regularity, beeps,
 or the research log — only *when* the engine sleeps between frames.
 

@@ -90,7 +90,7 @@ function initForm() {
       error?.classList.add("is-on");
       if (error) {
         error.textContent =
-          "Checkout for that OS is not connected yet. Paste the Lemon Squeezy URL in config.ts.";
+          "Checkout for that OS is not connected yet. Paste the Dodo Payments URL in config.ts.";
       }
       return;
     }
