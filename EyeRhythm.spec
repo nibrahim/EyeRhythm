@@ -37,6 +37,23 @@ _BLOAT_TOKENS = (
     "/scipy/",
     "\\scipy\\",
     "jaxlib",
+    # Face Landmarker uses models/face_landmarker.task, not these solutions.
+    "/mediapipe/modules/pose_landmark/",
+    "/mediapipe/modules/pose_detection/",
+    "/mediapipe/modules/hand_landmark/",
+    "/mediapipe/modules/palm_detection/",
+    "/mediapipe/modules/iris_landmark/",
+    "/mediapipe/modules/selfie_segmentation/",
+    "/mediapipe/modules/holistic_landmark/",
+    "/mediapipe/modules/objectron/",
+    "/mediapipe/modules/face_detection/",
+    "/mediapipe/modules/face_landmark/",
+    "/mediapipe/model_maker/",
+    "/mediapipe/examples/",
+    "/cv2/data/",
+    "/sentencepiece/",
+    "/mpl-data/sample_data/",
+    "/mpl-data/images/",
 )
 _BLOAT_IMPORTS = frozenset(
     {
@@ -49,6 +66,10 @@ _BLOAT_IMPORTS = frozenset(
         "sklearn",
         "IPython",
         "notebook",
+        "watchfiles",
+        "uvloop",
+        "httptools",
+        "sentencepiece",
     }
 )
 

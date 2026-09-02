@@ -38,6 +38,18 @@ import sys
 import traceback
 from pathlib import Path
 
+# MediaPipe imports matplotlib. Pin a non-GUI backend and a private font
+# cache so first launch does not scan every system font (that can take minutes).
+# Assign (do not setdefault): PyInstaller's mpl runtime hook may already
+# have set MPLCONFIGDIR to a temp folder.
+os.environ["MPLBACKEND"] = "Agg"
+try:
+    _mpl_dir = Path.home() / ".eyerhythm_blinkcounter" / "mpl"
+    _mpl_dir.mkdir(parents=True, exist_ok=True)
+    os.environ["MPLCONFIGDIR"] = str(_mpl_dir)
+except OSError:
+    pass
+
 
 def _data_dir() -> Path:
     """Per-user folder for crash logs and the WebView2 profile."""

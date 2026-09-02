@@ -132,9 +132,45 @@ stamp_macos_camera_usage() {
     xattr -cr "$app" 2>/dev/null || true
 }
 
+slim_macos_bundle() {
+    # Drop unused MediaPipe solutions, OpenCV Haar XML, extra matplotlib
+    # fonts, and uvicorn extras so the DMG stays under Dodo's 100 MB upload cap.
+    local app="$1"
+    local res="$app/Contents/Resources"
+    local fw="$app/Contents/Frameworks"
+    local mp="$res/mediapipe/modules"
+    local d
+    for d in pose_landmark pose_detection hand_landmark palm_detection \
+             iris_landmark selfie_segmentation holistic_landmark objectron \
+             face_detection face_landmark; do
+        rm -rf "$mp/$d"
+    done
+    rm -rf "$res/mediapipe/model_maker" "$res/mediapipe/examples" \
+           "$res/cv2/data" "$fw/sentencepiece" "$fw/uvloop" \
+           "$fw/watchfiles" "$fw/httptools" "$fw/PIL/__dot__dylibs"
+    rm -f "$fw/PIL/_imagingtk.cpython-311-darwin.so" \
+          "$fw/PIL/_avif.cpython-311-darwin.so" \
+          "$fw/PIL/_webp.cpython-311-darwin.so" \
+          "$fw/PIL/_imagingcms.cpython-311-darwin.so"
+    find "$app" -type d -name '*.dist-info' -exec rm -rf {} + 2>/dev/null || true
+    find "$app" -type f -name '*_test.py' -delete
+    local fonts="$res/matplotlib/mpl-data/fonts"
+    if [ -d "$fonts" ]; then
+        find "$fonts" -type f ! -name 'DejaVuSans.ttf' -delete
+        find "$fonts" -type d -empty -delete
+        rm -rf "$res/matplotlib/mpl-data/sample_data" \
+               "$res/matplotlib/mpl-data/images"
+    fi
+    find "$app" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 \
+        | xargs -0 strip -x 2>/dev/null || true
+    codesign --force --deep --sign - "$app" >/dev/null
+    xattr -cr "$app" 2>/dev/null || true
+}
+
 echo
 if [ -d "dist/EyesRhythm.app" ]; then
     stamp_macos_camera_usage "$ROOT/dist/EyesRhythm.app"
+    slim_macos_bundle "$ROOT/dist/EyesRhythm.app"
     echo "SUCCESS:  dist/EyesRhythm.app"
     echo "First open: right-click → Open, then Allow the camera."
     echo

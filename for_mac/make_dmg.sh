@@ -40,75 +40,16 @@ echo "Staging app + Applications shortcut…"
 cp -R "$APP" "$STAGING/EyesRhythm.app"
 ln -s /Applications "$STAGING/Applications"
 
-# Room for icon layout: app on the left, Applications on the right.
-APP_SIZE_MB=$(du -sm "$STAGING" | awk '{print $1}')
-DMG_SIZE_MB=$((APP_SIZE_MB + 40))
-
-echo "Creating writable disk image (${DMG_SIZE_MB} MB)…"
+# HFS+ + LZMA stays under Dodo's 100 MB upload cap. APFS + zlib does not.
+echo "Creating LZMA disk image…"
 hdiutil create \
     -volname "$VOL_NAME" \
     -srcfolder "$STAGING" \
+    -fs HFS+ \
+    -format ULMO \
     -ov \
-    -format UDRW \
-    -size "${DMG_SIZE_MB}m" \
-    "$TMP_DMG" >/dev/null
-
-echo "Mounting to set Finder layout…"
-DEVICE=$(hdiutil attach -readwrite -noverify -noautoopen "$TMP_DMG" \
-    | awk 'NR==1{print $1}')
-MOUNT_DIR="/Volumes/$VOL_NAME"
-# Wait until both icons are visible on the volume.
-for _ in $(seq 1 30); do
-    if [ -e "$MOUNT_DIR/EyesRhythm.app" ] && [ -e "$MOUNT_DIR/Applications" ]; then
-        break
-    fi
-    sleep 0.5
-done
-if [ ! -d "$MOUNT_DIR" ]; then
-    echo "ERROR: could not mount $TMP_DMG"
-    exit 1
-fi
-
-# Position icons: app on the left, Applications on the right.
-# Symlinks are "alias files" to Finder — set positions with a soft retry.
-sleep 1
-osascript <<EOF || true
-tell application "Finder"
-    tell disk "$VOL_NAME"
-        open
-        set current view of container window to icon view
-        set toolbar visible of container window to false
-        set statusbar visible of container window to false
-        set bounds of container window to {200, 120, 760, 480}
-        set theViewOptions to the icon view options of container window
-        set arrangement of theViewOptions to not arranged
-        set icon size of theViewOptions to 96
-        delay 0.5
-        try
-            set position of item "EyesRhythm.app" of container window to {140, 180}
-        end try
-        try
-            set position of item "Applications" of container window to {420, 180}
-        end try
-        update without registering applications
-        delay 1
-        close
-    end tell
-end tell
-EOF
-
-sync
-# Prefer detaching by device node; fall back to volume path.
-if [ -n "$DEVICE" ]; then
-    hdiutil detach "$DEVICE" >/dev/null 2>&1 || hdiutil detach "$MOUNT_DIR" -force >/dev/null
-else
-    hdiutil detach "$MOUNT_DIR" -force >/dev/null
-fi
-
-echo "Compressing to UDZO…"
-hdiutil convert "$TMP_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG_OUT" >/dev/null
-rm -f "$TMP_DMG"
-rm -rf "$STAGING"
+    -o "$DMG_OUT"
+rm -rf "$STAGING" "$TMP_DMG"
 
 # Drop PyInstaller leftovers so dist/ only keeps the shippable DMG
 # (plus windows/ if present). Keep the .app only when KEEP_APP=1.
