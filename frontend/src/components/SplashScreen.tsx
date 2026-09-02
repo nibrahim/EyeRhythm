@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchCameras, savePreferences, selectCamera } from "../api";
 import { setSplashLayout, whenBridgeReady } from "../bridge";
+import { useAppVersion } from "../hooks/useAppVersion";
 import { Logo } from "./Logo";
 
 const SPLASH_LIMIT_MS = 180_000;
@@ -104,6 +105,7 @@ function formatRemain(ms: number): string {
 }
 
 export function SplashScreen({ onDone }: Props) {
+  const version = useAppVersion();
   const [step, setStep] = useState<SplashStep>("loading");
   const [comfort, setComfort] = useState<EyeComfortId | null>(null);
   const [remainingMs, setRemainingMs] = useState(SPLASH_LIMIT_MS);
@@ -255,7 +257,10 @@ export function SplashScreen({ onDone }: Props) {
             <div id="splash-title" className="splash__title">
               EyesRhythm
             </div>
-            <div className="splash__tag">Blink companion</div>
+            <div className="splash__tag">
+              Blink companion
+              {version ? ` · ${version}` : ""}
+            </div>
           </div>
           <div className="splash__timer" aria-live="polite">
             {formatRemain(remainingMs)}

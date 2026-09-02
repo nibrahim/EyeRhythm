@@ -4,6 +4,7 @@ app — desktop shell + local API for EyesRhythm
 
 Modules
 -------
+* ``version``      – product SemVer (1.0.0 for the first public release)
 * ``main``         – process entry: engine + HTTP server + window
 * ``engine``       – camera loop, blink pipeline, beeps/alerts (business logic)
 * ``camera_idle``  – battery: 1 min no-face → camera off; peek every 2 min
@@ -16,3 +17,7 @@ Modules
 The React UI lives in ``frontend/`` and is served from ``frontend/dist`` after build.
 Blink science stays in ``blink_core`` (unchanged).
 """
+
+from app.version import VERSION as __version__
+
+__all__ = ["__version__"]

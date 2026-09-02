@@ -4,7 +4,7 @@ Local HTTP + WebSocket API for the React UI
 
 Serves:
 * Built static frontend (production) or is used with Vite dev proxy
-* GET  /api/health
+* GET  /api/health         — liveness + product version (SemVer)
 * GET  /api/license        — whether this copy must activate
 * POST /api/license/activate — first-run Dodo Payments key + machine id
 * GET  /api/state          — one-shot engine snapshot
@@ -34,6 +34,7 @@ from pydantic import BaseModel, Field
 from app import audit
 from app import license as app_license
 from app import preferences
+from app.version import APP_NAME, VERSION
 
 if TYPE_CHECKING:
     from app.engine import EyeRhythmEngine
@@ -158,7 +159,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     or “please turn Beep on”, and this file forwards that to the engine.
     """
     # Hide the auto-generated API docs — this is a private localhost app.
-    app = FastAPI(title="EyesRhythm", version="2.0.0", docs_url=None, redoc_url=None)
+    app = FastAPI(title=APP_NAME, version=VERSION, docs_url=None, redoc_url=None)
 
     # Vite dev server may call from another port during development.
     app.add_middleware(
@@ -219,8 +220,8 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        """“Is the local server alive?” — used by the UI / installers."""
-        return {"ok": True, "service": "EyesRhythm"}
+        """Liveness plus the product version shown in Settings → About."""
+        return {"ok": True, "service": APP_NAME, "version": VERSION}
 
     @app.get("/alert.mp3")
     def get_alert_mp3():

@@ -115,6 +115,19 @@ export async function fetchQuotes(): Promise<QuotesPayload> {
 }
 
 
+export interface HealthPayload {
+  ok: boolean;
+  service: string;
+  version: string;
+}
+
+/** Product SemVer from the local Python process. */
+export async function fetchHealth(): Promise<HealthPayload> {
+  const res = await fetch("/api/health", { cache: "no-store" });
+  if (!res.ok) throw new Error("health fetch failed");
+  return res.json();
+}
+
 export interface LicenseStatus {
   required: boolean;
   activated: boolean;

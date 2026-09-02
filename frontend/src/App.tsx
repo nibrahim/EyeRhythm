@@ -15,6 +15,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { fetchLicense, fetchPreferences, savePreferences, setToggle, wakeCamera } from "./api";
+import { useAppVersion } from "./hooks/useAppVersion";
 import { LicenseScreen } from "./components/LicenseScreen";
 import {
   measureCompactOuterHeight,
@@ -49,6 +50,7 @@ function asAvatarId(v: unknown): AvatarId {
 export default function App() {
   // Live blink numbers + whether the local engine is connected.
   const { state, connected } = useEngineState();
+  const version = useAppVersion();
   const [avatarId, setAvatarId] = useState<AvatarId>("atlas");
   // Compact = small companion (avatar + buttons). Expanded = full dashboard.
   const [compact, setCompact] = useState(false);
@@ -470,7 +472,9 @@ export default function App() {
               <Logo size={32} />
               <div className="splash__brand">
                 <div className="splash__title">EyesRhythm</div>
-                <div className="splash__tag">Checking this copy…</div>
+                <div className="splash__tag">
+                  Checking this copy{version ? ` · ${version}` : "…"}
+                </div>
               </div>
             </header>
           </div>

@@ -1,11 +1,15 @@
 /**
- * About dock tab: product identity, wellness disclaimer, support contact.
- * Static content — the footer keeps only a one-line pointer to this table.
+ * About dock tab: product identity, version, wellness disclaimer, support.
+ * Static content besides Version, which comes from GET /api/health.
  */
+
+import { useAppVersion } from "../hooks/useAppVersion";
 
 const SUPPORT_EMAIL = "support@eyesrhythm.com";
 
 export function AboutPanel() {
+  const version = useAppVersion();
+
   return (
     <div className="about">
       <table className="about__table">
@@ -13,6 +17,10 @@ export function AboutPanel() {
           <tr>
             <th scope="row">Product</th>
             <td>EyesRhythm — blink rhythm companion</td>
+          </tr>
+          <tr>
+            <th scope="row">Version</th>
+            <td>{version || "—"}</td>
           </tr>
           <tr>
             <th scope="row">Description</th>

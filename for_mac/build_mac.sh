@@ -97,6 +97,26 @@ stamp_macos_camera_usage() {
     else
         "$buddy" -c "Add :CFBundleIdentifier string com.eyerhythm.app" "$plist"
     fi
+    local ver
+    ver="$(python3 -c 'from app.version import VERSION; print(VERSION)' 2>/dev/null || true)"
+    if [ -n "$ver" ]; then
+        if "$buddy" -c "Print :CFBundleShortVersionString" "$plist" >/dev/null 2>&1; then
+            "$buddy" -c "Set :CFBundleShortVersionString $ver" "$plist"
+        else
+            "$buddy" -c "Add :CFBundleShortVersionString string $ver" "$plist"
+        fi
+        if "$buddy" -c "Print :CFBundleVersion" "$plist" >/dev/null 2>&1; then
+            "$buddy" -c "Set :CFBundleVersion $ver" "$plist"
+        else
+            "$buddy" -c "Add :CFBundleVersion string $ver" "$plist"
+        fi
+        local info="EyesRhythm $ver"
+        if "$buddy" -c "Print :CFBundleGetInfoString" "$plist" >/dev/null 2>&1; then
+            "$buddy" -c "Set :CFBundleGetInfoString $info" "$plist"
+        else
+            "$buddy" -c "Add :CFBundleGetInfoString string $info" "$plist"
+        fi
+    fi
     local icns="$ROOT/assets/EyeRhythm.icns"
     if [ -f "$icns" ]; then
         mkdir -p "$app/Contents/Resources"

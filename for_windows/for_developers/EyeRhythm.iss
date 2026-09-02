@@ -6,6 +6,7 @@
 ; Same freeze as the portable zip (dist\EyesRhythm).
 
 #define MyAppName "EyesRhythm"
+; Keep in lockstep with app/version.py (tests/test_version.py checks this).
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "EyesRhythm Contributors"
 #define MyAppURL "https://github.com/pranaycv/EyeRhythm"
@@ -15,7 +16,13 @@
 AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+VersionInfoVersion={#MyAppVersion}
+VersionInfoProductVersion={#MyAppVersion}
+VersionInfoProductName={#MyAppName}
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription={#MyAppName}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}

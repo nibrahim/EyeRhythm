@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { activateLicense } from "../api";
 import { setSplashLayout, whenBridgeReady } from "../bridge";
+import { useAppVersion } from "../hooks/useAppVersion";
 import { Logo } from "./Logo";
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function LicenseScreen({ platformLabel, onActivated }: Props) {
+  const version = useAppVersion();
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -67,7 +69,10 @@ export function LicenseScreen({ platformLabel, onActivated }: Props) {
             <div id="license-title" className="splash__title">
               EyesRhythm
             </div>
-            <div className="splash__tag">Activate this copy</div>
+            <div className="splash__tag">
+              Activate this copy
+              {version ? ` · ${version}` : ""}
+            </div>
           </div>
         </header>
 

@@ -20,6 +20,8 @@ from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_all, collect_submodules
 
+from app.version import APP_NAME, VERSION, version_tuple
+
 # Dock / taskbar icon: .icns on Mac, .ico on Windows.
 _ICON = Path("assets") / ("EyeRhythm.icns" if sys.platform == "darwin" else "EyeRhythm.ico")
 ICON = str(_ICON) if _ICON.is_file() else None
@@ -174,6 +176,52 @@ a.binaries = _filter_bloat(a.binaries)
 a.datas = _filter_bloat(a.datas)
 pyz = PYZ(a.pure)
 
+# Windows Properties → Details (File version / Product version). Unused on macOS.
+WIN_VERSION = None
+if sys.platform == "win32":
+    from PyInstaller.utils.win32.versioninfo import (
+        FixedFileInfo,
+        StringFileInfo,
+        StringStruct,
+        StringTable,
+        VarFileInfo,
+        VarStruct,
+        VSVersionInfo,
+    )
+
+    _vt = version_tuple()
+    WIN_VERSION = VSVersionInfo(
+        ffi=FixedFileInfo(
+            filevers=_vt,
+            prodvers=_vt,
+            mask=0x3F,
+            flags=0x0,
+            OS=0x40004,
+            fileType=0x1,
+            subtype=0x0,
+            date=(0, 0),
+        ),
+        kids=[
+            StringFileInfo(
+                [
+                    StringTable(
+                        "040904B0",
+                        [
+                            StringStruct("CompanyName", APP_NAME),
+                            StringStruct("FileDescription", APP_NAME),
+                            StringStruct("FileVersion", VERSION),
+                            StringStruct("InternalName", APP_NAME),
+                            StringStruct("OriginalFilename", "EyesRhythm.exe"),
+                            StringStruct("ProductName", APP_NAME),
+                            StringStruct("ProductVersion", VERSION),
+                        ],
+                    )
+                ]
+            ),
+            VarFileInfo([VarStruct("Translation", [1033, 1200])]),
+        ],
+    )
+
 # The actual executable (no console window — this is a desktop app).
 # UPX is off: compressing OpenCV / MediaPipe DLLs is a known crash source.
 exe = EXE(
@@ -193,6 +241,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=ICON,
+    version=WIN_VERSION,
 )
 # Fold the exe + libraries + data files into one folder (Windows) /
 # one .app bundle (macOS).
@@ -214,9 +263,11 @@ if sys.platform == "darwin":
         icon=ICON,
         bundle_identifier='com.eyerhythm.app',
         info_plist={
-            'CFBundleDisplayName': 'EyesRhythm',
-            'CFBundleName': 'EyesRhythm',
-            'CFBundleShortVersionString': '1.0.0',
+            'CFBundleDisplayName': APP_NAME,
+            'CFBundleName': APP_NAME,
+            'CFBundleShortVersionString': VERSION,
+            'CFBundleVersion': VERSION,
+            'CFBundleGetInfoString': f'{APP_NAME} {VERSION}',
             'NSHighResolutionCapable': True,
             # Required: without this, macOS SIGABRTs the app on the first
             # OpenCV camera open (Retry / Ignore / Report crash dialog).
