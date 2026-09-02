@@ -29,7 +29,7 @@ if str(ROOT) not in sys.path:
 
 from app import license as app_license  # noqa: E402
 from app import preferences  # noqa: E402
-from app.engine import EyeRhythmEngine, MODEL_PATH  # noqa: E402
+from app.engine import EyeRhythmEngine, MODEL_PATH, describe_cameras  # noqa: E402
 from app.server import run_server, UI_DIST  # noqa: E402
 
 # The dashboard talks to this machine only (never the internet).
@@ -104,7 +104,9 @@ class _WindowApi:
                 )
             else:
                 target_h = preferences.DEFAULT_HEIGHT
-            window.resize(target_w, target_h)
+                if fit_h is not None:
+                    target_h = max(target_h, fit_h)
+            window.resize(target_w, min(int(target_h), 1400))
         except Exception as exc:
             _log(f"compact layout toggle failed: {exc}")
 
@@ -120,9 +122,9 @@ class _WindowApi:
         except Exception as exc:
             _log(f"splash layout failed: {exc}")
 
-    def set_dock_layout(self, docked: bool) -> None:
+    def set_dock_layout(self, docked: bool, height=None) -> None:
         """
-        Dock → 2× default GUI width at default height (More).
+        Dock → 2× default GUI width; height grows if the left column needs it.
         Undock → default GUI width and height.
         """
         window = self._window
@@ -136,12 +138,22 @@ class _WindowApi:
         self._dock_active = want
         if window is None:
             return
+        fit_h = None
+        if height is not None:
+            try:
+                fit_h = int(round(float(height)))
+            except (TypeError, ValueError):
+                fit_h = None
         try:
             if want:
                 w, h = preferences.docked_gui_size()
+                if fit_h is not None:
+                    h = max(h, fit_h)
             else:
                 w, h = preferences.default_gui_size()
-            window.resize(w, h)
+                if fit_h is not None:
+                    h = max(h, fit_h)
+            window.resize(w, min(int(h), 1400))
         except Exception as exc:
             _log(f"dock layout failed: {exc}")
 
@@ -396,6 +408,8 @@ def _open_webview(
             return
         if app_license.is_required() and not app_license.is_activated():
             return
+        if engine.is_awaiting_camera_pick():
+            return
         try:
             engine.start()
         except Exception as exc:
@@ -423,8 +437,8 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(
         description="EyesRhythm — blink rhythm companion (React UI)")
-    parser.add_argument("--camera", type=int, default=0,
-                        help="webcam index (default 0)")
+    parser.add_argument("--camera", type=int, default=None,
+                        help="webcam index (skip picker; default: ask if several)")
     parser.add_argument("--host", default=DEFAULT_HOST,
                         help="local API host (default 127.0.0.1)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT,
@@ -463,16 +477,47 @@ def main() -> None:
     port = args.port
     try:
         if not _port_free(args.host, port):
+            _log(
+                f"port {port} is already in use — another EyesRhythm window "
+                f"may still be running. Quit every copy, then run again."
+            )
             port = _find_port(args.host, port)
-            _log(f"port {args.port} busy — using {port}")
+            _log(f"using port {port} instead")
     except RuntimeError as exc:
         _fatal(str(exc))
 
     # The engine owns the webcam and all blink numbers. --no-engine is a
     # developer shortcut: show the dashboard without opening the camera.
-    # Camera starts after the window is up (see _open_webview), so a failed
-    # desktop window no longer looks like a camera flash then a silent exit.
-    engine = EyeRhythmEngine(camera_index=args.camera)
+    # When several webcams exist, the splash screen asks which to use before
+    # the loop starts (unless --camera is passed on the command line).
+    prefs = preferences.load()
+    cameras = describe_cameras()
+    avail = [int(c["index"]) for c in cameras]
+    try:
+        saved = int(prefs.get("camera_index", -1))
+    except (TypeError, ValueError):
+        saved = -1
+
+    pick_required = len(avail) > 1 and args.camera is None
+    if args.camera is not None:
+        initial = int(args.camera)
+        pick_required = False
+    elif len(avail) == 1:
+        initial = avail[0]
+        pick_required = False
+    elif saved in avail:
+        initial = saved
+    elif avail:
+        initial = avail[0]
+    else:
+        initial = 0
+
+    engine = EyeRhythmEngine(camera_index=initial)
+    if pick_required:
+        engine.set_awaiting_camera_pick(True)
+        _log(f"multiple cameras detected {avail} — pick one in the app")
+    elif avail:
+        preferences.save(camera_index=initial)
 
     # Local HTTP + WebSocket for the React UI (same machine only).
     run_server(engine, host=args.host, port=port)
@@ -508,8 +553,14 @@ def main() -> None:
         if args.no_engine:
             return
         if app_license.is_required() and not app_license.is_activated():
+            _log("camera waiting — activate this copy in the app first")
             return
-        engine.start()
+        if engine.is_awaiting_camera_pick():
+            return
+        try:
+            engine.start()
+        except Exception as exc:
+            _log(f"engine start failed: {exc}")
 
     try:
         if use_browser:
@@ -520,6 +571,11 @@ def main() -> None:
             # On Windows a freeze can miss WebView2 / pythonnet; keep the
             # dashboard reachable in the system browser instead of dying.
             try:
+                # macOS/Linux: do not wait for pywebview's first callback —
+                # if it is delayed the dashboard looks alive while the camera
+                # never opens. Windows still defers to _boot (WebView2 flash).
+                if sys.platform != "win32":
+                    _start_engine_if_licensed()
                 _open_webview(url, engine, start_engine=not args.no_engine)
             except Exception as exc:
                 _log(f"desktop window failed ({exc}) — falling back to browser")

@@ -17,7 +17,7 @@ export const site = {
   contactEmail: "",
   cta: "Get a copy",
   /** Hold the public site to a single coming-soon screen. */
-  comingSoon: false,
+  comingSoon: true,
   /** Keep false — installers go out from Dodo Payments, not this origin. */
   downloadsOpen: false,
   price: {

@@ -25,7 +25,6 @@ export function ControlsBar({ state }: Props) {
   const [practicePulse, setPracticePulse] = useState(false);
 
   const lastBlinkRef = useRef(0);
-  const lastAlertRef = useRef(0);
 
   // Blink detected → orange on Beep (if on) and Practice (if on).
   useEffect(() => {
@@ -45,18 +44,14 @@ export function ControlsBar({ state }: Props) {
     }
   }, [state.last_blink_at, state.beep, state.practice]);
 
-  // Alert beep → red on Alert (if on).
+  // Sound-alert cue → red on Alert chip.
   useEffect(() => {
-    const t = state.last_alert_beep_at ?? 0;
-    if (t > 0 && t !== lastAlertRef.current) {
-      lastAlertRef.current = t;
-      if (state.alert) {
-        setAlertPulse(true);
-        const id = window.setTimeout(() => setAlertPulse(false), 320);
-        return () => window.clearTimeout(id);
-      }
+    if (state.alert_mode === "sound" && state.alert_active) {
+      setAlertPulse(true);
+      return;
     }
-  }, [state.last_alert_beep_at, state.alert]);
+    setAlertPulse(false);
+  }, [state.alert_mode, state.alert_active]);
 
   const flip = async (name: ToggleName) => {
     if (busy) return;
@@ -88,13 +83,16 @@ export function ControlsBar({ state }: Props) {
         title="Beep on each counted blink"
       />
       <ToggleChip
-        label="Alert"
+        label={state.alert_mode === "sound" ? "Sound" : "Visual"}
         hint="A"
-        active={state.alert}
-        pulse={alertPulse ? "red" : null}
+        active
+        extraClass={
+          state.alert_mode === "sound" ? "toggle-chip--sound" : "toggle-chip--visual"
+        }
+        pulse={alertPulse ? "red" : state.alert_active ? "orange" : null}
         onClick={() => void flip("alert")}
         disabled={busy === "alert"}
-        title={`Alert after ORI stays below ${Math.round(state.ori_threshold ?? 50)} for ${Math.round(state.alert_low_minutes ?? 3)} minutes in total over the last 5 minutes`}
+        title={`Alert is always on. Click to switch Visual (quiet orange pulse) or Sound (alert.mp3 each minute) after ORI stays below ${Math.round(state.ori_threshold ?? 50)} for ${Math.round(state.alert_low_minutes ?? 3)} min in the last 5.`}
       />
       <ToggleChip
         label="Practice"
@@ -115,6 +113,7 @@ function ToggleChip({
   hint,
   active,
   pulse,
+  extraClass,
   onClick,
   disabled,
   title,
@@ -123,6 +122,7 @@ function ToggleChip({
   hint: string;
   active: boolean;
   pulse?: "orange" | "red" | null;
+  extraClass?: string;
   onClick: () => void;
   disabled?: boolean;
   title?: string;
@@ -137,7 +137,7 @@ function ToggleChip({
   return (
     <button
       type="button"
-      className={`toggle-chip ${active ? "active" : ""} ${pulseClass}`}
+      className={`toggle-chip ${active ? "active" : ""} ${pulseClass} ${extraClass ?? ""}`}
       onClick={onClick}
       disabled={disabled}
       title={title ?? `${label} (${hint})`}

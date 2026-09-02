@@ -6,22 +6,17 @@
 import { useEffect, useState } from "react";
 import { fetchReport, fetchReportIndex, type ReportPayload } from "../api";
 import { ReportChart } from "./ReportChart";
-
-type Kind = "daily" | "weekly" | "monthly";
-
-function todayISO(): string {
-  const d = new Date();
-  const z = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
-}
-
-function monthValue(isoDate: string): string {
-  return isoDate.slice(0, 7);
-}
+import {
+  ReportPeriodPicker,
+  todayISO,
+  type ReportKind,
+} from "./ReportPeriodPicker";
 
 export function ReportsPanel() {
-  const [kind, setKind] = useState<Kind>("daily");
+  const [kind, setKind] = useState<ReportKind>("daily");
   const [date, setDate] = useState(todayISO());
+  const [today, setToday] = useState(todayISO());
+  const [daysWithData, setDaysWithData] = useState<string[]>([]);
   const [report, setReport] = useState<ReportPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +24,12 @@ export function ReportsPanel() {
     let cancelled = false;
     void fetchReportIndex()
       .then((idx) => {
-        if (!cancelled && idx.today) setDate(idx.today);
+        if (cancelled) return;
+        if (idx.today) {
+          setToday(idx.today);
+          setDate(idx.today);
+        }
+        if (Array.isArray(idx.days)) setDaysWithData(idx.days);
       })
       .catch(() => {
         /* keep local today */
@@ -65,13 +65,6 @@ export function ReportsPanel() {
     };
   }, [kind, date]);
 
-  const periodLabel =
-    kind === "daily"
-      ? date
-      : kind === "weekly" && report?.week_start
-        ? `${report.week_start} – ${report.week_end}`
-        : monthValue(date);
-
   return (
     <div className="reports">
       <div className="reports__kinds" role="tablist" aria-label="Report period">
@@ -87,33 +80,19 @@ export function ReportsPanel() {
         ))}
       </div>
 
-      <label className="reports__date">
-        <span>{kind === "monthly" ? "Month" : kind === "weekly" ? "Week of" : "Day"}</span>
-        {kind === "monthly" ? (
-          <input
-            type="month"
-            value={monthValue(date)}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v) setDate(`${v}-01`);
-            }}
-          />
-        ) : (
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => {
-              if (e.target.value) setDate(e.target.value);
-            }}
-          />
-        )}
-      </label>
+      <ReportPeriodPicker
+        kind={kind}
+        date={date}
+        today={today}
+        daysWithData={daysWithData}
+        onChange={setDate}
+      />
 
       <p className="reports__caption">
         {kind === "daily" && "5-minute mean ORI across 24 hours"}
         {kind === "weekly" && "Daily mean ORI, Monday–Sunday"}
         {kind === "monthly" && "Daily mean ORI for the month"}
-        {periodLabel ? ` · ${periodLabel}` : ""}
+        {" · Green dotted line is the trained-eye target (75)"}
       </p>
 
       {error ? <p className="settings__help">{error}</p> : null}

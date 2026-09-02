@@ -1,14 +1,18 @@
 /**
- * Live Settings dock: ORI threshold, alert duration, writing angle, blink sensitivity.
+ * Live Settings dock: Alert group (ORI + poor-rhythm minutes) and
+ * Look & blink group (writing / turn angle, blink sensitivity).
  * Changes apply immediately; each committed change is written to audit.json.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchAudit,
+  fetchCameras,
   fetchSettings,
   saveSettings,
+  selectCamera,
   type AuditEntry,
+  type CameraOption,
   type LiveSettings,
 } from "../api";
 
@@ -27,6 +31,9 @@ export function SettingsPanel() {
   const pendingRef = useRef<Partial<LiveSettings>>({});
 
   const [restoring, setRestoring] = useState(false);
+  const [cameras, setCameras] = useState<CameraOption[]>([]);
+  const [cameraIndex, setCameraIndex] = useState<number | null>(null);
+  const [cameraBusy, setCameraBusy] = useState(false);
 
   const reloadAudit = useCallback(() => {
     void fetchAudit(8)
@@ -46,6 +53,16 @@ export function SettingsPanel() {
         /* defaults */
       });
     reloadAudit();
+    void fetchCameras()
+      .then((payload) => {
+        if (!cancelled) {
+          setCameras(payload.cameras);
+          setCameraIndex(payload.selected);
+        }
+      })
+      .catch(() => {
+        /* no camera list */
+      });
     return () => {
       cancelled = true;
       if (timerRef.current != null) window.clearTimeout(timerRef.current);
@@ -95,6 +112,17 @@ export function SettingsPanel() {
       .finally(() => setRestoring(false));
   };
 
+  const onCameraChange = (index: number) => {
+    if (cameraBusy) return;
+    setCameraBusy(true);
+    setCameraIndex(index);
+    void selectCamera(index)
+      .catch(() => {
+        /* keep last selection */
+      })
+      .finally(() => setCameraBusy(false));
+  };
+
   return (
     <div className="settings">
       <div className="settings__intro">
@@ -111,117 +139,144 @@ export function SettingsPanel() {
           {restoring ? "Restoring…" : "Restore defaults"}
         </button>
       </div>
-      <label className="settings__field">
-        <div className="settings__row">
-          <span className="settings__name">ORI threshold</span>
-          <span className="settings__value">{Math.round(values.ori_threshold)}</span>
-        </div>
-        <input
-          type="range"
-          min={20}
-          max={80}
-          step={1}
-          value={values.ori_threshold}
-          onChange={(e) => setNum("ori_threshold", Number(e.target.value))}
-        />
-        <p className="settings__help">
-          Low-ORI line for Alert and Trace (default 50). The red dotted Trace
-          line moves with this value.
-        </p>
-      </label>
+      {cameras.length > 1 ? (
+        <label className="settings__field">
+          <div className="settings__row">
+            <span className="settings__name">Camera</span>
+          </div>
+          <select
+            className="settings__select"
+            value={cameraIndex ?? cameras[0]?.index ?? 0}
+            disabled={cameraBusy}
+            onChange={(e) => onCameraChange(Number(e.target.value))}
+          >
+            {cameras.map((cam) => (
+              <option key={cam.index} value={cam.index}>
+                {cam.label}
+              </option>
+            ))}
+          </select>
+          <p className="settings__help">
+            Switch between built-in and external webcams. The engine restarts
+            when you change this.
+          </p>
+        </label>
+      ) : null}
+      <section className="settings__group" aria-labelledby="settings-alert">
+        <h3 id="settings-alert" className="settings__group-title">
+          Alert
+        </h3>
+        <label className="settings__field">
+          <div className="settings__row">
+            <span className="settings__name">ORI threshold</span>
+            <span className="settings__value">{Math.round(values.ori_threshold)}</span>
+          </div>
+          <input
+            type="range"
+            min={20}
+            max={80}
+            step={1}
+            value={values.ori_threshold}
+            onChange={(e) => setNum("ori_threshold", Number(e.target.value))}
+          />
+          <p className="settings__help">
+            Score that counts as poor rhythm (default 50). Alert uses this
+            line; the red dotted Trace line moves with it.
+          </p>
+        </label>
+        <label className="settings__field">
+          <div className="settings__row">
+            <span className="settings__name">Poor-rhythm minutes</span>
+            <span className="settings__value">
+              {Math.round(values.alert_low_minutes)} min
+            </span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={5}
+            step={1}
+            value={values.alert_low_minutes}
+            onChange={(e) => setNum("alert_low_minutes", Number(e.target.value))}
+          />
+          <p className="settings__help">
+            How many minutes of low ORI in the last 5 must accumulate before
+            Alert beeps (default 3). This is not how long the sound stays on.
+            1 beeps sooner; 5 waits for almost the whole Trace window.
+          </p>
+        </label>
+      </section>
 
-      <label className="settings__field">
-        <div className="settings__row">
-          <span className="settings__name">Alert duration</span>
-          <span className="settings__value">
-            {Math.round(values.alert_low_minutes)} min
-          </span>
-        </div>
-        <input
-          type="range"
-          min={1}
-          max={5}
-          step={1}
-          value={values.alert_low_minutes}
-          onChange={(e) => setNum("alert_low_minutes", Number(e.target.value))}
-        />
-        <p className="settings__help">
-          How long ORI must stay below the threshold, in total, during the last
-          5 minutes before Alert beeps (default 3). The 5-minute window does not
-          change. 1 is sooner; 5 waits for almost the whole Trace window.
-        </p>
-      </label>
-
-      <label className="settings__field">
-        <div className="settings__row">
-          <span className="settings__name">Writing angle</span>
-          <span className="settings__value">
-            {Math.round(values.writing_angle_deg)}°
-          </span>
-        </div>
-        <input
-          type="range"
-          min={10}
-          max={40}
-          step={1}
-          value={values.writing_angle_deg}
-          onChange={(e) => setNum("writing_angle_deg", Number(e.target.value))}
-        />
-        <p className="settings__help">
-          Downward look (bottom / left-bottom / right-bottom) treated as
-          off-screen. At the default 20°, a glance of 20° or more pauses blink
-          counting, regularity, and Alert, and cuts Trace. Lower (10–15°) is
-          stricter for close keyboard work; higher (30–40°) keeps counting while
-          you look at notes.
-        </p>
-      </label>
-
-      <label className="settings__field">
-        <div className="settings__row">
-          <span className="settings__name">Turn angle</span>
-          <span className="settings__value">
-            {Math.round(values.turn_angle_deg)}°
-          </span>
-        </div>
-        <input
-          type="range"
-          min={20}
-          max={80}
-          step={1}
-          value={values.turn_angle_deg}
-          onChange={(e) => setNum("turn_angle_deg", Number(e.target.value))}
-        />
-        <p className="settings__help">
-          Left or right look treated as off-screen. At the default 50°, turning
-          past 50° yaw pauses blink counting, regularity, and Alert, and cuts
-          Trace — the same as looking down past the writing angle. Lower is
-          stricter (a smaller head turn counts as away); higher allows a wider
-          side glance.
-        </p>
-      </label>
-
-      <label className="settings__field">
-        <div className="settings__row">
-          <span className="settings__name">Blink sensitivity</span>
-          <span className="settings__value">
-            {values.close_delta.toFixed(2)}
-          </span>
-        </div>
-        <input
-          type="range"
-          min={0.1}
-          max={0.3}
-          step={0.01}
-          value={values.close_delta}
-          onChange={(e) => setNum("close_delta", Number(e.target.value))}
-        />
-        <p className="settings__help">
-          How far the eyes must close above the open-eye baseline before a
-          blink counts. Lower catches weaker or incomplete blinks (more
-          sensitive). Higher needs a clearer closure (fewer false counts; may
-          miss soft blinks or glasses).
-        </p>
-      </label>
+      <section className="settings__group" aria-labelledby="settings-look">
+        <h3 id="settings-look" className="settings__group-title">
+          Look &amp; blink
+        </h3>
+        <label className="settings__field">
+          <div className="settings__row">
+            <span className="settings__name">Writing angle</span>
+            <span className="settings__value">
+              {Math.round(values.writing_angle_deg)}°
+            </span>
+          </div>
+          <input
+            type="range"
+            min={10}
+            max={40}
+            step={1}
+            value={values.writing_angle_deg}
+            onChange={(e) => setNum("writing_angle_deg", Number(e.target.value))}
+          />
+          <p className="settings__help">
+            Downward look treated as off-screen. At the default 20°, a glance
+            of 20° or more pauses blink counting, regularity, and Alert, and
+            cuts Trace. Lower (10–15°) is stricter for close keyboard work;
+            higher (30–40°) keeps counting while you look at notes.
+          </p>
+        </label>
+        <label className="settings__field">
+          <div className="settings__row">
+            <span className="settings__name">Turn angle</span>
+            <span className="settings__value">
+              {Math.round(values.turn_angle_deg)}°
+            </span>
+          </div>
+          <input
+            type="range"
+            min={20}
+            max={80}
+            step={1}
+            value={values.turn_angle_deg}
+            onChange={(e) => setNum("turn_angle_deg", Number(e.target.value))}
+          />
+          <p className="settings__help">
+            Left or right look treated as off-screen. At the default 50°,
+            turning past 50° pauses counting and Alert, and cuts Trace. Lower
+            is stricter; higher allows a wider side glance.
+          </p>
+        </label>
+        <label className="settings__field">
+          <div className="settings__row">
+            <span className="settings__name">Blink sensitivity</span>
+            <span className="settings__value">
+              {values.close_delta.toFixed(2)}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0.1}
+            max={0.3}
+            step={0.01}
+            value={values.close_delta}
+            onChange={(e) => setNum("close_delta", Number(e.target.value))}
+          />
+          <p className="settings__help">
+            How far the eyes must close above the open-eye baseline before a
+            blink counts. Lower catches weaker or incomplete blinks. Higher
+            needs a clearer closure (fewer false counts; may miss soft blinks
+            or glasses).
+          </p>
+        </label>
+      </section>
 
       <section className="settings__audit" aria-label="Settings audit log">
         <div className="settings__name">Recent changes</div>

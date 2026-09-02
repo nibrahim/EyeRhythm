@@ -17,8 +17,10 @@ The GUI is intentionally not here — only numbers, flags, and optional JPEG fra
 from __future__ import annotations
 
 import base64
+import json
 import math
 import platform
+import subprocess
 import sys
 import threading
 import time
@@ -81,6 +83,8 @@ ALERT_TREND_WINDOW_S = 300.0
 ALERT_LOW_DURATION_S = 180.0
 # Do not store a sample more often than this (keeps the deque small).
 ALERT_TREND_SAMPLE_S = 1.0
+ALERT_MODES = ("visual", "sound")
+ALERT_MODE_DEFAULT = "visual"
 
 # Looking down this far (bottom / left-bottom / right-bottom) is off-screen.
 # Pitch is negative when looking down. Change this one number to retune.
@@ -225,6 +229,75 @@ def _frame_is_black(frame) -> bool:
     return frame is None or float(frame.mean()) < 2.0
 
 
+# Ignore Continuity / parked cameras that open but only return a dark static frame.
+MIN_USABLE_FRAME_MEAN = 12.0
+MIN_USABLE_FRAME_STD = 6.0
+
+
+def _frame_is_usable(frame) -> bool:
+    """True when the frame looks like a live camera, not a dead virtual device."""
+    if frame is None or _frame_is_black(frame):
+        return False
+    try:
+        mean = float(frame.mean())
+        std = float(frame.std())
+    except (TypeError, ValueError):
+        return False
+    return mean >= MIN_USABLE_FRAME_MEAN and std >= MIN_USABLE_FRAME_STD
+
+
+def _is_mobile_camera_name(name: str) -> bool:
+    """True for phone/tablet cameras and phone-as-webcam apps."""
+    lowered = str(name or "").strip().lower()
+    if not lowered:
+        return False
+    markers = (
+        "iphone",
+        "ipad",
+        "ipod",
+        "continuity",
+        "ios device",
+        "apple mobile",
+        "android",
+        "galaxy",
+        "pixel",
+        "phone camera",
+        "mobile camera",
+        "droidcam",
+        "epoccam",
+        "iriun",
+        "camo studio",
+        "camo camera",
+    )
+    return any(m in lowered for m in markers)
+
+
+def _is_mobile_camera_model(model_id: str) -> bool:
+    """True for Continuity Camera hardware ids (iPhone14,2 / iPad13,1 …)."""
+    mid = str(model_id or "").strip().lower()
+    if not mid:
+        return False
+    return mid.startswith(("iphone", "ipad", "ipod"))
+
+
+def _is_desk_camera(name: str, model_id: str = "") -> bool:
+    """
+    True only for a Mac built-in camera or a USB webcam on the computer.
+
+    Phone / iPad Continuity cameras and phone-as-webcam apps are excluded.
+    """
+    if _is_mobile_camera_name(name) or _is_mobile_camera_model(model_id):
+        return False
+
+    mid = str(model_id or "").strip()
+    if platform.system() == "Darwin" and mid:
+        # macOS hardware id from system_profiler when available.
+        return mid.lower().startswith("uvc camera")
+
+    # Name-only path (AVFoundation / Windows): allow if not mobile.
+    return True
+
+
 def _release_camera(cap: cv2.VideoCapture | None) -> None:
     """Politely close a webcam handle. Safe to call with None."""
     if cap is None:
@@ -313,7 +386,7 @@ def open_camera(index: int, *, quiet: bool = False) -> cv2.VideoCapture | None:
         actual_w, actual_h = w, h
         for _ in range(15):
             ok, frame = cap.read()
-            if ok and not _frame_is_black(frame):
+            if ok and _frame_is_usable(frame):
                 good = True
                 actual_h, actual_w = frame.shape[:2]
                 break
@@ -333,6 +406,251 @@ def open_camera(index: int, *, quiet: bool = False) -> cv2.VideoCapture | None:
         _release_camera(cap)
 
     return None
+
+
+def _capture_backend() -> int:
+    """OpenCV backend that matches how we enumerate cameras on this OS."""
+    system = platform.system()
+    if system == "Darwin":
+        return cv2.CAP_AVFOUNDATION
+    if system == "Windows":
+        return cv2.CAP_DSHOW
+    return cv2.CAP_ANY
+
+
+def _opencv_avfoundation_order(
+    devices: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    """
+    Match OpenCV's AVFoundation backend.
+
+    OpenCV concatenates video + muxed devices, then sorts by uniqueID
+    (NSString compare) so index 0 is stable. Listing order from
+    ``devicesWithMediaType:`` is *not* OpenCV order — using it labels
+    FaceTime as the USB webcam and vice versa.
+    """
+    return sorted(devices, key=lambda d: str(d.get("unique_id") or ""))
+
+
+def _macos_profiler_camera_devices() -> list[dict[str, str]]:
+    """system_profiler names (slow; order does not match OpenCV)."""
+    try:
+        raw = subprocess.check_output(
+            ["system_profiler", "SPCameraDataType", "-json"],
+            text=True,
+            timeout=8,
+        )
+        data = json.loads(raw)
+        out: list[dict[str, str]] = []
+        for item in data.get("SPCameraDataType") or []:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("_name") or "").strip()
+            if name:
+                out.append({
+                    "name": name,
+                    "model_id": str(item.get("spcamera_model-id") or "").strip(),
+                    "unique_id": "",
+                })
+        return out
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError):
+        return []
+
+
+def _avfoundation_capture_devices() -> list[object]:
+    """
+    Raw AVCaptureDevice objects: video first, then muxed (OpenCV's concat).
+
+    ``pyobjc-framework-AVFoundation`` is not a dependency, so load the
+    system framework through objc / Cocoa when the dedicated module is
+    missing. Media types are the four-char codes AVMediaTypeVideo /
+    AVMediaTypeMuxed ("vide" / "muxx").
+    """
+    device_cls = None
+    video_type: object = "vide"
+    muxed_type: object = "muxx"
+    try:
+        import AVFoundation  # type: ignore
+
+        device_cls = AVFoundation.AVCaptureDevice
+        video_type = AVFoundation.AVMediaTypeVideo
+        muxed_type = AVFoundation.AVMediaTypeMuxed
+    except Exception:
+        try:
+            import objc
+            from Foundation import NSBundle
+
+            bundle = NSBundle.bundleWithPath_(
+                "/System/Library/Frameworks/AVFoundation.framework"
+            )
+            if bundle is not None:
+                bundle.load()
+            device_cls = objc.lookUpClass("AVCaptureDevice")
+        except Exception:
+            device_cls = None
+    if device_cls is None:
+        return []
+    try:
+        video = device_cls.devicesWithMediaType_(video_type) or []
+        muxed = device_cls.devicesWithMediaType_(muxed_type) or []
+        return list(video) + list(muxed)
+    except Exception:
+        return []
+
+
+def _macos_avfoundation_camera_devices() -> list[dict[str, str]]:
+    """
+    macOS cameras in the same order OpenCV uses for CAP_AVFOUNDATION indices.
+    """
+    out: list[dict[str, str]] = []
+    for dev in _avfoundation_capture_devices():
+        try:
+            name = str(dev.localizedName()).strip()
+        except Exception:
+            name = ""
+        if not name:
+            continue
+        try:
+            uid = str(dev.uniqueID()).strip()
+        except Exception:
+            uid = ""
+        out.append({
+            "name": name,
+            "model_id": "",
+            "unique_id": uid,
+        })
+    if not out:
+        return []
+    return _opencv_avfoundation_order(out)
+
+
+def _macos_camera_devices() -> list[dict[str, str]]:
+    """
+    macOS cameras in OpenCV capture-index order.
+
+    Prefers AVFoundation (uniqueID-sorted, same as OpenCV). Falls back to
+    system_profiler only when AVFoundation is unavailable.
+    """
+    av = _macos_avfoundation_camera_devices()
+    if av:
+        return av
+    return _macos_profiler_camera_devices()
+
+
+def _windows_camera_devices() -> list[dict[str, str]]:
+    """Windows cameras in PnP enumeration order (DirectShow index order)."""
+    try:
+        script = (
+            "Get-PnpDevice -Class Camera -Status OK | "
+            "ForEach-Object { $_.FriendlyName }"
+        )
+        raw = subprocess.check_output(
+            ["powershell", "-NoProfile", "-Command", script],
+            text=True,
+            timeout=12,
+            errors="replace",
+        )
+        names = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+        return [{"name": name, "model_id": ""} for name in names]
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return []
+
+
+def _camera_devices() -> list[dict[str, str]]:
+    """
+    Cameras in OpenCV capture-index order.
+
+    List position ``i`` is the OpenCV capture index on this machine.
+    Each entry: ``{"name": str, "model_id": str, "unique_id": str}``.
+    """
+    system = platform.system()
+    if system == "Darwin":
+        return _macos_camera_devices()
+    if system == "Windows":
+        return _windows_camera_devices()
+    return []
+
+
+def _probe_camera_index(
+    index: int,
+    backend: int,
+) -> tuple[bool, int, int, float, float]:
+    """Open briefly; return usable flag and width, height, mean, std."""
+    cap = cv2.VideoCapture(index, backend)
+    if not cap.isOpened():
+        _release_camera(cap)
+        return False, 0, 0, 0.0, 0.0
+    ok, frame = cap.read()
+    _release_camera(cap)
+    if not ok or not _frame_is_usable(frame):
+        return False, 0, 0, 0.0, 0.0
+    h, w = frame.shape[:2]
+    return True, int(w), int(h), float(frame.mean()), float(frame.std())
+
+
+def _describe_from_os_devices(
+    devices: list[dict[str, str]],
+    *,
+    max_index: int,
+    backend: int,
+) -> list[dict[str, object]]:
+    """
+    Build the picker list: OpenCV index ``i`` + the name of that device.
+
+    When devices include ``unique_id`` (macOS AVFoundation), they are sorted
+    the same way OpenCV sorts them. Phone / Continuity entries are omitted
+    from the picker but do not shift the index numbers of the cameras that
+    remain.
+    """
+    work = list(devices) if devices else []
+    if any(str(d.get("unique_id") or "") for d in work):
+        work = _opencv_avfoundation_order(work)
+
+    out: list[dict[str, object]] = []
+    limit = len(work) if work else int(max_index)
+    for index in range(min(max(0, int(max_index)), limit)):
+        if work:
+            dev = work[index]
+            name = str(dev.get("name") or f"Camera {index}")
+            model_id = str(dev.get("model_id") or "")
+            if not _is_desk_camera(name, model_id):
+                continue
+        else:
+            name = f"Camera {index}"
+
+        ok, w, h, _mean, _std = _probe_camera_index(index, backend)
+        if not ok:
+            continue
+
+        out.append(
+            {
+                "index": index,
+                "label": f"{name} ({w}×{h})",
+                "name": name,
+                "width": w,
+                "height": h,
+            }
+        )
+    return out
+
+
+def describe_cameras(max_index: int = 6) -> list[dict[str, object]]:
+    """
+    List desk webcams only: built-in or USB cameras on this computer.
+
+    Names come from the OS. OpenCV index follows AVFoundation uniqueID order
+    on macOS (same as OpenCV). Phone / iPad Continuity cameras are omitted
+    from the picker.
+    """
+    devices = _camera_devices()
+    return _describe_from_os_devices(
+        devices, max_index=max_index, backend=_capture_backend()
+    )
+
+
+def list_camera_indices(max_index: int = 6) -> list[int]:
+    """Return OpenCV indices that deliver a usable live frame."""
+    return [int(c["index"]) for c in describe_cameras(max_index)]
 
 
 def _read_frame(cap: cv2.VideoCapture | None, *, drain: int = 0):
@@ -374,7 +692,7 @@ def _reopen_camera(cap: cv2.VideoCapture | None, index: int,
     if new_cap is not None:
         for _ in range(REOPEN_WARMUP_READS):
             ok, frame = _read_frame(new_cap)
-            if ok and not _frame_is_black(frame):
+            if ok and _frame_is_usable(frame):
                 break
             time.sleep(0.03)
         _log("camera reconnected")
@@ -416,6 +734,7 @@ class AlertMonitor:
         low_duration_s: float = ALERT_LOW_DURATION_S,
         poll_s: float = ALERT_POLL_S,
         on_alert_beep=None,
+        on_active=None,
         time_fn=time.monotonic,
     ):
         self._beeper = beeper
@@ -423,6 +742,7 @@ class AlertMonitor:
         self._low_duration_s = float(low_duration_s)
         self._poll_s = poll_s
         self._on_alert_beep = on_alert_beep
+        self._on_active = on_active
         self._time = time_fn
         self._lock = threading.Lock()
         self._ori: float | None = None
@@ -441,6 +761,7 @@ class AlertMonitor:
         # Rolling 5-minute face-present ORI history: (monotonic_t, ori).
         self._trend: deque[tuple[float, float]] = deque()
         self._last_trend_sample_at: float | None = None
+        self._active = False
 
     def update(self, ori: float | None, face_found: bool) -> None:
         """
@@ -619,8 +940,13 @@ class AlertMonitor:
         """True while the background alert thread is still alive."""
         return self._thread is not None and self._thread.is_alive()
 
+    def is_active(self) -> bool:
+        """True while the low-ORI condition currently qualifies for Alert."""
+        with self._lock:
+            return bool(self._active)
+
     def _run(self) -> None:
-        """Wake every half-second: beep if ORI is still low, otherwise rest."""
+        """Wake every half-second: keep Alert latched while ORI is still low."""
         while not self._stop.is_set():
             with self._lock:
                 now = self._time()
@@ -628,13 +954,13 @@ class AlertMonitor:
                 if self._face_found and self._ori is not None:
                     self._record_trend_sample(now, self._ori)
                 should = self._should_beep_locked(now)
-            if should:
-                self._beeper.beep()
-                if self._on_alert_beep is not None:
-                    try:
-                        self._on_alert_beep()
-                    except Exception:
-                        pass
+                changed = should != self._active
+                self._active = should
+            if changed and self._on_active is not None:
+                try:
+                    self._on_active(should)
+                except Exception:
+                    pass
             self._stop.wait(self._poll_s)
 
 
@@ -800,6 +1126,10 @@ class EngineSnapshot:
     # Toggles
     beep: bool = False
     alert: bool = False
+    # "visual" | "sound" — Alert is always armed; this is the channel.
+    alert_mode: str = ALERT_MODE_DEFAULT
+    # True while low-ORI Alert is currently latched.
+    alert_active: bool = False
     ontop: bool = False
     practice: bool = False
     # "off" | "countdown" | "active" | "summary"
@@ -855,7 +1185,10 @@ class EyeRhythmEngine:
 
         self._lock = threading.RLock()
         self._stop = threading.Event()
+        self._wake_camera = threading.Event()
         self._thread: threading.Thread | None = None
+        self._idle: CameraIdlePolicy | None = None
+        self._awaiting_camera_pick = False
 
         saved_prefs = preferences.load()
         self._ori_threshold = float(
@@ -882,6 +1215,7 @@ class EyeRhythmEngine:
             threshold=self._ori_threshold,
             low_duration_s=float(self._alert_low_minutes) * 60.0,
             on_alert_beep=self._note_alert_beep,
+            on_active=self._note_alert_active,
         )
         self._ori_log = OriHistory()
         self._practice = PracticeCoach(
@@ -924,15 +1258,23 @@ class EyeRhythmEngine:
         # Restore last session toggles (Beep / Alert / On top only).
         # Practice is always session-local and never restored.
         saved = preferences.get_toggles()
+        mode = str(saved_prefs.get("alert_mode") or ALERT_MODE_DEFAULT).strip().lower()
+        if mode not in ALERT_MODES:
+            mode = ALERT_MODE_DEFAULT
+        self._alert_mode = mode
+        self._alert_active = False
         self._states = {
             "beep": bool(saved.get("beep", False)),
-            "alert": bool(saved.get("alert", True)),
+            # Alert stays armed; the chip switches Visual / Sound.
+            "alert": True,
             "ontop": bool(saved.get("ontop", False)),
             "practice": False,
         }
         self._snap = EngineSnapshot(
             beep=self._states["beep"],
-            alert=self._states["alert"],
+            alert=True,
+            alert_mode=self._alert_mode,
+            alert_active=False,
             ontop=self._states["ontop"],
             ori_threshold=self._ori_threshold,
             alert_low_minutes=float(self._alert_low_minutes),
@@ -962,9 +1304,8 @@ class EyeRhythmEngine:
         """Begin the background camera loop (no-op if already running)."""
         if self._thread is not None and self._thread.is_alive():
             return
-        # Re-apply side-car monitors if they were on last time.
-        if self._states.get("alert"):
-            self._alert.start()
+        # Alert is always armed (Visual or Sound); the chip only picks the channel.
+        self._alert.start()
         # Practice is never auto-started from preferences.
         self._stop.clear()
         self._thread = threading.Thread(
@@ -1007,7 +1348,12 @@ class EyeRhythmEngine:
         """Thread-safe copy of the latest numbers for the dashboard."""
         with self._lock:
             s = EngineSnapshot(**asdict(self._snap))
-            return s
+        t = self._thread
+        if t is not None and not t.is_alive() and s.running:
+            s.running = False
+            s.camera_ok = False
+            s.camera_message = "engine stopped"
+        return s
 
     def latest_preview_jpeg(self) -> bytes | None:
         """Most recent Lens-avatar camera still, or None if not encoding."""
@@ -1020,6 +1366,40 @@ class EyeRhythmEngine:
             self._preview_wanted = bool(wanted)
             if not wanted:
                 self._preview_jpeg = None
+
+    def wake_camera(self) -> None:
+        """
+        User finished the launch splash (or otherwise is ready).
+
+        Reopen the webcam if the idle policy parked it while they were
+        reading on-screen notices.
+        """
+        with self._lock:
+            if self._idle is not None:
+                self._idle.reset_to_live()
+        self._wake_camera.set()
+
+    def set_awaiting_camera_pick(self, waiting: bool) -> None:
+        """Hold the engine off until the user picks a webcam in the UI."""
+        self._awaiting_camera_pick = bool(waiting)
+
+    def is_awaiting_camera_pick(self) -> bool:
+        return self._awaiting_camera_pick
+
+    def reselect_camera(self, index: int) -> None:
+        """Switch webcams (startup picker or Settings). Restarts the loop."""
+        index = int(index)
+        running = self._thread is not None and self._thread.is_alive()
+        if running and index == self.camera_index:
+            self.wake_camera()
+            return
+        if running:
+            self.stop()
+        self.camera_index = index
+        self._awaiting_camera_pick = False
+        self._stop.clear()
+        self.start()
+        _log(f"using camera index {index}")
 
     def get_settings(self) -> dict[str, float]:
         """Live detection / alert knobs (ORI line, writing angle, blink close)."""
@@ -1040,7 +1420,7 @@ class EyeRhythmEngine:
         """
         labels = {
             "ori_threshold": "ORI threshold",
-            "alert_low_minutes": "Alert duration",
+            "alert_low_minutes": "Poor-rhythm minutes",
             "writing_angle_deg": "Writing angle",
             "turn_angle_deg": "Turn angle",
             "close_delta": "Blink sensitivity",
@@ -1158,18 +1538,23 @@ class EyeRhythmEngine:
         if name not in self._states:
             raise ValueError(f"unknown toggle: {name}")
         with self._lock:
-            if value is None:
+            if name == "alert":
+                if value is None:
+                    self._alert_mode = (
+                        "sound" if self._alert_mode == "visual" else "visual"
+                    )
+                    try:
+                        preferences.save(alert_mode=self._alert_mode)
+                    except Exception:
+                        pass
+                self._states["alert"] = True
+                new_val = True
+            elif value is None:
                 self._states[name] = not self._states[name]
+                new_val = self._states[name]
             else:
                 self._states[name] = bool(value)
-            new_val = self._states[name]
-
-            if name == "alert":
-                # Alert is a background beep thread — start or stop it now.
-                if new_val:
-                    self._alert.start()
-                else:
-                    self._alert.stop()
+                new_val = self._states[name]
 
             if name == "practice":
                 if new_val:
@@ -1188,14 +1573,15 @@ class EyeRhythmEngine:
                         pass
 
             self._snap.beep = self._states["beep"]
-            self._snap.alert = self._states["alert"]
+            self._snap.alert = True
+            self._snap.alert_mode = self._alert_mode
             self._snap.ontop = self._states["ontop"]
             self._snap.practice = self._states["practice"]
             # Persist durable toggles only — practice is session-local.
             try:
                 preferences.set_toggles(
                     beep=self._states["beep"],
-                    alert=self._states["alert"],
+                    alert=True,
                     ontop=self._states["ontop"],
                 )
             except Exception:
@@ -1210,7 +1596,10 @@ class EyeRhythmEngine:
             self._stop_practice_session()
 
         with self._lock:
-            return dict(self._states)
+            out = dict(self._states)
+            out["alert"] = True
+            out["alert_mode"] = self._alert_mode
+            return out
 
     def _begin_practice_session(self) -> None:
         """Start instruction countdown, then active beeping + visual practice."""
@@ -1398,10 +1787,19 @@ class EyeRhythmEngine:
             self._last_alert_beep_at = time.time()
             self._snap.last_alert_beep_at = self._last_alert_beep_at
 
+    def _note_alert_active(self, active: bool) -> None:
+        """Latch / clear the live Alert flag for Visual glow and Sound."""
+        with self._lock:
+            self._alert_active = bool(active)
+            self._snap.alert_active = self._alert_active
+
     def get_toggles(self) -> dict[str, bool]:
         """Copy of Beep / Alert / On top / Practice (safe to read from the UI)."""
         with self._lock:
-            return dict(self._states)
+            out = dict(self._states)
+            out["alert"] = True
+            out["alert_mode"] = self._alert_mode
+            return out
 
     def on_ontop_change(self, callback) -> None:
         """Register a callback(bool) when always-on-top changes (for pywebview)."""
@@ -1542,12 +1940,13 @@ class EyeRhythmEngine:
 
         deadline = time.monotonic() + SLEEP_BETWEEN_PEEKS_S
         while not self._stop.is_set():
-            if self._camera_is_demanded():
+            if self._camera_is_demanded() or self._wake_camera.is_set():
+                self._wake_camera.clear()
                 idle.reset_to_live()
                 new_cap = open_camera(self.camera_index, quiet=True)
                 if new_cap is not None:
                     self._publish(camera_ok=True, camera_message="live")
-                    _log("camera on — Practice or Lens requested")
+                    _log("camera on — user ready")
                 return new_cap
             left = deadline - time.monotonic()
             if left <= 0:
@@ -1580,7 +1979,10 @@ class EyeRhythmEngine:
                 if hasattr(self._snap, k):
                     setattr(self._snap, k, v)
             self._snap.beep = self._states["beep"]
-            self._snap.alert = self._states["alert"]
+            self._snap.alert = True
+            self._snap.alert_mode = self._alert_mode
+            self._alert_active = bool(self._alert.is_active())
+            self._snap.alert_active = self._alert_active
             self._snap.ontop = self._states["ontop"]
             self._snap.practice = self._states["practice"]
             self._snap.practice_phase = self._practice_phase
@@ -1809,7 +2211,9 @@ class EyeRhythmEngine:
         # Adaptive FPS / post-blink rest — see app/frame_pacer.py.
         pacer = FramePacer()
         # Battery: release the webcam after 1 min with no face; peek every 2 min.
-        idle = CameraIdlePolicy()
+        idle = CameraIdlePolicy(started_at=time.monotonic())
+        with self._lock:
+            self._idle = idle
         _log(
             f"low-power profile: process_width={PROCESS_MAX_WIDTH} "
             f"preview_width={PREVIEW_MAX_WIDTH} "
@@ -2062,6 +2466,8 @@ class EyeRhythmEngine:
 
         finally:
             _log("engine stopping")
+            with self._lock:
+                self._idle = None
             self._alert.stop()
             self._stop_practice_session()
             try:

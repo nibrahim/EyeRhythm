@@ -1,12 +1,11 @@
 /**
- * Launch splash: ocular-comfort check, then on-device notices.
+ * Launch splash: camera pick (when several webcams), comfort check, notices.
  *
  * Stays up until Start is pressed or 3 minutes elapse, whichever is first.
- * The answer is stored only in local preferences (never uploaded).
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { savePreferences } from "../api";
+import { fetchCameras, savePreferences, selectCamera } from "../api";
 import { setSplashLayout, whenBridgeReady } from "../bridge";
 import { Logo } from "./Logo";
 
@@ -42,6 +41,42 @@ export const EYE_COMFORT_OPTIONS = [
 
 export type EyeComfortId = (typeof EYE_COMFORT_OPTIONS)[number]["id"];
 
+/** Two-line session plan for the strip under the avatars. No settings changes. */
+export function todayPlan(comfort: string | null | undefined): {
+  tone: EyeComfortId | "default";
+  text: string;
+} {
+  switch (comfort) {
+    case "comfortable":
+      return {
+        tone: "comfortable",
+        text: "Hold 15–20 blinks/min. Blink fully and let Alert stay in the background.",
+      };
+    case "mild":
+      return {
+        tone: "mild",
+        text: "Blink fully, not just a flicker. A 2-minute Practice can ease mild strain.",
+      };
+    case "moderate":
+      return {
+        tone: "moderate",
+        text: "Look away on purpose during work. Try a short Practice before a long stretch of screens.",
+      };
+    case "marked":
+      return {
+        tone: "marked",
+        text: "Recovery day — blink gently and look away often. See an eye-care professional if pain persists.",
+      };
+    default:
+      return {
+        tone: comfort === "decline" ? "decline" : "default",
+        text: "Aim for 15–20 blinks/min while working. Blink fully, not just a flicker.",
+      };
+  }
+}
+
+type SplashStep = "loading" | "camera" | "comfort" | "notices";
+
 const NOTICES = [
   {
     title: "On-device and private",
@@ -58,7 +93,7 @@ const NOTICES = [
 ] as const;
 
 interface Props {
-  onDone: () => void;
+  onDone: (comfort?: EyeComfortId | null) => void;
 }
 
 function formatRemain(ms: number): string {
@@ -69,18 +104,54 @@ function formatRemain(ms: number): string {
 }
 
 export function SplashScreen({ onDone }: Props) {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<SplashStep>("loading");
   const [comfort, setComfort] = useState<EyeComfortId | null>(null);
   const [remainingMs, setRemainingMs] = useState(SPLASH_LIMIT_MS);
+  const [cameras, setCameras] = useState<
+    { index: number; label: string }[]
+  >([]);
+  const [cameraIndex, setCameraIndex] = useState<number | null>(null);
+  const [cameraBusy, setCameraBusy] = useState(false);
+  const [cameraError, setCameraError] = useState("");
 
   const doneRef = useRef(false);
+  const cameraConfirmedRef = useRef(false);
   const comfortRef = useRef(comfort);
   const onDoneRef = useRef(onDone);
+  const stepRef = useRef(step);
   comfortRef.current = comfort;
   onDoneRef.current = onDone;
+  stepRef.current = step;
 
-  const finish = useCallback(() => {
+  const confirmCamera = useCallback(async () => {
+    if (cameraIndex === null || cameraBusy) return false;
+    setCameraBusy(true);
+    setCameraError("");
+    try {
+      await selectCamera(cameraIndex);
+      cameraConfirmedRef.current = true;
+      return true;
+    } catch (err) {
+      setCameraError(
+        err instanceof Error ? err.message : "Could not open that camera.",
+      );
+      return false;
+    } finally {
+      setCameraBusy(false);
+    }
+  }, [cameraIndex, cameraBusy]);
+
+  const finish = useCallback(async () => {
     if (doneRef.current) return;
+    if (stepRef.current === "loading") return;
+    if (
+      !cameraConfirmedRef.current &&
+      cameraIndex !== null &&
+      cameras.length > 1
+    ) {
+      const ok = await confirmCamera();
+      if (!ok) return;
+    }
     doneRef.current = true;
     const chosen = comfortRef.current;
     if (chosen) {
@@ -89,8 +160,36 @@ export function SplashScreen({ onDone }: Props) {
       });
     }
     void setSplashLayout(false).finally(() => {
-      onDoneRef.current();
+      onDoneRef.current(comfortRef.current);
     });
+  }, [cameraIndex, cameras.length, confirmCamera]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCameras()
+      .then((payload) => {
+        if (cancelled) return;
+        const list = payload.cameras.map((c) => ({
+          index: c.index,
+          label: c.label,
+        }));
+        setCameras(list);
+        const selected = list.some((c) => c.index === payload.selected)
+          ? payload.selected
+          : list[0]?.index ?? null;
+        setCameraIndex(selected);
+        if (payload.pick_required && list.length > 1) {
+          setStep("camera");
+        } else {
+          setStep("comfort");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setStep("comfort");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -114,20 +213,29 @@ export function SplashScreen({ onDone }: Props) {
     return () => window.clearInterval(id);
   }, [finish]);
 
+  const advanceFromCamera = useCallback(async () => {
+    const ok = await confirmCamera();
+    if (ok) setStep("comfort");
+  }, [confirmCamera]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        if (step === 1) {
-          if (comfort) setStep(2);
-        } else {
-          finish();
-        }
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      if (step === "loading") {
+        return;
+      }
+      if (step === "camera") {
+        void advanceFromCamera();
+      } else if (step === "comfort") {
+        if (comfort) setStep("notices");
+      } else {
+        finish();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [step, finish, comfort]);
+  }, [step, finish, comfort, advanceFromCamera]);
 
   const progress = remainingMs / SPLASH_LIMIT_MS;
 
@@ -155,7 +263,51 @@ export function SplashScreen({ onDone }: Props) {
         </header>
 
         <div className="splash__body">
-          {step === 1 ? (
+          {step === "loading" ? (
+            <>
+              <h2 className="splash__question">Getting ready</h2>
+              <p className="splash__lead">
+                Checking the cameras on this computer…
+              </p>
+            </>
+          ) : step === "camera" ? (
+            <>
+              <h2 className="splash__question">Which camera should EyesRhythm use?</h2>
+              <p className="splash__lead">
+                Several webcams were found. Pick the one you sit in front of
+                (usually the built-in camera, not an external USB webcam).
+              </p>
+              <div
+                className="splash__options"
+                role="radiogroup"
+                aria-label="Camera"
+              >
+                {cameras.map((cam) => {
+                  const active = cameraIndex === cam.index;
+                  return (
+                    <button
+                      key={cam.index}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      className={`splash__option${active ? " is-active" : ""}`}
+                      onClick={() => setCameraIndex(cam.index)}
+                    >
+                      <span className="splash__option-dot" />
+                      <span className="splash__option-text">
+                        <span className="splash__option-title">{cam.label}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {cameraError ? (
+                <p className="splash__error" role="alert">
+                  {cameraError}
+                </p>
+              ) : null}
+            </>
+          ) : step === "comfort" ? (
             <>
               <h2 className="splash__question">
                 How would you describe your ocular comfort right now?
@@ -216,18 +368,37 @@ export function SplashScreen({ onDone }: Props) {
 
         <footer className="splash__foot">
           <span className="splash__hint">
-            {step === 1
-              ? comfort
-                ? "Continues automatically in a few minutes"
-                : "Choose an option to continue"
-              : `Auto-start in ${formatRemain(remainingMs)}`}
+            {step === "loading"
+              ? "Looking for cameras"
+              : step === "camera"
+                ? cameraIndex !== null
+                  ? "This choice is remembered for next time"
+                  : "Choose a camera to continue"
+                : step === "comfort"
+                  ? comfort
+                    ? "Continues automatically in a few minutes"
+                    : "Choose an option to continue"
+                  : `Auto-start in ${formatRemain(remainingMs)}`}
           </span>
-          {step === 1 ? (
+          {step === "loading" ? (
+            <button type="button" className="splash__cta" disabled>
+              Continue
+            </button>
+          ) : step === "camera" ? (
+            <button
+              type="button"
+              className="splash__cta"
+              disabled={cameraIndex === null || cameraBusy}
+              onClick={() => void advanceFromCamera()}
+            >
+              {cameraBusy ? "Opening…" : "Continue"}
+            </button>
+          ) : step === "comfort" ? (
             <button
               type="button"
               className="splash__cta"
               disabled={!comfort}
-              onClick={() => setStep(2)}
+              onClick={() => setStep("notices")}
             >
               Continue
             </button>

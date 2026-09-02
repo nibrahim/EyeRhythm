@@ -37,6 +37,8 @@ from app import preferences
 
 if TYPE_CHECKING:
     from app.engine import EyeRhythmEngine
+else:
+    from app.engine import describe_cameras
 
 
 def _project_root() -> Path:
@@ -65,6 +67,7 @@ def _ui_dist() -> Path:
 # Built dashboard folder (index.html + JS/CSS). Empty until `npm run build`.
 UI_DIST = _ui_dist()
 QUOTES_PATH = _project_root() / "quotes.json"
+ALERT_MP3 = _project_root() / "alert.mp3"
 # Quotes are tiny and never change at runtime — load once, reuse forever.
 _QUOTES_CACHE: list[dict[str, str]] | None = None
 
@@ -104,6 +107,11 @@ class LicenseActivateBody(BaseModel):
     key: str = Field(default="", min_length=0, max_length=256)
 
 
+class CameraSelectBody(BaseModel):
+    """JSON body for POST /api/camera/select."""
+    index: int = Field(ge=0, le=15)
+
+
 class ToggleBody(BaseModel):
     """JSON body for POST /api/toggles/{name}. Missing value = flip it."""
     value: bool | None = Field(
@@ -120,9 +128,11 @@ class PreferencesPatch(BaseModel):
     window_height: int | None = None
     beep: bool | None = None
     alert: bool | None = None
+    alert_mode: str | None = None
     ontop: bool | None = None
     eye_comfort: str | None = None
     dock: bool | None = None
+    camera_index: int | None = None
     ori_threshold: float | None = None
     alert_low_minutes: float | None = None
     writing_angle_deg: float | None = None
@@ -161,10 +171,63 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
 
     app.state.engine = engine
 
+    def _try_start_engine() -> None:
+        """Start the camera loop if it is not running yet (idempotent)."""
+        if app_license.is_required() and not app_license.is_activated():
+            return
+        if engine.is_awaiting_camera_pick():
+            return
+        try:
+            engine.start()
+        except Exception:
+            pass
+
+    @app.get("/api/cameras")
+    def get_cameras():
+        """List webcams for the startup picker and Settings."""
+        cameras = describe_cameras()
+        avail = [int(c["index"]) for c in cameras]
+        try:
+            saved = int(preferences.load().get("camera_index", -1))
+        except (TypeError, ValueError):
+            saved = -1
+        if saved not in avail and avail:
+            saved = avail[0]
+        return {
+            "cameras": cameras,
+            "selected": saved,
+            "pick_required": len(cameras) > 1,
+        }
+
+    @app.post("/api/camera/select")
+    def post_camera_select(body: CameraSelectBody):
+        """Choose which webcam to use; starts or restarts the engine."""
+        cameras = describe_cameras()
+        avail = {int(c["index"]) for c in cameras}
+        if body.index not in avail:
+            raise HTTPException(status_code=400, detail="That camera is not available.")
+        preferences.save(camera_index=body.index)
+        try:
+            engine.reselect_camera(body.index)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+        label = next(
+            (str(c["label"]) for c in cameras if int(c["index"]) == body.index),
+            f"Camera {body.index}",
+        )
+        return {"index": body.index, "label": label}
+
     @app.get("/api/health")
     def health():
         """“Is the local server alive?” — used by the UI / installers."""
         return {"ok": True, "service": "EyesRhythm"}
+
+    @app.get("/alert.mp3")
+    def get_alert_mp3():
+        """Sound-alert cue (played at most once a minute while Alert is latched)."""
+        if ALERT_MP3.is_file():
+            return FileResponse(ALERT_MP3, media_type="audio/mpeg")
+        raise HTTPException(status_code=404, detail="alert.mp3 missing")
 
     @app.get("/api/license")
     def get_license():
@@ -186,7 +249,8 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         # Camera stays off until this copy is activated.
         if status.get("activated"):
             try:
-                engine.start()
+                if not engine.is_awaiting_camera_pick():
+                    engine.start()
             except Exception:
                 pass
         return status
@@ -194,6 +258,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     @app.get("/api/state")
     def state():
         """One-shot snapshot of every live number (blink rate, toggles, …)."""
+        _try_start_engine()
         return engine.snapshot().to_dict()
 
     @app.get("/api/toggles")
@@ -220,7 +285,8 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         # Live toggles win if they differ mid-session.
         toggles = engine.get_toggles()
         prefs["beep"] = toggles["beep"]
-        prefs["alert"] = toggles["alert"]
+        prefs["alert"] = True
+        prefs["alert_mode"] = toggles.get("alert_mode", "visual")
         prefs["ontop"] = toggles["ontop"]
         prefs.update(engine.get_settings())
         return prefs
@@ -260,6 +326,8 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         prefs = preferences.load()
         toggles = engine.get_toggles()
         prefs.update({k: toggles[k] for k in ("beep", "alert", "ontop")})
+        prefs["alert"] = True
+        prefs["alert_mode"] = toggles.get("alert_mode", "visual")
         prefs.update(engine.get_settings())
         return prefs
 
@@ -328,6 +396,12 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         engine.set_preview_wanted(True)
         return {"preview": True}
 
+    @app.post("/api/camera/wake")
+    def camera_wake():
+        """Reopen the webcam after launch splash or idle sleep."""
+        engine.wake_camera()
+        return {"ok": True}
+
     @app.post("/api/preview/disable")
     def preview_disable():
         """Stop encoding preview frames — saves CPU when Lens is hidden."""
@@ -346,6 +420,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     async def ws_stats(ws: WebSocket):
         """Live feed of metrics (~10 times a second) for the dashboard cards."""
         await ws.accept()
+        _try_start_engine()
         try:
             while True:
                 snap = engine.snapshot().to_dict()

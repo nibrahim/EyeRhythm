@@ -52,6 +52,10 @@ export interface EngineState {
 
   beep: boolean;
   alert: boolean;
+  /** Alert channel: visual (default) or sound. */
+  alert_mode: "visual" | "sound";
+  /** True while low-ORI Alert is currently latched. */
+  alert_active: boolean;
   ontop: boolean;
   practice: boolean;
   /** "off" | "countdown" | "active" | "summary" */
@@ -119,7 +123,9 @@ export const EMPTY_STATE: EngineState = {
   turn_angle_deg: 50,
   close_delta: 0.18,
   beep: false,
-  alert: false,
+  alert: true,
+  alert_mode: "visual",
+  alert_active: false,
   ontop: false,
   practice: false,
   practice_phase: "off",

@@ -156,7 +156,7 @@ export function InfoQuoteCard({
             <strong>Beep</strong> — sound on each blink
           </li>
           <li>
-            <strong>Alert</strong> — warn if ORI stays below {Math.round(oriThreshold)} for {Math.round(alertLowMinutes)} min in the last 5
+            <strong>Alert</strong> — Visual (default) or Sound when ORI stays below {Math.round(oriThreshold)} for {Math.round(alertLowMinutes)} min in the last 5
           </li>
           <li>
             <strong>Practice</strong> — 2‑min blink coach

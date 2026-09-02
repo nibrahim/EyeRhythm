@@ -23,6 +23,7 @@ export interface Preferences {
   window_height: number;
   beep: boolean;
   alert: boolean;
+  alert_mode?: "visual" | "sound";
   ontop: boolean;
   /** Last splash self-check: comfortable | mild | moderate | marked | decline */
   eye_comfort?: string;
@@ -32,6 +33,7 @@ export interface Preferences {
   writing_angle_deg?: number;
   turn_angle_deg?: number;
   close_delta?: number;
+  camera_index?: number;
 }
 
 export interface LiveSettings {
@@ -119,6 +121,20 @@ export interface LicenseStatus {
   platform: "mac" | "windows" | "other" | string;
   platform_label: string;
   email?: string;
+}
+
+export interface CameraOption {
+  index: number;
+  label: string;
+  name: string;
+  width: number;
+  height: number;
+}
+
+export interface CamerasPayload {
+  cameras: CameraOption[];
+  selected: number;
+  pick_required: boolean;
 }
 
 function apiErrorMessage(data: unknown, fallback: string): string {
@@ -304,6 +320,35 @@ export async function setPreviewEnabled(enabled: boolean): Promise<void> {
   await fetch(`/api/preview/${enabled ? "enable" : "disable"}`, {
     method: "POST",
   });
+}
+
+/** Reopen the webcam after the launch splash or idle sleep. */
+export async function wakeCamera(): Promise<void> {
+  try {
+    await fetch("/api/camera/wake", { method: "POST" });
+  } catch {
+    /* engine still starting */
+  }
+}
+
+/** List webcams for the startup picker and Settings. */
+export async function fetchCameras(): Promise<CamerasPayload> {
+  const res = await fetch("/api/cameras", { cache: "no-store" });
+  if (!res.ok) throw new Error("camera list failed");
+  return res.json();
+}
+
+/** Choose a webcam and start (or restart) the blink engine. */
+export async function selectCamera(index: number): Promise<void> {
+  const res = await fetch("/api/camera/select", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ index }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(apiErrorMessage(data, "Could not switch to that camera."));
+  }
 }
 
 /**

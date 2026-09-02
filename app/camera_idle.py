@@ -18,8 +18,12 @@ Only MediaPipe “no face” starts the idle timer.
 
 from __future__ import annotations
 
-# No face for this long → release the webcam.
+import time
+
+# No face for this long → release the webcam (after startup grace).
 ABSENT_BEFORE_SLEEP_S = 60.0
+# Launch splash can stay up 3 min; do not park the camera while it is showing.
+STARTUP_IDLE_GRACE_S = 180.0
 # Camera stays off between peeks.
 SLEEP_BETWEEN_PEEKS_S = 120.0
 # How long a peek may hunt with nobody there before giving up.
@@ -38,8 +42,11 @@ class CameraIdlePolicy:
     Phases: ``live`` | ``peek`` | ``sleep``.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, started_at: float | None = None) -> None:
         self.phase = "live"
+        self._started_at = (
+            float(started_at) if started_at is not None else time.monotonic()
+        )
         self._absent_since: float | None = None
         self._peek_since: float | None = None
         self._confirm_since: float | None = None
@@ -82,6 +89,8 @@ class CameraIdlePolicy:
     def _note_live(self, found: bool, now: float) -> str:
         if found:
             self._absent_since = None
+            return "live"
+        if now - self._started_at < STARTUP_IDLE_GRACE_S:
             return "live"
         if self._absent_since is None:
             self._absent_since = now
