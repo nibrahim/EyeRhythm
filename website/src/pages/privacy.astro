@@ -1,113 +1,45 @@
 ---
-import Layout from "../layouts/Layout.astro";
+import Legal from "../components/Legal.astro";
+import { site } from "../config";
 ---
 
-<Layout
-  title="Privacy — EyesRhythm"
-  description="EyesRhythm is offline after a one-time license activation. Camera frames never leave the machine. No accounts, no cloud, no analytics."
+<Legal
+  kicker="Privacy"
+  title="Privacy, EyesRhythm"
+  description="We care about your privacy. EyesRhythm is 100% local after you register the license."
+  heading="We care about your privacy."
+  lede="That is the reason this app is 100% local after registration is done."
 >
-  <main id="main" class="section" style="background:#fff;padding-bottom:96px">
-    <article class="wrap legal">
-      <p class="kicker"><span class="kicker__dot"></span>Privacy</p>
-      <h1 class="display">On-device and private.</h1>
-      <p class="lede">
-        EyesRhythm is meant to sit next to your work, not on someone else’s
-        server. This page states that plainly.
-      </p>
-
-      <h2>What never leaves the machine</h2>
-      <p>
-        After this copy is activated, no internet is required for normal use.
-        There is no account, no login, no cloud, and no analytics. Camera
-        frames are processed on this computer only, in real time. Video is not
-        recorded for upload, not stored as a film of your face, and not shared.
-      </p>
-
-      <h2>License activation (first launch only)</h2>
-      <p>
-        A paid copy is sold through Lemon Squeezy. They take payment, email a
-        unique license key to the address you give at checkout, and store
-        activations. On first launch the app asks for that key and, with your
-        permission and an internet connection, sends the key plus a hashed
-        machine identifier to Lemon Squeezy so this computer can run the copy
-        you bought. That is the only time EyesRhythm talks to the internet.
-        Blink metrics and camera frames are never part of that request.
-      </p>
-      <p>
-        Each purchase is one operating system (macOS or Windows) on one
-        computer. A Mac key will not activate a Windows copy, and the reverse
-        is also true.
-      </p>
-
-      <h2>What may be kept locally</h2>
-      <p>
-        What is kept, if anything, is yours: today’s blink and screen-time
-        totals, preferences, and optional on-device history for your own
-        reports. That data stays in a folder on the computer and resets or
-        remains there according to the app. It is not sent to us or to anyone
-        else.
-      </p>
-      <p>
-        On macOS and Windows the local folder is typically under your home
-        directory as <code>.eyerhythm_blinkcounter</code>.
-      </p>
-
-      <h2>Sharing the app</h2>
-      <p>
-        When a copy is issued, you receive the installer for the OS you paid
-        for. The recipient runs it locally. After activation there is no
-        “phone home.” This website does not host installers.
-      </p>
-
-      <h2>This website</h2>
-      <p>
-        This site is a static page. It does not set cookies, does not load
-        analytics, and does not call third-party scripts. “Get a copy” sends
-        you to Lemon Squeezy’s checkout (a different site) to pay. We never
-        see card numbers.
-      </p>
-
-      <h2>Not a medical device</h2>
-      <p>
-        EyesRhythm is a wellness companion. It has not been cleared or approved
-        by the FDA or any other regulator. It is not intended to diagnose,
-        treat, cure, or prevent disease. ORI is a cadence score you can act on —
-        not a diagnosis. If you have an ocular surface disorder, a change in
-        vision, or persistent discomfort, consult a licensed eye-care
-        professional.
-      </p>
-
-      <p><a href="/#privacy">Back to the site</a></p>
-    </article>
-  </main>
-</Layout>
-
-<style>
-  .legal {
-    display: grid;
-    gap: 16px;
-    padding-bottom: 40px;
-    max-width: 42rem;
-  }
-
-  .legal h1 {
-    font-size: clamp(2.1rem, 5vw, 3.4rem);
-  }
-
-  .legal h2 {
-    margin-top: 12px;
-    font-size: 1.2rem;
-    letter-spacing: -0.02em;
-  }
-
-  .legal p {
-    color: var(--text-soft);
-  }
-
-  code {
-    font-size: 0.88em;
-    background: rgba(255, 255, 255, 0.75);
-    padding: 1px 6px;
-    border-radius: 6px;
-  }
-</style>
+  <p>
+    EyesRhythm is meant to sit next to you, not on someone else’s server. After
+    you register your license, everything stays on your computer.
+  </p>
+  <p>
+    Your camera never leaves this machine. Frames are looked at in the moment,
+    then gone. We do not record your face, we do not upload video, and we do
+    not keep a film of you.
+  </p>
+  <p>
+    Blink counts, screen time, and the little settings you choose live in a
+    folder on your computer. That folder is typically{" "}
+    <code>.eyerhythm_blinkcounter</code> in your home directory. It is yours.
+    We never see it.
+  </p>
+  <p>
+    Registration is just the first launch. You paste your license key, the app
+    checks it once, and then it is 100% local. No account. No cloud. No
+    analytics. No internet for ordinary days at the desk.
+  </p>
+  <p>
+    This website is a quiet page. It does not set cookies and it does not watch
+    you. We never see your card.
+  </p>
+  <p>
+    EyesRhythm is a small wellness companion, not a medical device. If your
+    eyes keep hurting or your vision changes, please see an eye doctor.
+  </p>
+  <p>
+    Questions are welcome at{" "}
+    <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
+  </p>
+</Legal>

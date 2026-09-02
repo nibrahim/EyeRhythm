@@ -1,0 +1,29 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+interface Props {
+  kicker: string;
+  title: string;
+  description: string;
+  heading: string;
+  lede: string;
+}
+
+const { kicker, title, description, heading, lede } = Astro.props;
+---
+
+<Layout title={title} description={description}>
+  <main id="main" class="section" style="background:#fff;padding-bottom:96px">
+    <article class="wrap legal">
+      <p class="kicker"><span class="kicker__dot"></span>{kicker}</p>
+      <h1 class="display">{heading}</h1>
+      <p class="lede">{lede}</p>
+      <slot />
+      <nav class="legal__nav" aria-label="Legal">
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="/refund">Refunds</a>
+      </nav>
+    </article>
+  </main>
+</Layout>

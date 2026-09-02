@@ -47,38 +47,42 @@ Keep the GitHub repo **private**. Do not make a public GitHub Release — that w
 
 Do not put `.zip` / `.dmg` / `.exe` in `website/public`. CI will fail if you do.
 `downloadsOpen` in `src/config.ts` stays `false` — installers go out from
-Lemon Squeezy, not this origin.
+Dodo Payments, not this origin.
 
-Lemon Squeezy is the single provider: they take the $10, generate a unique
-license key, email it to the buyer, store activations, and pay you out.
-There is no monthly fee; they take a cut of each sale (currently 5% + 50¢).
+Dodo Payments is the single provider: they take the $12, generate a unique
+license key, email it to the buyer, store activations, and pay you out to
+an Indian bank account. There is no monthly fee; they take a cut of each
+sale (currently about 4% + 40¢, plus 1.5% on international cards).
 
-When you are ready to take $10:
+When you are ready to take $12:
 
-1. Create a Lemon Squeezy store and two **variants** of the product:
-   **EyesRhythm for macOS** and **EyesRhythm for Windows**. Do not put both
-   installers on one product — a purchase is one OS.
-2. On each variant: enable **license keys**, set **activation limit** to 1
+1. Create a Dodo Payments account as **India** (PAN + Indian bank in your
+   name). Do not register as Canada.
+2. Create two **products**: **EyesRhythm for macOS** and **EyesRhythm for
+   Windows**. Do not put both installers on one product — a purchase is
+   one OS.
+3. On each product: enable **license keys**, set **activation limit** to 1
    (or 2 if you want a free reinstall). Attach only that OS’s installer.
-3. Copy each variant’s checkout URL into `src/config.ts`
-   (`lemonSqueezy.checkoutMac` / `checkoutWindows`).
-4. Copy the numeric **store id** and each **variant id** into
-   `app/license.py` (`LS_STORE_ID`, `LS_VARIANT_MAC`, `LS_VARIANT_WINDOWS`)
-   so the app rejects a key bought for the other OS.
-5. Set `comingSoon` to `false` and redeploy.
-6. **Get a copy** sends the buyer to Lemon Squeezy. After payment they get
-   the key by email. First launch of the app asks for that key (internet
-   once). After that the app stays offline.
+   Price each at **$12 USD**.
+4. Copy each product’s checkout / payment-link URL into `src/config.ts`
+   (`dodo.checkoutMac` / `checkoutWindows`).
+5. Copy each product id (`pdt_…`) into `app/license.py`
+   (`DODO_PRODUCT_MAC`, `DODO_PRODUCT_WINDOWS`) so the app rejects a key
+   bought for the other OS.
+6. Set `comingSoon` to `false` and redeploy.
+7. **Get a copy** sends the buyer to Dodo. After payment they get the key
+   by email. First launch of the app asks for that key (internet once).
+   After that the app stays offline.
 
-This origin never sees card numbers (PCI stays with Lemon Squeezy). Do not
-load Lemon Squeezy’s overlay script on this site — a plain HTTPS redirect
-keeps the marketing page free of third-party JavaScript.
+This origin never sees card numbers (PCI stays with Dodo). Do not load a
+checkout overlay script on this site — a plain HTTPS redirect keeps the
+marketing page free of third-party JavaScript.
 
 ## Iterate
 
 While `comingSoon` is `true` in `src/config.ts`, every page shows a
 single holding screen (no Get a copy, no journal). Set it to `false` and
-redeploy when the Lemon Squeezy checkout URLs are pasted.
+redeploy when the Dodo Payments checkout URLs are pasted.
 
 | Want to change | File |
 |---|---|

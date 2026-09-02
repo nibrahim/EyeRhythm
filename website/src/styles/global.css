@@ -1,4 +1,4 @@
-/* EyesRhythm marketing site — same palette as the desktop companion. */
+/* EyesRhythm marketing site, same palette as the desktop companion. */
 
 @font-face {
   font-family: Inter;
@@ -772,6 +772,80 @@ h3 {
   font-size: 0.88rem;
 }
 
+.legal {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 40px;
+  max-width: 42rem;
+}
+
+.legal h1 {
+  font-size: clamp(2.1rem, 5vw, 3.4rem);
+}
+
+.legal h2 {
+  margin-top: 12px;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+
+.legal p,
+.legal li {
+  color: var(--text-soft);
+}
+
+.legal a {
+  color: var(--blue-deep);
+}
+
+.legal ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 8px;
+}
+
+.legal code {
+  font-size: 0.88em;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.legal__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--stroke);
+}
+
+.legal__nav a {
+  color: var(--text-soft);
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+
+.legal__nav a:hover {
+  color: var(--blue-deep);
+}
+
+.footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.footer__legal a {
+  color: var(--text-soft);
+  text-decoration: none;
+}
+
+.footer__legal a:hover {
+  color: var(--blue-deep);
+}
+
 .footer__bottom {
   display: grid;
   gap: 8px;
@@ -798,7 +872,7 @@ h3 {
   }
 
   .footer__cols {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
   }
 }
 

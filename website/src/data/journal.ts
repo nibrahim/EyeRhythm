@@ -3,7 +3,7 @@ export const posts = [
     slug: "camera-setup",
     title: "Set up your camera so blinks count",
     description:
-      "Sit as you usually work, turn the camera on, and give EyesRhythm a clear view of your eyes. Here is how.",
+      "Sit as you usually work, turn on EyesRhythm and allow the camera a clear view of your eyes. Here is how.",
     date: "2026-08-27",
     read: "8 min",
     kicker: "First journal",

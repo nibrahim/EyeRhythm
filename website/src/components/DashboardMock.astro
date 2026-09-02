@@ -1,5 +1,5 @@
 ---
-/** Decorative companion window — mirrors the real app palette and cards. */
+/** Decorative companion window, mirrors the real app palette and cards. */
 const skinId = `atlasSkin-${Math.random().toString(36).slice(2, 8)}`;
 ---
 
@@ -74,8 +74,8 @@ const skinId = `atlasSkin-${Math.random().toString(36).slice(2, 8)}`;
     </div>
 
     <div class="mock__target">
-      <span>Target rhythm</span>
-      ≈ 15–20 blinks/min while working
+      <span>Healthy desk ORI</span>
+      Practice daily. It helps build muscle memory.
     </div>
 
     <div class="mock__grid">
@@ -99,7 +99,7 @@ const skinId = `atlasSkin-${Math.random().toString(36).slice(2, 8)}`;
 
     <div class="mock__controls">
       <span><i></i> Beep <kbd>B</kbd></span>
-      <span class="on"><i></i> Alert <kbd>A</kbd></span>
+      <span class="on visual"><i></i> Visual <kbd>A</kbd></span>
       <span><i></i> Practice <kbd>P</kbd></span>
     </div>
   </div>
@@ -371,21 +371,47 @@ const skinId = `atlasSkin-${Math.random().toString(36).slice(2, 8)}`;
     border-color: rgba(91, 159, 224, 0.45);
   }
 
+  .mock__controls span.visual {
+    background: #fde6cc;
+    color: #9a4e12;
+    border-color: rgba(224, 140, 50, 0.5);
+  }
+
   .mock__controls i {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--slate, #8a9aab);
   }
 
   .mock__controls span.on i {
     background: var(--blue);
+    box-shadow: 0 0 0 3px rgba(91, 159, 224, 0.22);
+  }
+
+  .mock__controls span.visual i {
+    background: #e08c32;
+    box-shadow: 0 0 0 3px rgba(224, 140, 50, 0.28);
   }
 
   .mock__controls kbd {
     font: inherit;
     font-size: 0.58rem;
-    opacity: 0.7;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 5px;
+    background: rgba(30, 48, 72, 0.06);
+    color: var(--text-faint);
+  }
+
+  .mock__controls span.on kbd {
+    background: rgba(47, 120, 196, 0.12);
+    color: var(--blue-deep);
+  }
+
+  .mock__controls span.visual kbd {
+    background: rgba(154, 78, 18, 0.1);
+    color: #9a4e12;
   }
 
   @keyframes blink {

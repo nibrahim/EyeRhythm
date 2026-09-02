@@ -13,10 +13,10 @@ interface Props {
 
 const hold = site.comingSoon;
 const title = hold
-  ? `${site.name} — Coming soon`
-  : (Astro.props.title ?? `${site.name} — ${site.tagline}`);
+  ? `${site.name}, Coming soon`
+  : (Astro.props.title ?? `${site.name}, ${site.tagline}`);
 const description = hold
-  ? "EyesRhythm is a private blink companion for the desk. Copies will be available when Lemon Squeezy checkout is connected."
+  ? "EyesRhythm is a private blink companion for the desk. Copies will be available when checkout is connected."
   : (Astro.props.description ?? site.description);
 
 const origin = Astro.site ?? new URL(site.url);

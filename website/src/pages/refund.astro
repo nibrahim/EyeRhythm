@@ -1,0 +1,30 @@
+---
+import Legal from "../components/Legal.astro";
+import { site } from "../config";
+---
+
+<Legal
+  kicker="Refunds"
+  title="Refunds, EyesRhythm"
+  description="Try EyesRhythm for 7 days. If it is not worth it, email hello@eyesrhythm.com for a full refund."
+  heading="Try it for 7 days."
+  lede="If you find the app not worth it, we refund in full."
+>
+  <p>
+    You have 7 days from the day you buy EyesRhythm to try it on your computer.
+  </p>
+  <p>
+    If you find the app not worth it, please let us know the reason. This helps
+    us improve.
+  </p>
+  <p>
+    Mail{" "}
+    <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a> from the
+    same email address you used during purchase. That is the registered mail
+    for the purchase. Tell us you want a refund.
+  </p>
+  <p>
+    Please give us 5 to 7 days to send the money back to your original payment
+    method.
+  </p>
+</Legal>
