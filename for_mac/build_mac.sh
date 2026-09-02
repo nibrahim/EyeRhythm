@@ -147,11 +147,17 @@ slim_macos_bundle() {
     done
     rm -rf "$res/mediapipe/model_maker" "$res/mediapipe/examples" \
            "$res/cv2/data" "$fw/sentencepiece" "$fw/uvloop" \
-           "$fw/watchfiles" "$fw/httptools" "$fw/PIL/__dot__dylibs"
-    rm -f "$fw/PIL/_imagingtk.cpython-311-darwin.so" \
-          "$fw/PIL/_avif.cpython-311-darwin.so" \
-          "$fw/PIL/_webp.cpython-311-darwin.so" \
-          "$fw/PIL/_imagingcms.cpython-311-darwin.so"
+           "$fw/watchfiles" "$fw/httptools"
+    # matplotlib → PIL._imaging needs jpeg/tiff/openjpeg. Keep those
+    # dylibs; drop avif/webp extras that are not on the import path.
+    local pildy="$fw/PIL/__dot__dylibs"
+    if [ -d "$pildy" ]; then
+        find "$pildy" -type f ! \( \
+            -name 'libjpeg*' -o -name 'libtiff*' -o -name 'libopenjp2*' \
+            -o -name 'libz.*' -o -name 'libxcb*' -o -name 'liblzma*' \
+            -o -name 'libXau*' \
+        \) -delete
+    fi
     find "$app" -type d -name '*.dist-info' -exec rm -rf {} + 2>/dev/null || true
     find "$app" -type f -name '*_test.py' -delete
     local fonts="$res/matplotlib/mpl-data/fonts"
