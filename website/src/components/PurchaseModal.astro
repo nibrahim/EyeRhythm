@@ -18,9 +18,8 @@ const live = checkoutReady();
       </button>
     </div>
     <p class="muted">
-      {site.price.label} one time. Pick macOS or Windows — not both. Dodo
-      Payments takes payment, emails a unique license key to the address you
-      give at checkout, and sends that OS’s installer.
+      {site.price.label} one time. Pick macOS or Windows, not both. You get a
+      unique license key and that OS’s installer by email. {site.recommendedMachine}
     </p>
     <div class="modal__price">
       <strong>{site.price.label}</strong>
@@ -60,7 +59,7 @@ const live = checkoutReady();
       live ? null : (
         <p class="muted checkout-hint">
           Checkout is not taking payment yet. When the store is connected,
-          this button will send you to Dodo Payments for macOS or Windows.
+          this button will send you to pay for macOS or Windows.
         </p>
       )
     }

@@ -16,7 +16,7 @@ import { site } from "../config";
       <p class="kicker"><span class="kicker__dot"></span>About</p>
       <h2 class="display">Built from a real pain, not a trend.</h2>
       <p>
-        The person behind EyesRhythm has spent more than two decades working as
+        The developer behind EyesRhythm has spent more than two decades working as
         a software developer. Years of long hours in front of computer screens
         gradually took a toll on his eye health, leading to frequent dryness,
         redness, and, at times, significant discomfort.
@@ -37,9 +37,10 @@ import { site } from "../config";
       <p>
         We believe the best products are shaped by real experiences and honest
         feedback. If you choose to try EyesRhythm, we would greatly appreciate
-        hearing about your experience. Your feedback will help us continue
-        improving the product and ensure that it remains simple, useful,
-        reliable, and unobtrusive.
+        hearing about your experience at{" "}
+        <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
+        Your feedback will help us continue improving the product and ensure
+        that it remains simple, useful, reliable, and unobtrusive.
       </p>
       <button class="btn btn--primary" type="button" data-open-purchase>
         {site.cta}
@@ -84,6 +85,10 @@ import { site } from "../config";
   .copy p {
     color: var(--text-soft);
     max-width: 38rem;
+  }
+
+  .copy a {
+    color: var(--blue-deep);
   }
 
   @media (min-width: 900px) {
