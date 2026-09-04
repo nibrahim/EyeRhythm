@@ -1,6 +1,8 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { posts } from "../../data/journal";
+
+const featured = posts[0];
 ---
 
 <Layout
@@ -8,19 +10,18 @@ import { posts } from "../../data/journal";
   description="Simple guides for using EyesRhythm at your desk."
 >
   <main id="main">
-    <a class="hero-card" href="/journal/camera-setup">
+    <a class="hero-card" href={`/journal/${featured.slug}`}>
       <img
-        src="/images/blog-cover.jpg"
+        src={featured.cover}
         alt=""
         width="1280"
         height="720"
       />
       <div class="hero-card__copy">
         <p class="kicker"><span class="kicker__dot"></span>Journal</p>
-        <h1 class="display">Set up your camera so blinks count</h1>
+        <h1 class="display">{featured.title}</h1>
         <p class="lede">
-          Sit as you usually work, turn on EyesRhythm and allow the camera a
-          clear view of your eyes. Here is how.
+          {featured.description}
         </p>
         <span>Read the guide →</span>
       </div>
