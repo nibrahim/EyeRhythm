@@ -1,0 +1,667 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getPost } from "../../data/journal";
+import { site } from "../../config";
+
+const post = getPost("screens-cut-blink-rate")!;
+---
+
+<Layout title={`${post.title}, EyesRhythm`} description={post.description}>
+  <main id="main">
+    <header class="cover">
+      <img
+        src={post.cover}
+        alt={post.coverAlt}
+        width="1280"
+        height="720"
+      />
+      <div class="cover__shade"></div>
+      <div class="cover__copy">
+        <p class="kicker"><span class="kicker__dot"></span>{post.kicker}</p>
+        <h1 class="display">{post.title}</h1>
+        <p class="lede">{post.description}</p>
+        <p class="meta">{post.read} · 4 September 2026</p>
+      </div>
+    </header>
+
+    <article class="wrap article">
+      <div class="prose">
+        <p>
+          The work is going well, and then it isn’t, at least not for the
+          eyes. The letters on the screen lose their edge.
+          You rub once, keep typing, and by late afternoon the lids feel
+          like paper.
+        </p>
+        <p>
+          Brightness gets the blame. So does dry office air, or the familiar warning about “too much screen.” 
+          But for many of us, screens are not optional. They are where the work happens.
+          The less obvious problem is what happens while we are looking at them. We blink less, and the blinks we do make are often incomplete. 
+          They come in bursts, separated by long pauses. During those pauses, the tear film covering the eye begins to thin.
+        </p>
+        <p>
+          Nobody decides to blink less. Attention does it for us, and researchers have been measuring the effect for more than thirty years.
+        </p>
+        <p>
+The response is not to stop using screens. It is to learn to notice what happens to your blinking and practice doing it more completely. With guidance, that can become a habit.
+        </p>
+
+        <h2>What a blink is actually doing</h2>
+        <p>
+          A blink is a wipe. The lids drag a thin film of tears across the
+          eye, mix in oil from glands along the lid, and clear dust. Miss a
+          few of those wipes and the film thins, then breaks. For a moment
+          the surface of the eye is just sitting in the air.
+        </p>
+        <blockquote>
+          <p>
+            “The blinking mechanism plays a critical role in maintaining
+            homeostasis of the ocular surface, tear film, and lacrimal
+            functional unit.”
+          </p>
+          <cite>Wang, Power, Xue and Craig, 2025<sup><a href="#ref-1">1</a></sup></cite>
+        </blockquote>
+        <p>
+          Blinking is how the front of the eye stays wet, fed, and
+          protected. A late wipe, or a half wipe, leaves that system with
+          less to work with. You look through the film. When it breaks, the
+          letters on the screen are often the first thing that go soft.
+        </p>
+        <figure class="shot">
+          <img
+            src="/images/blink-tear.jpg"
+            alt="Close-up of an open eye, a thin glossy tear film catching the light."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            After a full blink, a thin even film sits on the eye. That is
+            the surface you are looking through.
+          </figcaption>
+        </figure>
+
+        <h2>The rate is not a constant</h2>
+        <p>
+          People talk about “a normal blink rate” as if it were a resting
+          heart rate. It isn’t. How often you blink depends on what the
+          brain is doing with the eyes. Talk, sit quietly, read, stare at a
+          monitor: each of those has its own pace.
+        </p>
+        <blockquote>
+          <p>
+            “Spontaneous eyeblink rate (SEBR) has been shown to be highly
+            sensitive to cognitive and ambient conditions… cognitively
+            demanding tasks such as reading and using visual display
+            terminals have been documented to lower SEBR values.”
+          </p>
+          <cite>Cardona, Argilés and Pérez-Cabré, 2023<sup><a href="#ref-2">2</a></sup></cite>
+        </blockquote>
+        <p>
+          Tsubota and Nakamori made this concrete in 104 office workers.
+          They counted blinks while people were relaxed, while they read a
+          book, and while they looked at a screen. Mean rates: 22 blinks a
+          minute at rest, 10 with the book, 7 at the display.
+          <sup><a href="#ref-3">3</a></sup>
+          The book already halved the rate. The screen took more.
+        </p>
+
+        <figure class="rates" aria-label="Blink rate in three situations, Tsubota and Nakamori 1993">
+          <div class="rate">
+            <p class="rate__n">22</p>
+            <p class="rate__unit">blinks / min</p>
+            <p class="rate__label">Relaxed</p>
+          </div>
+          <div class="rate">
+            <p class="rate__n">10</p>
+            <p class="rate__unit">blinks / min</p>
+            <p class="rate__label">Reading a book</p>
+          </div>
+          <div class="rate rate--low">
+            <p class="rate__n">7</p>
+            <p class="rate__unit">blinks / min</p>
+            <p class="rate__label">Looking at a screen</p>
+          </div>
+          <figcaption>
+            Mean blink rates in 104 office workers. Tsubota and Nakamori,
+            <cite>New England Journal of Medicine</cite>, 1993.
+          </figcaption>
+        </figure>
+
+        <p>
+          Two years earlier, in a smaller lab study, Patel and colleagues
+          had already seen how far the drop can go:
+        </p>
+        <blockquote>
+          <p>
+            “In normal healthy subjects, the results show an average 5-fold
+            drop in blink rate during VDU use.”
+          </p>
+          <cite>Patel, Henderson, Bradley, Galloway and Hunter, 1991<sup><a href="#ref-4">4</a></sup></cite>
+        </blockquote>
+        <p>
+          That is not a small dip. Eighteen blinks a minute in easy
+          conversation can fall toward three or four in front of a display.
+          The film then has seconds, not fractions of a second, to dry
+          between wipes.
+        </p>
+        <p>
+          Talking sits at the other extreme. Bentivoglio’s group recorded
+          about 26 blinks a minute in conversation, 17 in quiet looking,
+          and 4.5 while reading.<sup><a href="#ref-5">5</a></sup>
+          Speech is a high-blink job. A page, or a screen, that has all of
+          your attention is a low-blink job. Same pair of eyes. Different
+          demand.
+        </p>
+        <figure class="shot">
+          <img
+            src="/images/blink-talk.jpg"
+            alt="Two people talking across a table, looking at each other, not at screens."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            Faces in conversation blink freely. Faces locked on a screen
+            do not. The difference is the task, not the person.
+          </figcaption>
+        </figure>
+
+        <h2>Half a blink is not a blink</h2>
+        <p>
+          Counting how often the lids move still misses something. If they
+          never quite meet, the wipe does not finish. The upper lid stops
+          short, and a strip of the eye never gets the film renewed.
+        </p>
+        <blockquote>
+          <p>
+            “Previous studies have also highlighted that the diminished blink
+            rate and increased tendency for incomplete blinking during tasks
+            with high cognitive demand, such as digital screen use, can
+            exacerbate dry eye symptoms and tear film instability.”
+          </p>
+          <cite>Wang, Power, Xue and Craig, 2025<sup><a href="#ref-1">1</a></sup></cite>
+        </blockquote>
+        <p>
+          Wang’s group tested 453 adults and found that incomplete blinking
+          tracked dry eye, as defined by a standard clinical checklist,
+          more closely than blink rate did. For every extra 10% of blinks
+          that failed to finish, the odds of that diagnosis rose by about
+          12%. Incomplete blinking also lined up with a thinner oil layer
+          and poorer quality of the lid glands.
+          <sup><a href="#ref-1">1</a></sup>
+        </p>
+        <p>
+          That is a mechanism, not a verdict on anyone reading this. Oil in
+          the lids is squeezed out as the lids meet. A half blink squeezes
+          less, spreads less, and leaves a dry patch sitting there.
+        </p>
+        <figure class="shot">
+          <img
+            src="/images/blink-incomplete.jpg"
+            alt="Close-up of an eye whose upper lid has not fully met the lower lid."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            The lid comes down and stops. A strip of the eye never gets the
+            wipe. That is an incomplete blink.
+          </figcaption>
+        </figure>
+
+        <h2>The average can lie</h2>
+        <p>
+          Six blinks a minute sounds like a single number. It isn’t. Six
+          blinks spaced through the minute, and six blinks piled into two
+          clumps with a long wait in the middle, produce the same average
+          and two very different hours for the eye.
+        </p>
+        <p>
+          Cardona, Argilés and Pérez-Cabré call the evenness of those gaps
+          <strong>blink regularity</strong>. They measure it as the
+          coefficient of variation of the interblink interval: how much the
+          waits between blinks wander, relative to their mean.
+          <sup><a href="#ref-2">2</a></sup>
+        </p>
+        <p>
+          To show why that matters, they drew four one-minute patterns that
+          all had the same average gap of 12 seconds, and the same six
+          blinks. Even, complete blinks left the surface exposed for about
+          17% of the minute. The same six blinks, arriving in clumps with a
+          long empty stretch, pushed exposure above 50%. Incomplete blinks
+          on top of the clumps pushed it higher still.
+          <sup><a href="#ref-2">2</a></sup>
+          The count had not changed. The uncovered time had.
+        </p>
+
+        <figure class="tracks" aria-label="Even blinks versus clustered blinks over one minute">
+          <p class="tracks__title">Same six blinks. Different minute.</p>
+          <div class="track">
+            <p class="track__label">Even</p>
+            <svg viewBox="0 0 600 36" role="img" aria-hidden="true">
+              <line x1="8" y1="18" x2="592" y2="18" stroke="currentColor" stroke-width="2"></line>
+              <circle cx="8" cy="18" r="6" fill="#0071e3"></circle>
+              <circle cx="124" cy="18" r="6" fill="#0071e3"></circle>
+              <circle cx="240" cy="18" r="6" fill="#0071e3"></circle>
+              <circle cx="356" cy="18" r="6" fill="#0071e3"></circle>
+              <circle cx="472" cy="18" r="6" fill="#0071e3"></circle>
+              <circle cx="592" cy="18" r="6" fill="#0071e3"></circle>
+            </svg>
+            <p class="track__note">A blink about every 12 seconds</p>
+          </div>
+          <div class="track">
+            <p class="track__label">Lumpy</p>
+            <svg viewBox="0 0 600 36" role="img" aria-hidden="true">
+              <line x1="8" y1="18" x2="592" y2="18" stroke="currentColor" stroke-width="2"></line>
+              <circle cx="8" cy="18" r="6" fill="#e07a72"></circle>
+              <circle cx="68" cy="18" r="6" fill="#e07a72"></circle>
+              <circle cx="98" cy="18" r="6" fill="#e07a72"></circle>
+              <circle cx="512" cy="18" r="6" fill="#e07a72"></circle>
+              <circle cx="542" cy="18" r="6" fill="#e07a72"></circle>
+              <circle cx="592" cy="18" r="6" fill="#e07a72"></circle>
+            </svg>
+            <p class="track__note">A cluster, a long wait, another cluster</p>
+          </div>
+          <figcaption>
+            After Cardona, Argilés and Pérez-Cabré, 2023. The average looks
+            the same. The long gap is where the surface dries.
+          </figcaption>
+        </figure>
+
+        <p>
+          Johnston and colleagues looked at those same gaps, the interblink
+          interval, in people with and without dry eye while they watched a
+          documentary. Mean interval: 5.97 seconds in the normal group,
+          2.56 seconds in the dry-eye group. They also found “a greater
+          variability of interblink intervals in normal subjects.”
+          <sup><a href="#ref-6">6</a></sup>
+        </p>
+        <p>
+          Comfortable blinking is not a metronome, and it is not a panic.
+          It can wait, then catch up.
+          Irritated eyes often do the opposite: more blinks, tighter
+          spacing, as if the surface is asking for another wipe. A long
+          screen day can shove a comfortable eye the other way, toward
+          fewer blinks and longer waits.
+        </p>
+        <blockquote>
+          <p>
+            “The tendency towards decreased blink rate during visual function
+            tasks, such as computer use, reading, video gaming, and watching
+            TV can exacerbate the signs and symptoms of dry eye.”
+          </p>
+          <cite>Johnston, Rodriguez, Lane, Ousler and Abelson, 2013<sup><a href="#ref-6">6</a></sup></cite>
+        </blockquote>
+
+        <h2>Why the brain does this</h2>
+        <p>
+          A blink is a blackout, even if it lasts only a fraction of a
+          second. When the work on the screen is dense, the brain either
+          parks those blackouts between important moments or holds them
+          back altogether. You keep seeing. The film waits.
+        </p>
+        <p>
+          Nakano and colleagues found that people watching the same video
+          tended to blink in sync, at the moments when they were least
+          likely to miss what mattered.<sup><a href="#ref-7">7</a></sup>
+          Cardona’s group described “an internal mechanism to regulate the
+          most appropriate time for a blink in order to minimize the chance
+          of losing critical information.”
+          <sup><a href="#ref-2">2</a></sup>
+        </p>
+        <p>
+          That helps the work. It does not help the film. You did not
+          forget to blink. You were busy, and the lids waited.
+        </p>
+
+        <h2>What this means at a desk</h2>
+        <p>
+          Three things, working together, explain a lot of that late-day
+          grit.
+        </p>
+        <ol>
+          <li>
+            <strong>The rate falls.</strong> Hard reading cuts blinks.
+            Screens often cut them further.
+          </li>
+          <li>
+            <strong>The blinks go shallow.</strong> Incomplete ones leave a
+            strip unwiped and spread less of the oil layer.
+          </li>
+          <li>
+            <strong>The timing gets lumpy.</strong> The same number of
+            blinks, packed into clusters, can leave a long dry wait in the
+            middle of the minute.
+          </li>
+        </ol>
+        <blockquote>
+          <p>
+            “A complete characterization of blink parameters is relevant to
+            better understand ocular dryness related to surface exposure and
+            to advice patients towards a reeducation of their blinking
+            habits.”
+          </p>
+          <cite>Cardona, Argilés and Pérez-Cabré, 2023<sup><a href="#ref-2">2</a></sup></cite>
+        </blockquote>
+        <p>
+          Count is not enough. How fully the lids meet, and how even the
+          gaps are, belong in the same picture. Cardona’s group also noted
+          “the large percentage of users reporting ocular dryness during
+          and after prolonged computer work.”
+          <sup><a href="#ref-2">2</a></sup>
+          Anyone who has finished a long day at a laptop has already felt
+          that sentence.
+        </p>
+        <p>
+          A screen is not poison, and none of this is a diagnosis. It is a
+          description of a particular hour: still face, high attention,
+          lids on hold. A look away, a full close, a slightly more even
+          rhythm are small physical things, the way a stretch is a small
+          thing for a stiff neck.
+        </p>
+        <p>
+          EyesRhythm was built around that picture. It watches how often
+          you blink and how even the gaps are, on this computer. Video
+          stays here. It is a desk companion, not a clinic. If the eyes
+          stay sore, or vision changes, that is a conversation for an
+          eye-care professional.
+        </p>
+        <p>
+          The camera has to see the eyes first. Sit as you usually work;
+          the <a href="/journal/camera-setup">setup guide</a> is short.
+        </p>
+
+        <h2>Sources</h2>
+        <ol class="sources" id="sources">
+          <li id="ref-1">
+            Wang MTM, Power B, Xue AL, Craig JP. Blink completeness and rate
+            in dry eye disease: an investigator-masked, prospective
+            registry-based, cross-sectional, prognostic study.
+            <cite>Contact Lens and Anterior Eye</cite>. 2025;48:102369.
+            <a href="https://doi.org/10.1016/j.clae.2025.102369">doi:10.1016/j.clae.2025.102369</a>
+          </li>
+          <li id="ref-2">
+            Cardona G, Argilés M, Pérez-Cabré E. Loss of blink regularity
+            and its impact on ocular surface exposure.
+            <cite>Diagnostics</cite>. 2023;13:2362.
+            <a href="https://doi.org/10.3390/diagnostics13142362">doi:10.3390/diagnostics13142362</a>
+          </li>
+          <li id="ref-3">
+            Tsubota K, Nakamori K. Dry eyes and video display terminals.
+            <cite>New England Journal of Medicine</cite>. 1993;328:584.
+            <a href="https://doi.org/10.1056/NEJM199302253280817">doi:10.1056/NEJM199302253280817</a>
+          </li>
+          <li id="ref-4">
+            Patel S, Henderson R, Bradley L, Galloway B, Hunter L. Effect of
+            visual display unit use on blink rate and tear stability.
+            <cite>Optometry and Vision Science</cite>. 1991;68(11):888–892.
+            <a href="https://doi.org/10.1097/00006324-199111000-00010">doi:10.1097/00006324-199111000-00010</a>
+          </li>
+          <li id="ref-5">
+            Bentivoglio AR, Bressman SB, Cassetta E, Carretta D, Tonali P,
+            Albanese A. Analysis of blink rate patterns in normal subjects.
+            <cite>Movement Disorders</cite>. 1997;12(6):1028–1034.
+            <a href="https://doi.org/10.1002/mds.870120629">doi:10.1002/mds.870120629</a>
+          </li>
+          <li id="ref-6">
+            Johnston PR, Rodriguez J, Lane KJ, Ousler G, Abelson MB. The
+            interblink interval in normal and dry eye subjects.
+            <cite>Clinical Ophthalmology</cite>. 2013;7:253–259.
+            <a href="https://doi.org/10.2147/OPTH.S39104">doi:10.2147/OPTH.S39104</a>
+          </li>
+          <li id="ref-7">
+            Nakano T, Yamamoto Y, Kitajo K, Takahashi T, Kitazawa S.
+            Synchronization of spontaneous eyeblinks while viewing video
+            stories. <cite>Proceedings of the Royal Society B</cite>.
+            2009;276:3635–3644.
+            <a href="https://doi.org/10.1098/rspb.2009.0828">doi:10.1098/rspb.2009.0828</a>
+          </li>
+        </ol>
+        <p class="note">
+          EyesRhythm is a wellness companion, not a medical device. It is
+          not intended to diagnose, treat, or prevent disease. Persistent
+          discomfort or a change in vision belongs with a licensed eye-care
+          professional.
+        </p>
+      </div>
+
+      <p class="back">
+        <a href="/journal">All journal</a>
+        ·
+        <a href="/journal/camera-setup">Camera setup</a>
+        ·
+        <button type="button" data-open-purchase>{site.cta}</button>
+      </p>
+    </article>
+  </main>
+</Layout>
+
+<style>
+  .cover {
+    position: relative;
+    width: 100%;
+    min-height: min(72vh, 640px);
+    display: grid;
+    align-items: end;
+    color: #fff;
+    background: #1d1d1f;
+  }
+
+  .cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cover__shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.15) 20%,
+      rgba(0, 0, 0, 0.62) 100%
+    );
+  }
+
+  .cover__copy {
+    position: relative;
+    z-index: 1;
+    width: min(var(--wrap), calc(100% - var(--gutter) * 2));
+    margin: 0 auto;
+    padding: 48px 0 40px;
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+  }
+
+  .cover .kicker {
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  .cover .display {
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    max-width: 16ch;
+    color: #fff;
+  }
+
+  .cover .lede {
+    color: rgba(255, 255, 255, 0.88);
+    max-width: 34rem;
+  }
+
+  .meta {
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .article {
+    padding: 48px 0 96px;
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+  }
+
+  .shot {
+    margin: 16px 0 4px;
+    width: min(100%, 42rem);
+  }
+
+  .shot img {
+    width: 100%;
+    border-radius: 20px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .shot figcaption,
+  .rates figcaption,
+  .tracks figcaption {
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: var(--text-soft);
+  }
+
+  blockquote {
+    margin: 20px 0;
+    padding: 4px 0 4px 18px;
+    border-left: 3px solid var(--blue);
+    max-width: 42rem;
+  }
+
+  blockquote p {
+    font-size: 1.05rem;
+    line-height: 1.55;
+    color: var(--text);
+  }
+
+  blockquote cite {
+    display: block;
+    margin-top: 8px;
+    font-style: normal;
+    font-size: 0.88rem;
+    color: var(--text-soft);
+  }
+
+  .prose sup a {
+    color: var(--blue-deep);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .rates {
+    margin: 20px 0 8px;
+    width: min(100%, 42rem);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .rate {
+    background: var(--band);
+    border-radius: 20px;
+    padding: 20px 12px 16px;
+    text-align: center;
+  }
+
+  .rate--low {
+    background: #eef4fb;
+  }
+
+  .rate__n {
+    margin: 0;
+    font-size: 2.4rem;
+    font-weight: 600;
+    letter-spacing: -0.05em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .rate__unit,
+  .rate__label {
+    margin: 6px 0 0;
+    color: var(--text-soft);
+    font-size: 0.85rem;
+  }
+
+  .rates figcaption {
+    grid-column: 1 / -1;
+  }
+
+  .tracks {
+    margin: 20px 0 8px;
+    width: min(100%, 42rem);
+    display: grid;
+    gap: 14px;
+    padding: 20px 20px 16px;
+    background: var(--band);
+    border-radius: 20px;
+  }
+
+  .tracks__title {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .track {
+    display: grid;
+    gap: 4px;
+  }
+
+  .track__label {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+  }
+
+  .track svg {
+    width: 100%;
+    height: 36px;
+    color: rgba(0, 0, 0, 0.12);
+  }
+
+  .track__note {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-soft);
+  }
+
+  .sources {
+    margin: 8px 0 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 12px;
+    max-width: 42rem;
+    color: var(--text-soft);
+    font-size: 0.92rem;
+  }
+
+  .sources a {
+    overflow-wrap: anywhere;
+  }
+
+  .note {
+    margin-top: 24px;
+    max-width: 42rem;
+    color: var(--text-soft);
+    font-size: 0.92rem;
+  }
+
+  .back {
+    margin-top: 12px;
+    font-size: 0.95rem;
+  }
+
+  .back button {
+    color: var(--blue-deep);
+    font-weight: 600;
+  }
+
+  @media (max-width: 560px) {
+    .rates {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
