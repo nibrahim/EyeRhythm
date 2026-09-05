@@ -112,7 +112,10 @@ datas = [
     ('assets', 'assets'),
     ('frontend/dist', 'frontend/dist'),
     ('quotes.json', '.'),
-    ('alert.mp3', '.'),
+    ('alert.wav', '.'),
+    ('LICENSE', '.'),
+    ('THIRD_PARTY_NOTICES.md', '.'),
+    ('licenses', 'licenses'),
 ]
 binaries = []
 # Uvicorn loads some modules by name at runtime — list them so they are not

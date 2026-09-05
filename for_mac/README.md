@@ -135,7 +135,7 @@ You must rebuild. Editing Python / React files does **not** update an already-bu
 
 Do not send the project folder, `build/`, or `.venv`.
 
-(Advanced code-signing / notarization is outside the scope of this open-source edition.)
+(Advanced code-signing / notarization is outside the scope of this tree.)
 
 ---
 

@@ -12,38 +12,14 @@ interface Props {
 
 // Used if quotes.json cannot be loaded (offline / first-run edge case).
 const FALLBACK: QuoteItem[] = [
-  {
-    text: "Be yourself; everyone else is already taken.",
-    author: "Oscar Wilde",
-  },
-  {
-    text: "In the middle of difficulty lies opportunity.",
-    author: "Albert Einstein",
-  },
-  {
-    text: "It always seems impossible until it is done.",
-    author: "Nelson Mandela",
-  },
-  {
-    text: "Peace begins with a smile.",
-    author: "Mother Teresa",
-  },
-  {
-    text: "Wherever you go, go with all your heart.",
-    author: "Confucius",
-  },
-  {
-    text: "What you seek is seeking you.",
-    author: "Rumi",
-  },
-  {
-    text: "Even the darkest night will end and the sun will rise.",
-    author: "Victor Hugo",
-  },
-  {
-    text: "Adopt the pace of nature: her secret is patience.",
-    author: "Ralph Waldo Emerson",
-  },
+  { text: "Soft lids, steady work.", author: "EyesRhythm" },
+  { text: "A full blink is a small reset.", author: "EyesRhythm" },
+  { text: "Look, close, look again.", author: "EyesRhythm" },
+  { text: "Attention can wait one blink.", author: "EyesRhythm" },
+  { text: "Finish the blink you started.", author: "EyesRhythm" },
+  { text: "Breathe, blink, continue.", author: "EyesRhythm" },
+  { text: "The screen can wait a tenth of a second.", author: "EyesRhythm" },
+  { text: "A rhythm you can keep is enough.", author: "EyesRhythm" },
 ];
 
 // How long each quote stays on screen (30 seconds).
@@ -58,7 +34,7 @@ const PRACTICE_INSTRUCTION =
  * Everyday mode shows three short tips (Beep / Alert / Practice).
  * During Practice it swaps those tips for the coach instruction, a
  * countdown or remaining-time label, and a thin progress bar.
- * A famous quote rotates underneath in both modes.
+ * A short Practice line rotates underneath in both modes.
  */
 export function InfoQuoteCard({
   practice,

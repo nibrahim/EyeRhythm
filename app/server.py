@@ -68,14 +68,16 @@ def _ui_dist() -> Path:
 # Built dashboard folder (index.html + JS/CSS). Empty until `npm run build`.
 UI_DIST = _ui_dist()
 QUOTES_PATH = _project_root() / "quotes.json"
+ALERT_WAV = _project_root() / "alert.wav"
 ALERT_MP3 = _project_root() / "alert.mp3"
+NOTICES_PATH = _project_root() / "THIRD_PARTY_NOTICES.md"
 # Quotes are tiny and never change at runtime — load once, reuse forever.
 _QUOTES_CACHE: list[dict[str, str]] | None = None
 
 
 def _load_quotes() -> list[dict[str, str]]:
     """
-    Load famous quotes as ``{"text": str, "author": str}``.
+    Load Practice lines as ``{"text": str, "author": str}``.
 
     Supports the v2 schema (objects with text+author) and falls back for
     legacy plain-string lists.
@@ -226,9 +228,22 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     @app.get("/alert.mp3")
     def get_alert_mp3():
         """Sound-alert cue (played at most once a minute while Alert is latched)."""
+        if ALERT_WAV.is_file():
+            return FileResponse(ALERT_WAV, media_type="audio/wav")
         if ALERT_MP3.is_file():
             return FileResponse(ALERT_MP3, media_type="audio/mpeg")
-        raise HTTPException(status_code=404, detail="alert.mp3 missing")
+        raise HTTPException(status_code=404, detail="alert sound missing")
+
+    @app.get("/api/notices")
+    def get_notices():
+        """Third-party license text shown in Settings → About."""
+        if NOTICES_PATH.is_file():
+            return FileResponse(
+                NOTICES_PATH,
+                media_type="text/plain; charset=utf-8",
+                filename="THIRD_PARTY_NOTICES.md",
+            )
+        raise HTTPException(status_code=404, detail="notices missing")
 
     @app.get("/api/license")
     def get_license():

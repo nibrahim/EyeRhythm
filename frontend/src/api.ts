@@ -81,7 +81,7 @@ export interface ReportPayload {
   };
 }
 
-/** One famous quote shown on the Information card. */
+/** One Practice line shown on the Information card. */
 export interface QuoteItem {
   text: string;
   author: string;
@@ -96,6 +96,13 @@ export interface QuotesPayload {
 }
 
 /** Load the quote list from disk via the local API. */
+/** Third-party license notice bundled with this copy. */
+export async function fetchNotices(): Promise<string> {
+  const res = await fetch("/api/notices", { cache: "no-store" });
+  if (!res.ok) throw new Error("notices fetch failed");
+  return res.text();
+}
+
 export async function fetchQuotes(): Promise<QuotesPayload> {
   const res = await fetch("/api/quotes", { cache: "no-store" });
   if (!res.ok) throw new Error("quotes fetch failed");

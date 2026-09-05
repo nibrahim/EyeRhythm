@@ -421,7 +421,7 @@ export default function App() {
             tone={lookTone}
             palette="lavender"
           />
-          {/* Always full-width gray card: tips + famous quotes (practice mode overlays coach) */}
+          {/* Always full-width gray card: tips + Practice lines (practice mode overlays coach) */}
           <InfoQuoteCard
             practice={Boolean(state.practice)}
             practicePhase={state.practice_phase ?? "off"}

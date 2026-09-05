@@ -304,4 +304,5 @@ Useful flags:
 
 ---
 
-*EyesRhythm is free and open source. Take care of your eyes.*
+EyesRhythm source is MIT. Packaged copies are sold. Third-party terms:
+`THIRD_PARTY_NOTICES.md`. Take care of your eyes.

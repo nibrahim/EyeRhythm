@@ -3,12 +3,29 @@
  * Static content besides Version, which comes from GET /api/health.
  */
 
+import { useEffect, useState } from "react";
+import { fetchNotices } from "../api";
 import { useAppVersion } from "../hooks/useAppVersion";
 
 const SUPPORT_EMAIL = "support@eyesrhythm.com";
 
 export function AboutPanel() {
   const version = useAppVersion();
+  const [notices, setNotices] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchNotices()
+      .then((text) => {
+        if (!cancelled) setNotices(text);
+      })
+      .catch(() => {
+        /* notices file missing in a broken freeze */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="about">
@@ -60,8 +77,23 @@ export function AboutPanel() {
               versions, so stay tuned.
             </td>
           </tr>
+          <tr>
+            <th scope="row">Notices</th>
+            <td>
+              EyesRhythm is MIT-licensed. Packaged copies may be sold. Third-party
+              libraries keep their own licenses (Apache 2.0, BSD, MIT, SIL OFL,
+              and LGPLv2.1 for FFmpeg inside OpenCV). Those notices travel with
+              this copy as <code>THIRD_PARTY_NOTICES.md</code>.
+            </td>
+          </tr>
         </tbody>
       </table>
+      {notices ? (
+        <details className="about__notices">
+          <summary>Open-source licenses in this copy</summary>
+          <pre>{notices}</pre>
+        </details>
+      ) : null}
     </div>
   );
 }
