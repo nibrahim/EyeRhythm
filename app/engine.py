@@ -634,18 +634,69 @@ def _describe_from_os_devices(
     return out
 
 
-def describe_cameras(max_index: int = 6) -> list[dict[str, object]]:
+# Opening cameras via AVFoundation hops onto the Cocoa main thread. After
+# the pywebview window exists that thread is also painting WKWebView, so a
+# second probe makes the GUI go blank-white. Probe once, then reuse.
+_cameras_cache: list[dict[str, object]] | None = None
+_cameras_cache_lock = threading.Lock()
+
+
+def _clear_camera_cache() -> None:
+    """Test helper: drop the process-wide camera list."""
+    global _cameras_cache
+    with _cameras_cache_lock:
+        _cameras_cache = None
+
+
+def describe_cameras(
+    max_index: int = 6, *, refresh: bool = False
+) -> list[dict[str, object]]:
     """
     List desk webcams only: built-in or USB cameras on this computer.
 
     Names come from the OS. OpenCV index follows AVFoundation uniqueID order
     on macOS (same as OpenCV). Phone / iPad Continuity cameras are omitted
     from the picker.
+
+    The first call actually opens each index to confirm it works. Later
+    calls reuse that list unless ``refresh=True`` — re-opening cameras
+    after the desktop window is up stalls WKWebView (blank white window).
     """
-    devices = _camera_devices()
-    return _describe_from_os_devices(
-        devices, max_index=max_index, backend=_capture_backend()
-    )
+    global _cameras_cache
+    with _cameras_cache_lock:
+        if not refresh and _cameras_cache is not None:
+            return [dict(c) for c in _cameras_cache]
+        devices = _camera_devices()
+        result = _describe_from_os_devices(
+            devices, max_index=max_index, backend=_capture_backend()
+        )
+        _cameras_cache = [dict(c) for c in result]
+        return [dict(c) for c in _cameras_cache]
+
+
+def resolve_startup_camera(
+    available: list[int],
+    saved: int,
+    cli: int | None,
+) -> tuple[int, bool]:
+    """
+    Pick which webcam to open at launch.
+
+    Returns ``(index, pick_required)``. Ask in the splash only when more
+    than one desk camera exists *and* nothing has been chosen yet (no
+    ``--camera``, no saved index that still exists). Re-asking every
+    login re-opens every camera while the window is on screen.
+    """
+    avail = [int(i) for i in available]
+    if cli is not None:
+        return int(cli), False
+    if len(avail) == 1:
+        return avail[0], False
+    if saved in avail:
+        return int(saved), False
+    if avail:
+        return avail[0], True
+    return 0, False
 
 
 def list_camera_indices(max_index: int = 6) -> list[int]:
@@ -1372,12 +1423,16 @@ class EyeRhythmEngine:
         User finished the launch splash (or otherwise is ready).
 
         Reopen the webcam if the idle policy parked it while they were
-        reading on-screen notices.
+        reading on-screen notices. Start the loop if it has not begun yet.
         """
         with self._lock:
             if self._idle is not None:
                 self._idle.reset_to_live()
         self._wake_camera.set()
+        if self._awaiting_camera_pick:
+            return
+        if self._thread is None or not self._thread.is_alive():
+            self.start()
 
     def set_awaiting_camera_pick(self, waiting: bool) -> None:
         """Hold the engine off until the user picks a webcam in the UI."""

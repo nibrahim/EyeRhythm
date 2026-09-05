@@ -1,4 +1,4 @@
-"""Product version is SemVer 1.0.0 and packaging files stay in lockstep."""
+"""Product version is SemVer and packaging files stay in lockstep."""
 
 from __future__ import annotations
 
@@ -13,10 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class VersionTests(unittest.TestCase):
-    def test_first_release_is_semver_1_0_0(self) -> None:
-        self.assertEqual(VERSION, "1.0.0")
+    def test_release_is_semver_1_0_1(self) -> None:
+        self.assertEqual(VERSION, "1.0.1")
         self.assertRegex(VERSION, r"^\d+\.\d+\.\d+$")
-        self.assertEqual(version_tuple(), (1, 0, 0, 0))
+        self.assertEqual(version_tuple(), (1, 0, 1, 0))
 
     def test_package_dunder_version(self) -> None:
         import app

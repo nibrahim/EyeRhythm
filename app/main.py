@@ -17,6 +17,7 @@ import argparse
 import platform
 import socket
 import sys
+import threading
 import time
 import webbrowser
 from pathlib import Path
@@ -29,7 +30,12 @@ if str(ROOT) not in sys.path:
 
 from app import license as app_license  # noqa: E402
 from app import preferences  # noqa: E402
-from app.engine import EyeRhythmEngine, MODEL_PATH, describe_cameras  # noqa: E402
+from app.engine import (  # noqa: E402
+    EyeRhythmEngine,
+    MODEL_PATH,
+    describe_cameras,
+    resolve_startup_camera,
+)
 from app.server import run_server, UI_DIST  # noqa: E402
 
 # The dashboard talks to this machine only (never the internet).
@@ -106,7 +112,7 @@ class _WindowApi:
                 target_h = preferences.DEFAULT_HEIGHT
                 if fit_h is not None:
                     target_h = max(target_h, fit_h)
-            window.resize(target_w, min(int(target_h), 1400))
+            self._resize_if_needed(target_w, min(int(target_h), 1400))
         except Exception as exc:
             _log(f"compact layout toggle failed: {exc}")
 
@@ -118,9 +124,29 @@ class _WindowApi:
             return
         try:
             w, h = preferences.default_gui_size()
-            window.resize(w, h)
-        except Exception as exc:
-            _log(f"splash layout failed: {exc}")
+            self._resize_if_needed(w, h)
+        except Exception as splash_exc:
+            _log(f"splash layout failed: {splash_exc}")
+
+    def _resize_if_needed(self, width: int, height: int) -> None:
+        """
+        Resize the native window only when the size actually changes.
+
+        pywebview's Cocoa backend redraws WKWebView from scratch on
+        ``resize`` — a no-op resize is a blank-white flash.
+        """
+        window = self._window
+        if window is None:
+            return
+        width, height = int(width), int(height)
+        try:
+            cur_w = int(getattr(window, "width", 0) or 0)
+            cur_h = int(getattr(window, "height", 0) or 0)
+            if cur_w == width and cur_h == height:
+                return
+        except Exception:
+            pass
+        window.resize(width, height)
 
     def set_dock_layout(self, docked: bool, height=None) -> None:
         """
@@ -153,7 +179,7 @@ class _WindowApi:
                 w, h = preferences.default_gui_size()
                 if fit_h is not None:
                     h = max(h, fit_h)
-            window.resize(w, min(int(h), 1400))
+            self._resize_if_needed(w, min(int(h), 1400))
         except Exception as exc:
             _log(f"dock layout failed: {exc}")
 
@@ -401,9 +427,10 @@ def _open_webview(
             pass
 
     def _boot() -> None:
-        # Start the camera only after the native window exists. Otherwise a
-        # failed WebView2 init looked like “camera blinks, then nothing”.
-        # Packaged copies also wait until the Dodo Payments key is activated.
+        # Start the camera only after the native window has painted.
+        # Opening AVFoundation / creating MediaPipe's OpenGL context on
+        # the Cocoa thread before WKWebView's first frame leaves a blank
+        # white window (worse at login, when the GPU is still coming up).
         if not start_engine:
             return
         if app_license.is_required() and not app_license.is_activated():
@@ -415,11 +442,42 @@ def _open_webview(
         except Exception as exc:
             _log(f"engine start failed: {exc}")
 
+    started = {"done": False}
+    fallback = {"timer": None}
+
+    def _start_once() -> None:
+        if started["done"]:
+            return
+        started["done"] = True
+        timer = fallback["timer"]
+        if timer is not None:
+            try:
+                timer.cancel()
+            except Exception:
+                pass
+        _boot()
+
+    try:
+        window.events.loaded += _start_once
+    except Exception:
+        pass
+
+    def _gui_initialized() -> None:
+        # `loaded` is the right moment (page has painted). If that event
+        # is missing, wait a beat so WKWebView can draw before MediaPipe
+        # creates its OpenGL context.
+        if started["done"]:
+            return
+        timer = threading.Timer(1.0, _start_once)
+        timer.daemon = True
+        fallback["timer"] = timer
+        timer.start()
+
     # Block until the window is closed.
     start_kwargs = {"debug": False}
     if sys.platform == "win32":
         start_kwargs["gui"] = "edgechromium"
-    webview.start(_boot, **start_kwargs)
+    webview.start(_gui_initialized, **start_kwargs)
     # Final save after start() returns (window gone).
     _save_window_size(window)
 
@@ -488,8 +546,9 @@ def main() -> None:
 
     # The engine owns the webcam and all blink numbers. --no-engine is a
     # developer shortcut: show the dashboard without opening the camera.
-    # When several webcams exist, the splash screen asks which to use before
-    # the loop starts (unless --camera is passed on the command line).
+    # Probe cameras *before* the native window exists (AVFoundation would
+    # otherwise stall WKWebView). Ask in the splash only when more than one
+    # desk camera exists and none has been chosen yet.
     prefs = preferences.load()
     cameras = describe_cameras()
     avail = [int(c["index"]) for c in cameras]
@@ -498,19 +557,9 @@ def main() -> None:
     except (TypeError, ValueError):
         saved = -1
 
-    pick_required = len(avail) > 1 and args.camera is None
-    if args.camera is not None:
-        initial = int(args.camera)
-        pick_required = False
-    elif len(avail) == 1:
-        initial = avail[0]
-        pick_required = False
-    elif saved in avail:
-        initial = saved
-    elif avail:
-        initial = avail[0]
-    else:
-        initial = 0
+    initial, pick_required = resolve_startup_camera(
+        avail, saved, args.camera
+    )
 
     engine = EyeRhythmEngine(camera_index=initial)
     if pick_required:
@@ -518,6 +567,7 @@ def main() -> None:
         _log(f"multiple cameras detected {avail} — pick one in the app")
     elif avail:
         preferences.save(camera_index=initial)
+        _log(f"camera {initial} ready ({len(avail)} found)")
 
     # Local HTTP + WebSocket for the React UI (same machine only).
     run_server(engine, host=args.host, port=port)
@@ -571,11 +621,9 @@ def main() -> None:
             # On Windows a freeze can miss WebView2 / pythonnet; keep the
             # dashboard reachable in the system browser instead of dying.
             try:
-                # macOS/Linux: do not wait for pywebview's first callback —
-                # if it is delayed the dashboard looks alive while the camera
-                # never opens. Windows still defers to _boot (WebView2 flash).
-                if sys.platform != "win32":
-                    _start_engine_if_licensed()
+                # Do not open the webcam until the native window has painted.
+                # Camera + MediaPipe GL on the Cocoa thread before first
+                # paint is the blank-white-window bug at login.
                 _open_webview(url, engine, start_engine=not args.no_engine)
             except Exception as exc:
                 _log(f"desktop window failed ({exc}) — falling back to browser")

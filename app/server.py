@@ -199,7 +199,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         return {
             "cameras": cameras,
             "selected": saved,
-            "pick_required": len(cameras) > 1,
+            "pick_required": engine.is_awaiting_camera_pick(),
         }
 
     @app.post("/api/camera/select")

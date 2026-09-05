@@ -11,7 +11,7 @@
   font-family: Inter;
   font-style: normal;
   font-weight: 400;
-  font-display: block;
+  font-display: swap;
   font-stretch: 100%;
   src: url("../../../assets/fonts/Inter-Regular.ttf") format("truetype");
 }
@@ -20,7 +20,7 @@
   font-family: Inter;
   font-style: normal;
   font-weight: 500;
-  font-display: block;
+  font-display: swap;
   font-stretch: 100%;
   src: url("../../../assets/fonts/Inter-Medium.ttf") format("truetype");
 }
@@ -29,7 +29,7 @@
   font-family: Inter;
   font-style: normal;
   font-weight: 600;
-  font-display: block;
+  font-display: swap;
   font-stretch: 100%;
   src: url("../../../assets/fonts/Inter-SemiBold.ttf") format("truetype");
 }
@@ -38,7 +38,7 @@
   font-family: Inter;
   font-style: normal;
   font-weight: 700;
-  font-display: block;
+  font-display: swap;
   font-stretch: 100%;
   src: url("../../../assets/fonts/Inter-Bold.ttf") format("truetype");
 }

@@ -8,6 +8,7 @@ from unittest.mock import patch
 import numpy as np
 
 from app.engine import (
+    _clear_camera_cache,
     _describe_from_os_devices,
     _frame_is_black,
     _frame_is_usable,
@@ -15,6 +16,8 @@ from app.engine import (
     _is_mobile_camera_model,
     _is_mobile_camera_name,
     _opencv_avfoundation_order,
+    describe_cameras,
+    resolve_startup_camera,
 )
 
 
@@ -162,6 +165,54 @@ class CameraDiscoveryTests(unittest.TestCase):
         self.assertEqual(by_name["Brio 100"], 0)
         self.assertEqual(by_name["FaceTime HD Camera (Built-in)"], 1)
         self.assertNotIn("iPhone12Mini Camera", by_name)
+
+    def test_saved_camera_skips_splash_picker(self) -> None:
+        """Two webcams + a remembered index → do not ask again at login."""
+        index, pick = resolve_startup_camera([0, 1], saved=0, cli=None)
+        self.assertEqual(index, 0)
+        self.assertFalse(pick)
+
+        index, pick = resolve_startup_camera([0, 1], saved=1, cli=None)
+        self.assertEqual(index, 1)
+        self.assertFalse(pick)
+
+    def test_unknown_saved_camera_asks_when_several(self) -> None:
+        index, pick = resolve_startup_camera([0, 1], saved=-1, cli=None)
+        self.assertEqual(index, 0)
+        self.assertTrue(pick)
+
+    def test_cli_and_single_camera_never_ask(self) -> None:
+        index, pick = resolve_startup_camera([0, 1], saved=-1, cli=1)
+        self.assertEqual(index, 1)
+        self.assertFalse(pick)
+        index, pick = resolve_startup_camera([2], saved=-1, cli=None)
+        self.assertEqual(index, 2)
+        self.assertFalse(pick)
+
+    def test_describe_cameras_reuses_cache(self) -> None:
+        """Splash / Settings must not re-open cameras after the first probe."""
+        _clear_camera_cache()
+        fake = [
+            {
+                "index": 0,
+                "label": "FaceTime (1280×720)",
+                "name": "FaceTime",
+                "width": 1280,
+                "height": 720,
+            }
+        ]
+        try:
+            with patch("app.engine._camera_devices", return_value=[]), patch(
+                "app.engine._describe_from_os_devices", return_value=fake
+            ) as desc:
+                first = describe_cameras()
+                second = describe_cameras()
+                self.assertEqual(desc.call_count, 1)
+                self.assertEqual(first, second)
+                describe_cameras(refresh=True)
+                self.assertEqual(desc.call_count, 2)
+        finally:
+            _clear_camera_cache()
 
 
 if __name__ == "__main__":
