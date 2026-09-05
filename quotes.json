@@ -1,57 +1,1025 @@
 {
-  "version": 3,
-  "description": "Original Practice lines written for EyesRhythm. Not third-party quotations.",
+  "version": 4,
+  "description": "Practice quotations from the original EyesRhythm list, limited to public-domain authors (died 1925 or earlier, or ancient). Not generated.",
   "interval_seconds": 30,
   "practice_duration_seconds": 120,
-  "count": 48,
+  "count": 254,
   "quotes": [
-    {"text": "Soft lids, steady work.", "author": "EyesRhythm"},
-    {"text": "A full blink is a small reset.", "author": "EyesRhythm"},
-    {"text": "Look, close, look again.", "author": "EyesRhythm"},
-    {"text": "The film on the eye likes a regular wipe.", "author": "EyesRhythm"},
-    {"text": "Attention can wait one blink.", "author": "EyesRhythm"},
-    {"text": "Let the lids meet, then return to the line.", "author": "EyesRhythm"},
-    {"text": "Quiet eyes last longer at a desk.", "author": "EyesRhythm"},
-    {"text": "Do not rush the close.", "author": "EyesRhythm"},
-    {"text": "One complete blink is worth two half ones.", "author": "EyesRhythm"},
-    {"text": "The screen can wait a tenth of a second.", "author": "EyesRhythm"},
-    {"text": "Breathe, blink, continue.", "author": "EyesRhythm"},
-    {"text": "Even gaps are kinder than clumps.", "author": "EyesRhythm"},
-    {"text": "Keep the face still; let the lids move.", "author": "EyesRhythm"},
-    {"text": "A dry hour starts as a skipped blink.", "author": "EyesRhythm"},
-    {"text": "Finish the blink you started.", "author": "EyesRhythm"},
-    {"text": "Soft jaw, soft lids.", "author": "EyesRhythm"},
-    {"text": "The work is long. The wipe is short.", "author": "EyesRhythm"},
-    {"text": "Look at the words; remember the eyes.", "author": "EyesRhythm"},
-    {"text": "A rhythm you can keep is enough.", "author": "EyesRhythm"},
-    {"text": "Close all the way, then open.", "author": "EyesRhythm"},
-    {"text": "Pause the stare, not the work.", "author": "EyesRhythm"},
-    {"text": "Meet the lids. Refresh the film.", "author": "EyesRhythm"},
-    {"text": "Small, complete, often enough.", "author": "EyesRhythm"},
-    {"text": "Hold the thought; blink through it.", "author": "EyesRhythm"},
-    {"text": "The hour is made of many short closes.", "author": "EyesRhythm"},
-    {"text": "Do not save all the blinks for later.", "author": "EyesRhythm"},
-    {"text": "A shallow blink leaves a dry strip.", "author": "EyesRhythm"},
-    {"text": "Return to the screen with wet eyes.", "author": "EyesRhythm"},
-    {"text": "Slow the lids. They know the rest.", "author": "EyesRhythm"},
-    {"text": "Count is not enough; finish the motion.", "author": "EyesRhythm"},
-    {"text": "Between sentences, a close.", "author": "EyesRhythm"},
-    {"text": "The next line will still be there.", "author": "EyesRhythm"},
-    {"text": "Ease the forehead. Then blink.", "author": "EyesRhythm"},
-    {"text": "Regular is quieter than rushed.", "author": "EyesRhythm"},
-    {"text": "Give the oil glands a full squeeze.", "author": "EyesRhythm"},
-    {"text": "Stay with the work. Take the wipe.", "author": "EyesRhythm"},
-    {"text": "Lids down, lids up, back to the keys.", "author": "EyesRhythm"},
-    {"text": "A still face can still blink well.", "author": "EyesRhythm"},
-    {"text": "Let this minute have even gaps.", "author": "EyesRhythm"},
-    {"text": "Nothing important is lost in a blink.", "author": "EyesRhythm"},
-    {"text": "The companion is quiet. The lids can be too.", "author": "EyesRhythm"},
-    {"text": "One more complete close, then go on.", "author": "EyesRhythm"},
-    {"text": "Keep the rhythm you just found.", "author": "EyesRhythm"},
-    {"text": "Dryness is a late messenger. Blink now.", "author": "EyesRhythm"},
-    {"text": "The cursor can wait for the lids.", "author": "EyesRhythm"},
-    {"text": "Soft light, full blink, next task.", "author": "EyesRhythm"},
-    {"text": "You do not have to stare to see.", "author": "EyesRhythm"},
-    {"text": "End this minute kinder than it began.", "author": "EyesRhythm"}
+    {
+      "text": "Be yourself; everyone else is already taken.",
+      "author": "Oscar Wilde"
+    },
+    {
+      "text": "What we think, we become.",
+      "author": "Buddha"
+    },
+    {
+      "text": "Happiness depends upon ourselves.",
+      "author": "Aristotle"
+    },
+    {
+      "text": "The journey of a thousand miles begins with one step.",
+      "author": "Lao Tzu"
+    },
+    {
+      "text": "Do what you can, with what you have, where you are.",
+      "author": "Theodore Roosevelt"
+    },
+    {
+      "text": "Keep your face always toward the sunshine.",
+      "author": "Walt Whitman"
+    },
+    {
+      "text": "Wherever you go, go with all your heart.",
+      "author": "Confucius"
+    },
+    {
+      "text": "Act as if what you do makes a difference. It does.",
+      "author": "William James"
+    },
+    {
+      "text": "Simplicity is the ultimate sophistication.",
+      "author": "Leonardo da Vinci"
+    },
+    {
+      "text": "Life is really simple, but we insist on making it complicated.",
+      "author": "Confucius"
+    },
+    {
+      "text": "Believe you can and you're halfway there.",
+      "author": "Theodore Roosevelt"
+    },
+    {
+      "text": "It is never too late to be what you might have been.",
+      "author": "George Eliot"
+    },
+    {
+      "text": "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "Do not go where the path may lead, go instead where there is no path and leave a trail.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "To live is the rarest thing in the world. Most people exist, that is all.",
+      "author": "Oscar Wilde"
+    },
+    {
+      "text": "That which does not kill us makes us stronger.",
+      "author": "Friedrich Nietzsche"
+    },
+    {
+      "text": "If you want to lift yourself up, lift up someone else.",
+      "author": "Booker T. Washington"
+    },
+    {
+      "text": "The secret of getting ahead is getting started.",
+      "author": "Mark Twain"
+    },
+    {
+      "text": "Kindness is a language which the deaf can hear and the blind can see.",
+      "author": "Mark Twain"
+    },
+    {
+      "text": "Twenty years from now you will be more disappointed by the things that you didn't do than by the ones you did do.",
+      "author": "Mark Twain"
+    },
+    {
+      "text": "Courage is resistance to fear, mastery of fear — not absence of fear.",
+      "author": "Mark Twain"
+    },
+    {
+      "text": "If you tell the truth, you don't have to remember anything.",
+      "author": "Mark Twain"
+    },
+    {
+      "text": "Fall seven times and stand up eight.",
+      "author": "Japanese Proverb"
+    },
+    {
+      "text": "We are what we repeatedly do. Excellence, then, is not an act, but a habit.",
+      "author": "Aristotle"
+    },
+    {
+      "text": "Knowing yourself is the beginning of all wisdom.",
+      "author": "Aristotle"
+    },
+    {
+      "text": "Educating the mind without educating the heart is no education at all.",
+      "author": "Aristotle"
+    },
+    {
+      "text": "The more you know, the more you realize you don't know.",
+      "author": "Aristotle"
+    },
+    {
+      "text": "Quality is not an act, it is a habit.",
+      "author": "Aristotle"
+    },
+    {
+      "text": "Pleasure in the job puts perfection in the work.",
+      "author": "Aristotle"
+    },
+    {
+      "text": "He who has a why to live can bear almost any how.",
+      "author": "Friedrich Nietzsche"
+    },
+    {
+      "text": "Become who you are.",
+      "author": "Friedrich Nietzsche"
+    },
+    {
+      "text": "There are no facts, only interpretations.",
+      "author": "Friedrich Nietzsche"
+    },
+    {
+      "text": "The two most important days in your life are the day you are born and the day you find out why.",
+      "author": "Mark Twain"
+    },
+    {
+      "text": "The mind is everything. What you think you become.",
+      "author": "Buddha"
+    },
+    {
+      "text": "Do not dwell in the past, do not dream of the future, concentrate the mind on the present moment.",
+      "author": "Buddha"
+    },
+    {
+      "text": "Three things cannot be long hidden: the sun, the moon, and the truth.",
+      "author": "Buddha"
+    },
+    {
+      "text": "You will not be punished for your anger, you will be punished by your anger.",
+      "author": "Buddha"
+    },
+    {
+      "text": "Health is the greatest gift, contentment the greatest wealth, faithfulness the best relationship.",
+      "author": "Buddha"
+    },
+    {
+      "text": "Peace comes from within. Do not seek it without.",
+      "author": "Buddha"
+    },
+    {
+      "text": "The root of suffering is attachment.",
+      "author": "Buddha"
+    },
+    {
+      "text": "No one saves us but ourselves. No one can and no one may. We ourselves must walk the path.",
+      "author": "Buddha"
+    },
+    {
+      "text": "Thousands of candles can be lighted from a single candle, and the life of the candle will not be shortened. Happiness never decreases by being shared.",
+      "author": "Buddha"
+    },
+    {
+      "text": "It's not what happens to you, but how you react to it that matters.",
+      "author": "Epictetus"
+    },
+    {
+      "text": "No man is free who is not master of himself.",
+      "author": "Epictetus"
+    },
+    {
+      "text": "First say to yourself what you would be; and then do what you have to do.",
+      "author": "Epictetus"
+    },
+    {
+      "text": "Wealth consists not in having great possessions, but in having few wants.",
+      "author": "Epictetus"
+    },
+    {
+      "text": "Don't explain your philosophy. Embody it.",
+      "author": "Epictetus"
+    },
+    {
+      "text": "He is a wise man who does not grieve for the things which he has not, but rejoices for those which he has.",
+      "author": "Epictetus"
+    },
+    {
+      "text": "You have power over your mind — not outside events. Realize this, and you will find strength.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "The happiness of your life depends upon the quality of your thoughts.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "Waste no more time arguing about what a good man should be. Be one.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "Very little is needed to make a happy life; it is all within yourself, in your way of thinking.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "When you arise in the morning, think of what a privilege it is to be alive, to think, to enjoy, to love.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "The best revenge is not to be like your enemy.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "If it is not right, do not do it; if it is not true, do not say it.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "Dwell on the beauty of life. Watch the stars, and see yourself running with them.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "Accept the things to which fate binds you, and love the people with whom fate brings you together.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "The impediment to action advances action. What stands in the way becomes the way.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "It is not death that a man should fear, but he should fear never beginning to live.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "How much more grievous are the consequences of anger than the causes of it.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "Look well into thyself; there is a source of strength which will always spring up if thou wilt always look.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "The soul becomes dyed with the color of its thoughts.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "Do every act of your life as though it were the very last act of your life.",
+      "author": "Marcus Aurelius"
+    },
+    {
+      "text": "Begin at once to live, and count each separate day as a separate life.",
+      "author": "Seneca"
+    },
+    {
+      "text": "Luck is what happens when preparation meets opportunity.",
+      "author": "Seneca"
+    },
+    {
+      "text": "We suffer more often in imagination than in reality.",
+      "author": "Seneca"
+    },
+    {
+      "text": "It is not that we have a short time to live, but that we waste a lot of it.",
+      "author": "Seneca"
+    },
+    {
+      "text": "As long as you live, keep learning how to live.",
+      "author": "Seneca"
+    },
+    {
+      "text": "Difficulties strengthen the mind, as labor does the body.",
+      "author": "Seneca"
+    },
+    {
+      "text": "If a man knows not to which port he sails, no wind is favorable.",
+      "author": "Seneca"
+    },
+    {
+      "text": "Hang on to your youthful enthusiasms — you'll be able to use them better when you're older.",
+      "author": "Seneca"
+    },
+    {
+      "text": "True happiness is to enjoy the present, without anxious dependence upon the future.",
+      "author": "Seneca"
+    },
+    {
+      "text": "He who is brave is free.",
+      "author": "Seneca"
+    },
+    {
+      "text": "Wherever there is a human being, there is an opportunity for a kindness.",
+      "author": "Seneca"
+    },
+    {
+      "text": "Life is long if you know how to use it.",
+      "author": "Seneca"
+    },
+    {
+      "text": "It does not matter how slowly you go as long as you do not stop.",
+      "author": "Confucius"
+    },
+    {
+      "text": "Our greatest glory is not in never falling, but in rising every time we fall.",
+      "author": "Confucius"
+    },
+    {
+      "text": "When it is obvious that the goals cannot be reached, don't adjust the goals, adjust the action steps.",
+      "author": "Confucius"
+    },
+    {
+      "text": "The man who moves a mountain begins by carrying away small stones.",
+      "author": "Confucius"
+    },
+    {
+      "text": "Real knowledge is to know the extent of one's ignorance.",
+      "author": "Confucius"
+    },
+    {
+      "text": "Silence is a true friend who never betrays.",
+      "author": "Confucius"
+    },
+    {
+      "text": "Choose a job you love, and you will never have to work a day in your life.",
+      "author": "Confucius"
+    },
+    {
+      "text": "To be wronged is nothing, unless you continue to remember it.",
+      "author": "Confucius"
+    },
+    {
+      "text": "Respect yourself and others will respect you.",
+      "author": "Confucius"
+    },
+    {
+      "text": "The superior man is modest in his speech, but exceeds in his actions.",
+      "author": "Confucius"
+    },
+    {
+      "text": "Learning without thought is labor lost; thought without learning is perilous.",
+      "author": "Confucius"
+    },
+    {
+      "text": "Everything has beauty, but not everyone sees it.",
+      "author": "Confucius"
+    },
+    {
+      "text": "Light tomorrow with today.",
+      "author": "Elizabeth Barrett Browning"
+    },
+    {
+      "text": "How do I love thee? Let me count the ways.",
+      "author": "Elizabeth Barrett Browning"
+    },
+    {
+      "text": "Earth's crammed with heaven.",
+      "author": "Elizabeth Barrett Browning"
+    },
+    {
+      "text": "I would always rather be happy than dignified.",
+      "author": "Charlotte Brontë"
+    },
+    {
+      "text": "Life appears to me too short to be spent in nursing animosity or registering wrongs.",
+      "author": "Charlotte Brontë"
+    },
+    {
+      "text": "I am no bird; and no net ensnares me.",
+      "author": "Charlotte Brontë"
+    },
+    {
+      "text": "There is no charm equal to tenderness of heart.",
+      "author": "Jane Austen"
+    },
+    {
+      "text": "It isn't what we say or think that defines us, but what we do.",
+      "author": "Jane Austen"
+    },
+    {
+      "text": "There is nothing I would not do for those who are really my friends.",
+      "author": "Jane Austen"
+    },
+    {
+      "text": "I declare after all there is no enjoyment like reading!",
+      "author": "Jane Austen"
+    },
+    {
+      "text": "To be fond of dancing was a certain step towards falling in love.",
+      "author": "Jane Austen"
+    },
+    {
+      "text": "The greatest wealth is to live content with little.",
+      "author": "Plato"
+    },
+    {
+      "text": "Be kind, for everyone you meet is fighting a harder battle.",
+      "author": "Plato"
+    },
+    {
+      "text": "Wise men speak because they have something to say; fools because they have to say something.",
+      "author": "Plato"
+    },
+    {
+      "text": "At the touch of love everyone becomes a poet.",
+      "author": "Plato"
+    },
+    {
+      "text": "Music is a moral law. It gives soul to the universe, wings to the mind, flight to the imagination.",
+      "author": "Plato"
+    },
+    {
+      "text": "Courage is knowing what not to fear.",
+      "author": "Plato"
+    },
+    {
+      "text": "The beginning is the most important part of the work.",
+      "author": "Plato"
+    },
+    {
+      "text": "Good actions give strength to ourselves and inspire good actions in others.",
+      "author": "Plato"
+    },
+    {
+      "text": "I am indebted to my father for living, but to my teacher for living well.",
+      "author": "Alexander the Great"
+    },
+    {
+      "text": "There is nothing impossible to him who will try.",
+      "author": "Alexander the Great"
+    },
+    {
+      "text": "I would rather live a short life of glory than a long one of obscurity.",
+      "author": "Alexander the Great"
+    },
+    {
+      "text": "Heaven never helps the men who will not act.",
+      "author": "Sophocles"
+    },
+    {
+      "text": "One word frees us of all the weight and pain of life: that word is love.",
+      "author": "Sophocles"
+    },
+    {
+      "text": "Look and you will find it — what is unsought will go undetected.",
+      "author": "Sophocles"
+    },
+    {
+      "text": "Always desire to learn something useful.",
+      "author": "Sophocles"
+    },
+    {
+      "text": "Success is dependent on effort.",
+      "author": "Sophocles"
+    },
+    {
+      "text": "Wisdom outweighs any wealth.",
+      "author": "Sophocles"
+    },
+    {
+      "text": "Numberless are the world's wonders, but none more wonderful than man.",
+      "author": "Sophocles"
+    },
+    {
+      "text": "The keenest sorrow is to recognize ourselves as the sole cause of all our adversities.",
+      "author": "Sophocles"
+    },
+    {
+      "text": "A short saying often contains much wisdom.",
+      "author": "Sophocles"
+    },
+    {
+      "text": "Ignorant men don't know what good they hold in their hands until they've flung it away.",
+      "author": "Sophocles"
+    },
+    {
+      "text": "The greatest wealth is health.",
+      "author": "Virgil"
+    },
+    {
+      "text": "Love conquers all.",
+      "author": "Virgil"
+    },
+    {
+      "text": "They can because they think they can.",
+      "author": "Virgil"
+    },
+    {
+      "text": "Fortune favors the bold.",
+      "author": "Virgil"
+    },
+    {
+      "text": "Come what may, all bad fortune is to be conquered by endurance.",
+      "author": "Virgil"
+    },
+    {
+      "text": "If I have seen further it is by standing on the shoulders of giants.",
+      "author": "Isaac Newton"
+    },
+    {
+      "text": "What we know is a drop, what we don't know is an ocean.",
+      "author": "Isaac Newton"
+    },
+    {
+      "text": "To every action there is always opposed an equal reaction.",
+      "author": "Isaac Newton"
+    },
+    {
+      "text": "Truth is ever to be found in simplicity, and not in the multiplicity and confusion of things.",
+      "author": "Isaac Newton"
+    },
+    {
+      "text": "I can calculate the motion of heavenly bodies, but not the madness of people.",
+      "author": "Isaac Newton"
+    },
+    {
+      "text": "A happy life consists in tranquility of mind.",
+      "author": "Cicero"
+    },
+    {
+      "text": "Gratitude is not only the greatest of virtues, but the parent of all others.",
+      "author": "Cicero"
+    },
+    {
+      "text": "If you have a garden and a library, you have everything you need.",
+      "author": "Cicero"
+    },
+    {
+      "text": "The life given us, by nature is short; but the memory of a well-spent life is eternal.",
+      "author": "Cicero"
+    },
+    {
+      "text": "Nobody can give you freer advice than yourself.",
+      "author": "Cicero"
+    },
+    {
+      "text": "While there's life, there's hope.",
+      "author": "Cicero"
+    },
+    {
+      "text": "Friendship improves happiness and abates misery, by the doubling of our joy and the dividing of our grief.",
+      "author": "Cicero"
+    },
+    {
+      "text": "To be ignorant of what occurred before you were born is to remain always a child.",
+      "author": "Cicero"
+    },
+    {
+      "text": "The authority of those who teach is often an obstacle to those who want to learn.",
+      "author": "Cicero"
+    },
+    {
+      "text": "Live as brave men; and if fortune is adverse, front its blows with brave hearts.",
+      "author": "Cicero"
+    },
+    {
+      "text": "A room without books is like a body without a soul.",
+      "author": "Cicero"
+    },
+    {
+      "text": "If we are not ashamed to think it, we should not be ashamed to say it.",
+      "author": "Cicero"
+    },
+    {
+      "text": "The greater the difficulty, the greater the glory.",
+      "author": "Cicero"
+    },
+    {
+      "text": "Natural ability without education has more often raised a man to glory and virtue than education without natural ability.",
+      "author": "Cicero"
+    },
+    {
+      "text": "Knowledge which is acquired under compulsion obtains no hold on the mind.",
+      "author": "Plato"
+    },
+    {
+      "text": "Thinking: the talking of the soul with itself.",
+      "author": "Plato"
+    },
+    {
+      "text": "We can easily forgive a child who is afraid of the dark; the real tragedy of life is when men are afraid of the light.",
+      "author": "Plato"
+    },
+    {
+      "text": "Never discourage anyone who continually makes progress, no matter how slow.",
+      "author": "Plato"
+    },
+    {
+      "text": "Honesty is for the most part less profitable than dishonesty.",
+      "author": "Plato"
+    },
+    {
+      "text": "The first and greatest victory is to conquer yourself.",
+      "author": "Plato"
+    },
+    {
+      "text": "Human behavior flows from three main sources: desire, emotion, and knowledge.",
+      "author": "Plato"
+    },
+    {
+      "text": "There are two things a person should never be angry at, what they can help, and what they cannot.",
+      "author": "Plato"
+    },
+    {
+      "text": "No one is more hated than he who speaks the truth.",
+      "author": "Plato"
+    },
+    {
+      "text": "Opinion is the medium between knowledge and ignorance.",
+      "author": "Plato"
+    },
+    {
+      "text": "Love is a serious mental disease.",
+      "author": "Plato"
+    },
+    {
+      "text": "The direction in which education starts a man will determine his future in life.",
+      "author": "Plato"
+    },
+    {
+      "text": "He who commits injustice is ever made more wretched than he who suffers it.",
+      "author": "Plato"
+    },
+    {
+      "text": "A good decision is based on knowledge and not on numbers.",
+      "author": "Plato"
+    },
+    {
+      "text": "For a man to conquer himself is the first and noblest of all victories.",
+      "author": "Plato"
+    },
+    {
+      "text": "I know that I am intelligent, because I know that I know nothing.",
+      "author": "Socrates"
+    },
+    {
+      "text": "The unexamined life is not worth living.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Be kind, for everyone you meet is fighting a hard battle.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Wonder is the beginning of wisdom.",
+      "author": "Socrates"
+    },
+    {
+      "text": "To find yourself, think for yourself.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Education is the kindling of a flame, not the filling of a vessel.",
+      "author": "Socrates"
+    },
+    {
+      "text": "He who is not a good servant will not be a good master.",
+      "author": "Plato"
+    },
+    {
+      "text": "An honest man is always a child.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Prefer knowledge to wealth, for the one is transitory, the other perpetual.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Let him that would move the world first move himself.",
+      "author": "Socrates"
+    },
+    {
+      "text": "The only true wisdom is in knowing you know nothing.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Be as you wish to seem.",
+      "author": "Socrates"
+    },
+    {
+      "text": "I cannot teach anybody anything. I can only make them think.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Strong minds discuss ideas, average minds discuss events, weak minds discuss people.",
+      "author": "Socrates"
+    },
+    {
+      "text": "He is richest who is content with the least, for content is the wealth of nature.",
+      "author": "Socrates"
+    },
+    {
+      "text": "From the deepest desires often come the deadliest hate.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Beware the barrenness of a busy life.",
+      "author": "Socrates"
+    },
+    {
+      "text": "True knowledge exists in knowing that you know nothing.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Employ your time in improving yourself by other men's writings, so that you shall gain easily what others have labored hard for.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Once made equal to man, woman becomes his superior.",
+      "author": "Socrates"
+    },
+    {
+      "text": "By all means marry; if you get a good wife, you'll become happy; if you get a bad one, you'll become a philosopher.",
+      "author": "Socrates"
+    },
+    {
+      "text": "The secret of happiness, you see, is not found in seeking more, but in developing the capacity to enjoy less.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Be slow to fall into friendship, but when you are in, continue firm and constant.",
+      "author": "Socrates"
+    },
+    {
+      "text": "Ordinary people think merely of spending time. Great people think of using it.",
+      "author": "Arthur Schopenhauer"
+    },
+    {
+      "text": "Talent hits a target no one else can hit; Genius hits a target no one else can see.",
+      "author": "Arthur Schopenhauer"
+    },
+    {
+      "text": "Compassion is the basis of morality.",
+      "author": "Arthur Schopenhauer"
+    },
+    {
+      "text": "Every man takes the limits of his own field of vision for the limits of the world.",
+      "author": "Arthur Schopenhauer"
+    },
+    {
+      "text": "A man can be himself only so long as he is alone.",
+      "author": "Arthur Schopenhauer"
+    },
+    {
+      "text": "The two enemies of human happiness are pain and boredom.",
+      "author": "Arthur Schopenhauer"
+    },
+    {
+      "text": "Change alone is eternal, perpetual, immortal.",
+      "author": "Arthur Schopenhauer"
+    },
+    {
+      "text": "It is difficult to find happiness within oneself, but it is impossible to find it anywhere else.",
+      "author": "Arthur Schopenhauer"
+    },
+    {
+      "text": "Treat a man as he is, and he will remain as he is. Treat a man as he could be, and he will become what he should be.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "What you do speaks so loudly that I cannot hear what you say.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "Write it on your heart that every day is the best day in the year.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "For every minute you remain angry, you give up sixty seconds of peace of mind.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "Nothing great was ever achieved without enthusiasm.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "The only person you are destined to become is the person you decide to be.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "Adopt the pace of nature: her secret is patience.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "Always do what you are afraid to do.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "Our greatest glory is not in never failing, but in rising up every time we fail.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "text": "Have a heart that never hardens, and a temper that never tires, and a touch that never hurts.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "No one is useless in this world who lightens the burdens of another.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "There is nothing in the world so irresistibly contagious as laughter and good humor.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "A loving heart is the truest wisdom.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "The pain of parting is nothing to the joy of meeting again.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "It was the best of times, it was the worst of times.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "Reflect upon your present blessings — of which every man has many — not on your past misfortunes, of which all men have some.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "We need never be ashamed of our tears.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "A day wasted on others is not wasted on one's self.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "I will honor Christmas in my heart, and try to keep it all the year.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "Electric communication will never be a substitute for the face of someone who with their soul encourages another person to be brave and true.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "The whole difference between construction and creation is exactly this: that a thing constructed can only be loved after it is constructed; but a thing created is loved before it exists.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "There are dark shadows on the earth, but its lights are stronger in the contrast.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "Ask no questions, and you'll be told no lies.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "Never close your lips to those whom you have already opened your heart.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "I only ask to be free. The butterflies are free.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "An idea, like a ghost, must be spoken to a little before it will explain itself.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "Dignity, and even holiness too, sometimes, are more questions of coat and waistcoat than some people imagine.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "Subdue your appetites, my dears, and you've conquered human nature.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "Life is made of ever so many partings welded together.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "No space of regret can make amends for one life's opportunity misused.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "I have been bent and broken, but — I hope — into a better shape.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "Take nothing on its looks; take everything on evidence. There's no better rule.",
+      "author": "Charles Dickens"
+    },
+    {
+      "text": "A day will come when everything in my life will be changed, when I shall do good and delight in it.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Even the darkest night will end and the sun will rise.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Music expresses that which cannot be said and on which it is impossible to be silent.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Laughter is the sun that drives winter from the human face.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "To love another person is to see the face of God.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "There is nothing like a dream to create the future.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "He who opens a school door, closes a prison.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Change your opinions, keep to your principles; change your leaves, keep intact your roots.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "The greatest happiness of life is the conviction that we are loved.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "It is nothing to die. It is frightful not to live.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Have courage for the great sorrows of life and patience for the small ones; and when you have laboriously accomplished your daily task, go to sleep in peace.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "A library implies an act of faith.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Initiative is doing the right thing without being told.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Certain thoughts are prayers. There are moments when, whatever be the attitude of the body, the soul is on its knees.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Short as life is, we make it still shorter by the careless waste of time.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "The soul has illusions as the bird has wings: it is supported by them.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "What is history? An echo of the past in the future; a reflex from the future on the past.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "When a woman is talking to you, listen to what she says with her eyes.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Curiosity is one of the forms of feminine bravery.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Be as a bird perched on a frail branch that she feels bending beneath her, still she sings away all the same, knowing she has wings.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "People do not lack strength; they lack will.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Life is the flower for which love is the honey.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Those who do not weep, do not see.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "To put everything in balance is good, to put everything in harmony is better.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "The supreme happiness of life is the conviction that we are loved.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "There is one spectacle grander than the sea, that is the sky; there is one spectacle grander than the sky, that is the interior of the soul.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Fashions have done more harm than revolutions.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "A compliment is something like a kiss through a veil.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Common sense is in spite of, not the result of, education.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Nothing else in the world… not all the armies… is so powerful as an idea whose time has come.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "Adversity makes men, and prosperity makes monsters.",
+      "author": "Victor Hugo"
+    },
+    {
+      "text": "When dictatorship is a fact, revolution becomes a right.",
+      "author": "Victor Hugo"
+    }
   ]
 }

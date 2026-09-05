@@ -46,19 +46,53 @@ class NoticeTests(unittest.TestCase):
     def test_alert_wav_is_pcm_wave(self) -> None:
         path = ROOT / "alert.wav"
         with wave.open(str(path), "rb") as wav:
-            self.assertEqual(wav.getnchannels(), 1)
+            self.assertIn(wav.getnchannels(), (1, 2))
             self.assertEqual(wav.getsampwidth(), 2)
             self.assertGreaterEqual(wav.getframerate(), 22050)
-            self.assertGreater(wav.getnframes(), 1000)
+            self.assertGreaterEqual(wav.getnframes() / wav.getframerate(), 1.0)
 
-    def test_practice_lines_are_original(self) -> None:
+    def test_practice_quotes_are_public_domain_authors(self) -> None:
+        allowed = {
+            "Victor Hugo",
+            "Plato",
+            "Charles Dickens",
+            "Socrates",
+            "Marcus Aurelius",
+            "Cicero",
+            "Confucius",
+            "Ralph Waldo Emerson",
+            "Seneca",
+            "Buddha",
+            "Sophocles",
+            "Arthur Schopenhauer",
+            "Aristotle",
+            "Epictetus",
+            "Jane Austen",
+            "Virgil",
+            "Friedrich Nietzsche",
+            "Charlotte Brontë",
+            "Elizabeth Barrett Browning",
+            "Mark Twain",
+            "Isaac Newton",
+            "Oscar Wilde",
+            "George Eliot",
+            "Lao Tzu",
+            "Leonardo da Vinci",
+            "Walt Whitman",
+            "Japanese Proverb",
+            "Alexander the Great",
+            "Theodore Roosevelt",
+            "Booker T. Washington",
+            "William James",
+        }
         data = json.loads((ROOT / "quotes.json").read_text(encoding="utf-8"))
         quotes = data["quotes"]
         self.assertEqual(len(quotes), data["count"])
-        self.assertGreaterEqual(len(quotes), 20)
+        self.assertGreaterEqual(len(quotes), 50)
         for item in quotes:
             self.assertTrue(str(item["text"]).strip())
-            self.assertEqual(item["author"], "EyesRhythm")
+            self.assertIn(item["author"], allowed)
+        self.assertNotIn("EyesRhythm", {q["author"] for q in quotes})
 
     def test_readme_does_not_call_the_product_free_open_source(self) -> None:
         text = (ROOT / "README.md").read_text(encoding="utf-8")

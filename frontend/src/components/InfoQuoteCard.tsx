@@ -12,14 +12,14 @@ interface Props {
 
 // Used if quotes.json cannot be loaded (offline / first-run edge case).
 const FALLBACK: QuoteItem[] = [
-  { text: "Soft lids, steady work.", author: "EyesRhythm" },
-  { text: "A full blink is a small reset.", author: "EyesRhythm" },
-  { text: "Look, close, look again.", author: "EyesRhythm" },
-  { text: "Attention can wait one blink.", author: "EyesRhythm" },
-  { text: "Finish the blink you started.", author: "EyesRhythm" },
-  { text: "Breathe, blink, continue.", author: "EyesRhythm" },
-  { text: "The screen can wait a tenth of a second.", author: "EyesRhythm" },
-  { text: "A rhythm you can keep is enough.", author: "EyesRhythm" },
+  { text: "Be yourself; everyone else is already taken.", author: "Oscar Wilde" },
+  { text: "Happiness depends upon ourselves.", author: "Aristotle" },
+  { text: "Wherever you go, go with all your heart.", author: "Confucius" },
+  { text: "Keep your face always toward the sunshine.", author: "Walt Whitman" },
+  { text: "The journey of a thousand miles begins with a single step.", author: "Lao Tzu" },
+  { text: "Adopt the pace of nature: her secret is patience.", author: "Ralph Waldo Emerson" },
+  { text: "It is not the man who has too little, but the man who craves more, that is poor.", author: "Seneca" },
+  { text: "Knowing yourself is the beginning of all wisdom.", author: "Aristotle" },
 ];
 
 // How long each quote stays on screen (30 seconds).
