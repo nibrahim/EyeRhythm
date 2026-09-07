@@ -228,10 +228,13 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     @app.get("/alert.mp3")
     def get_alert_mp3():
         """Sound-alert cue (played at most once a minute while Alert is latched)."""
-        if ALERT_WAV.is_file():
-            return FileResponse(ALERT_WAV, media_type="audio/wav")
+        headers = {"Cache-Control": "no-cache"}
         if ALERT_MP3.is_file():
-            return FileResponse(ALERT_MP3, media_type="audio/mpeg")
+            return FileResponse(
+                ALERT_MP3, media_type="audio/mpeg", headers=headers
+            )
+        if ALERT_WAV.is_file():
+            return FileResponse(ALERT_WAV, media_type="audio/wav", headers=headers)
         raise HTTPException(status_code=404, detail="alert sound missing")
 
     @app.get("/api/notices")

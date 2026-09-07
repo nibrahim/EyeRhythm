@@ -361,6 +361,132 @@ def _apply_app_icon() -> None:
         _log(f"could not set app icon: {exc}")
 
 
+# Win32 FlashWindowEx: blink the taskbar button while Visual alert is on
+# and the window is minimized. No-ops on macOS / Linux.
+_FLASHW_STOP = 0
+_FLASHW_ALL = 3
+_FLASHW_TIMER = 4
+
+
+def _windows_hwnd(window) -> int | None:
+    """HWND for the pywebview window, or None if it is not a Win32 form yet."""
+    native = getattr(window, "native", None)
+    if native is not None:
+        handle = getattr(native, "Handle", None)
+        if handle is not None:
+            try:
+                return int(handle.ToInt64())
+            except Exception:
+                try:
+                    return int(handle)
+                except Exception:
+                    pass
+    try:
+        import ctypes
+
+        hwnd = int(ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE) or 0)
+        return hwnd or None
+    except Exception:
+        return None
+
+
+def _windows_is_minimized(hwnd: int | None) -> bool:
+    if not hwnd:
+        return False
+    try:
+        import ctypes
+
+        return bool(ctypes.windll.user32.IsIconic(hwnd))
+    except Exception:
+        return False
+
+
+def _flash_windows_taskbar(hwnd: int | None, enable: bool) -> None:
+    if not hwnd:
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class FLASHWINFO(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", wintypes.UINT),
+                ("hwnd", wintypes.HWND),
+                ("dwFlags", wintypes.DWORD),
+                ("uCount", wintypes.UINT),
+                ("dwTimeout", wintypes.DWORD),
+            ]
+
+        info = FLASHWINFO()
+        info.cbSize = ctypes.sizeof(FLASHWINFO)
+        info.hwnd = hwnd
+        if enable:
+            info.dwFlags = _FLASHW_ALL | _FLASHW_TIMER
+            info.uCount = 0
+            info.dwTimeout = 500
+        else:
+            info.dwFlags = _FLASHW_STOP
+            info.uCount = 0
+            info.dwTimeout = 0
+        ctypes.windll.user32.FlashWindowEx(ctypes.byref(info))
+    except Exception as exc:
+        _log(f"taskbar flash failed: {exc}")
+
+
+def _bind_windows_visual_alert_flash(window, engine: EyeRhythmEngine) -> None:
+    """
+    Pulse the minimized taskbar button while Visual alert is latched.
+
+    The orange GUI glow stays in the window; this is only for when the
+    window is in the taskbar and that glow is not visible.
+    """
+    if platform.system() != "Windows":
+        return
+
+    state = {"wanted": False, "flashing": False}
+
+    def sync() -> None:
+        hwnd = _windows_hwnd(window)
+        should = bool(state["wanted"] and _windows_is_minimized(hwnd))
+        if should == state["flashing"]:
+            return
+        state["flashing"] = should
+        _flash_windows_taskbar(hwnd, should)
+
+    def on_visual(wanted: bool) -> None:
+        state["wanted"] = bool(wanted)
+        if not state["wanted"]:
+            hwnd = _windows_hwnd(window)
+            state["flashing"] = False
+            _flash_windows_taskbar(hwnd, False)
+            return
+        sync()
+
+    engine.on_visual_alert_change(on_visual)
+
+    def on_min_change() -> None:
+        sync()
+
+    for name in ("minimized", "restored", "shown", "maximized"):
+        try:
+            evt = getattr(window.events, name)
+            evt += on_min_change
+        except Exception:
+            pass
+
+    def poll() -> None:
+        while True:
+            time.sleep(0.5 if state["wanted"] else 2.0)
+            try:
+                sync()
+            except Exception:
+                return
+
+    threading.Thread(
+        target=poll, daemon=True, name="taskbar-alert"
+    ).start()
+
+
 def _open_webview(
     url: str, engine: EyeRhythmEngine, *, start_engine: bool = True
 ) -> None:
@@ -398,6 +524,7 @@ def _open_webview(
             pass
 
     engine.on_ontop_change(apply_ontop)
+    _bind_windows_visual_alert_flash(window, engine)
 
     def on_resized():
         if api._splash_active:
@@ -412,6 +539,8 @@ def _open_webview(
             preferences.set_toggles(**engine.get_toggles())
         except Exception:
             pass
+        if platform.system() == "Windows":
+            _flash_windows_taskbar(_windows_hwnd(window), False)
 
     # pywebview event hooks (versions differ slightly — guard each).
     try:

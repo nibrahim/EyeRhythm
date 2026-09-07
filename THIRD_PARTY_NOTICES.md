@@ -108,9 +108,8 @@ must not be sold on their own. Reserved font name: Inter. Full text:
 
 ## Original assets in this copy
 
-- `alert.wav` — original chime written for EyesRhythm (not a third-party
-  sample). It matches the pitch and length of the previous alert tone
-  (about 520 Hz with a fifth and an octave, ~1.3 s).
+- `alert.mp3` — Sound-mode alert cue shipped with EyesRhythm (the
+  provided `beep alert.mp3`). `alert.wav` is kept as a fallback only.
 - Practice quotations in `quotes.json` — taken from the original
   EyesRhythm list, limited to public-domain authors (ancient writers, or
   authors who died in 1925 or earlier). Living and still-in-copyright

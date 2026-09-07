@@ -4,7 +4,14 @@
  * A rounded blue square with a simple eye. Drawn as SVG so it stays
  * sharp at any size; no image file is needed.
  */
-export function Logo({ size = 28 }: { size?: number }) {
+export function Logo({
+  size = 28,
+  alertPulse = false,
+}: {
+  size?: number;
+  /** Visual-alert: pulse the mark orange ↔ blue while the latch is on. */
+  alertPulse?: boolean;
+}) {
   return (
     <svg
       width={size}
@@ -13,9 +20,16 @@ export function Logo({ size = 28 }: { size?: number }) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
-      className="er-logo"
+      className={`er-logo${alertPulse ? " is-alert-pulse" : ""}`}
     >
-      <rect x="2" y="2" width="60" height="60" rx="18" fill="#5B9FE0" />
+      <rect
+        className="er-logo__mark"
+        x="2"
+        y="2"
+        width="60"
+        height="60"
+        rx="18"
+      />
       <ellipse
         cx="32"
         cy="32"

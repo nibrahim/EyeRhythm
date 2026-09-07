@@ -291,7 +291,7 @@ export default function App() {
       {/* Brand + camera status light (hidden in compact companion mode). */}
       <header className="topbar">
         <div className="topbar__brand">
-          <Logo size={30} />
+          <Logo size={30} alertPulse={visualAlert} />
           <div>
             <div className="topbar__title">EyesRhythm</div>
             <div className="topbar__tag">Blink companion</div>

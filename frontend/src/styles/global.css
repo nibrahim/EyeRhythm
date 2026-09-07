@@ -211,6 +211,24 @@ button {
   flex-shrink: 0;
 }
 
+.er-logo__mark {
+  fill: #5b9fe0;
+}
+
+.er-logo.is-alert-pulse .er-logo__mark {
+  animation: er-logo-alert-pulse 3s ease-in-out infinite;
+}
+
+@keyframes er-logo-alert-pulse {
+  0%,
+  100% {
+    fill: #5b9fe0;
+  }
+  50% {
+    fill: #ff8c28;
+  }
+}
+
 .topbar__brand {
   display: flex;
   align-items: center;

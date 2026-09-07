@@ -19,6 +19,7 @@ class NoticeTests(unittest.TestCase):
             "licenses/LGPLv2.1.txt",
             "licenses/SIL-OFL-1.1.txt",
             "alert.wav",
+            "alert.mp3",
         ):
             path = ROOT / rel
             self.assertTrue(path.is_file(), f"missing {rel}")
@@ -39,9 +40,9 @@ class NoticeTests(unittest.TestCase):
             "THIRD_PARTY_NOTICES.md",
             "licenses",
             "alert.wav",
+            "alert.mp3",
         ):
             self.assertIn(needle, spec)
-        self.assertNotIn("alert.mp3", spec)
 
     def test_alert_wav_is_pcm_wave(self) -> None:
         path = ROOT / "alert.wav"
@@ -50,6 +51,13 @@ class NoticeTests(unittest.TestCase):
             self.assertEqual(wav.getsampwidth(), 2)
             self.assertGreaterEqual(wav.getframerate(), 22050)
             self.assertGreaterEqual(wav.getnframes() / wav.getframerate(), 1.0)
+
+    def test_alert_mp3_is_mpeg(self) -> None:
+        data = (ROOT / "alert.mp3").read_bytes()[:16]
+        self.assertTrue(data, "alert.mp3 is empty")
+        id3 = data.startswith(b"ID3")
+        frame = data[0] == 0xFF and (data[1] & 0xE0) == 0xE0
+        self.assertTrue(id3 or frame, "alert.mp3 is not an MPEG audio file")
 
     def test_practice_quotes_are_public_domain_authors(self) -> None:
         allowed = {

@@ -132,7 +132,7 @@ FFmpeg remains a separate shared library (typically
 `opencv_videoio_ffmpeg*.dll` on Windows) so it can be substituted, as LGPL
 asks.
 
-The alert tone (`alert.wav`) is original EyesRhythm audio. Practice
+The alert tone (`alert.mp3`) is the Sound-mode cue shipped with EyesRhythm. Practice
 quotations (`quotes.json`) are from the original list, limited to
 public-domain authors.
 

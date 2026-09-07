@@ -1348,6 +1348,7 @@ class EyeRhythmEngine:
         self._preview_wanted = False
         self._last_preview_at = 0.0
         self._ontop_listeners: list = []
+        self._visual_alert_listeners: list = []
 
     # ---- public control -----------------------------------------------
 
@@ -1643,12 +1644,15 @@ class EyeRhythmEngine:
                 pass
             practice_on = self._states["practice"] and name == "practice"
             practice_off = (not self._states["practice"]) and name == "practice"
+            alert_mode_changed = name == "alert"
 
         # Start/stop practice outside the lock to avoid deadlocks with join().
         if practice_on:
             self._begin_practice_session()
         elif practice_off:
             self._stop_practice_session()
+        if alert_mode_changed:
+            self._emit_visual_alert()
 
         with self._lock:
             out = dict(self._states)
@@ -1847,6 +1851,7 @@ class EyeRhythmEngine:
         with self._lock:
             self._alert_active = bool(active)
             self._snap.alert_active = self._alert_active
+        self._emit_visual_alert()
 
     def get_toggles(self) -> dict[str, bool]:
         """Copy of Beep / Alert / On top / Practice (safe to read from the UI)."""
@@ -1859,6 +1864,25 @@ class EyeRhythmEngine:
     def on_ontop_change(self, callback) -> None:
         """Register a callback(bool) when always-on-top changes (for pywebview)."""
         self._ontop_listeners.append(callback)
+
+    def on_visual_alert_change(self, callback) -> None:
+        """
+        Register a callback(bool) when Visual alert should draw attention.
+
+        True while Alert is latched *and* the chip is on Visual (not Sound).
+        Used on Windows to blink the minimized taskbar button.
+        """
+        self._visual_alert_listeners.append(callback)
+
+    def _emit_visual_alert(self) -> None:
+        with self._lock:
+            wanted = bool(self._alert_active) and self._alert_mode == "visual"
+            listeners = list(self._visual_alert_listeners)
+        for cb in listeners:
+            try:
+                cb(wanted)
+            except Exception:
+                pass
 
     def _sync_presence_hold(
         self,

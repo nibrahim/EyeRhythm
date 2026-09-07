@@ -112,6 +112,7 @@ datas = [
     ('assets', 'assets'),
     ('frontend/dist', 'frontend/dist'),
     ('quotes.json', '.'),
+    ('alert.mp3', '.'),
     ('alert.wav', '.'),
     ('LICENSE', '.'),
     ('THIRD_PARTY_NOTICES.md', '.'),
