@@ -1,5 +1,17 @@
 export const posts = [
   {
+    slug: "count-is-not-rhythm",
+    title: "Why the blink count is not enough",
+    description:
+      "Six blinks can still mean two very different minutes, because what matters is how often you blink and how evenly you do it. That is what the number in the window is trying to show.",
+    date: "2026-09-07",
+    read: "7 min",
+    kicker: "The score",
+    cover: "/images/companion-desk.jpg",
+    coverAlt:
+      "A laptop open on a wooden desk beside a small blue candle, morning light on an uncluttered workspace.",
+  },
+  {
     slug: "screens-cut-blink-rate",
     title: "Why screens cut your blink rate",
     description:
