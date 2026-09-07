@@ -1,0 +1,558 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getPost } from "../../data/journal";
+import { site } from "../../config";
+
+const post = getPost("count-is-not-rhythm")!;
+---
+
+<Layout title={`${post.title}, EyesRhythm`} description={post.description}>
+  <main id="main">
+    <header class="cover">
+      <img
+        src={post.cover}
+        alt={post.coverAlt}
+        width="1280"
+        height="720"
+      />
+      <div class="cover__shade"></div>
+      <div class="cover__copy">
+        <p class="kicker"><span class="kicker__dot"></span>{post.kicker}</p>
+        <h1 class="display">{post.title}</h1>
+        <p class="lede">{post.description}</p>
+        <p class="meta">{post.read} · 7 September 2026</p>
+      </div>
+    </header>
+
+    <article class="wrap article">
+      <div class="prose">
+        <p>
+          When you look at the small EyesRhythm window, you see a number,
+          and it isn’t how many times you blinked today or a streak you
+          could collect. It’s a picture of this stretch of work, showing
+          how often you blinked and whether those blinks were spread out
+          or bunched up.
+        </p>
+        <p>
+          Most blink apps only count, which sounds useful until you
+          remember that your eyes don’t live on a total. They live on
+          the gaps between blinks, which is when the surface starts to
+          dry.
+        </p>
+        <p>
+          We already wrote about
+          <a href="/journal/screens-cut-blink-rate">why screens make you
+          blink less</a>. This one is about the number next to your work,
+          and how to read it without turning it into another job.
+        </p>
+
+        <h2>The same six blinks, two different minutes</h2>
+        <p>
+          Picture a minute with six blinks in it, which is already a low
+          rate, the kind researchers saw when office workers looked at a
+          screen instead of sitting quietly.
+          <sup><a href="#ref-1">1</a></sup>
+          Those same six blinks can still mean two different minutes.
+        </p>
+        <p>
+          If they are spread out, you wait about twelve seconds between
+          each one, and the eye gets a little dry before a blink wets it
+          again. If they come in two clumps, with a long empty stretch in
+          the middle, more than half the minute can go by with no blink
+          at all. The count is the same, but the drying is much worse,
+          and a 2023 paper drew that picture with the same average and
+          very different uncovered time.
+          <sup><a href="#ref-2">2</a></sup>
+        </p>
+
+        <figure class="tracks" aria-label="Even blinks versus clustered blinks over one minute">
+          <p class="tracks__title">Same six blinks. Different minute.</p>
+          <div class="track">
+            <p class="track__label">Even</p>
+            <svg viewBox="0 0 600 36" role="img" aria-hidden="true">
+              <line x1="8" y1="18" x2="592" y2="18" stroke="currentColor" stroke-width="2"></line>
+              <circle cx="8" cy="18" r="6" fill="#0071e3"></circle>
+              <circle cx="124" cy="18" r="6" fill="#0071e3"></circle>
+              <circle cx="240" cy="18" r="6" fill="#0071e3"></circle>
+              <circle cx="356" cy="18" r="6" fill="#0071e3"></circle>
+              <circle cx="472" cy="18" r="6" fill="#0071e3"></circle>
+              <circle cx="592" cy="18" r="6" fill="#0071e3"></circle>
+            </svg>
+            <p class="track__note">A blink about every 12 seconds</p>
+          </div>
+          <div class="track">
+            <p class="track__label">Lumpy</p>
+            <svg viewBox="0 0 600 36" role="img" aria-hidden="true">
+              <line x1="8" y1="18" x2="592" y2="18" stroke="currentColor" stroke-width="2"></line>
+              <circle cx="8" cy="18" r="6" fill="#e07a72"></circle>
+              <circle cx="68" cy="18" r="6" fill="#e07a72"></circle>
+              <circle cx="98" cy="18" r="6" fill="#e07a72"></circle>
+              <circle cx="512" cy="18" r="6" fill="#e07a72"></circle>
+              <circle cx="542" cy="18" r="6" fill="#e07a72"></circle>
+              <circle cx="592" cy="18" r="6" fill="#e07a72"></circle>
+            </svg>
+            <p class="track__note">A cluster, a long wait, another cluster</p>
+          </div>
+          <figcaption>
+            After Cardona, Argilés and Pérez-Cabré, 2023. The average
+            looks the same, and the long gap is where the eye dries.
+          </figcaption>
+        </figure>
+
+        <blockquote>
+          <p>
+            “A complete characterization of blink parameters is relevant to
+            better understand ocular dryness related to surface exposure and
+            to advice patients towards a reeducation of their blinking
+            habits.”
+          </p>
+          <cite>Cardona, Argilés and Pérez-Cabré, 2023<sup><a href="#ref-2">2</a></sup></cite>
+        </blockquote>
+        <p>
+          What they mean is that the count is only part of the story, and
+          that people can relearn a better blink habit. How often you
+          blink is the rate, and how steady those blinks are is the
+          regularity. You need both, because slow and even still leaves
+          the eye dry, and fast but bunched still leaves a long dry wait.
+        </p>
+
+        <h2>Two questions, one score</h2>
+        <p>
+          EyesRhythm puts those two things into one number, the
+          <strong>Ocular Rhythm Index</strong>, or ORI, which runs from
+          0 to 100 and sits in the window.
+        </p>
+        <p>
+          How often still matters more, because a blink that never comes
+          cannot be even. How steady still matters too, so a lumpy minute
+          doesn’t look fine just because the count added up.
+        </p>
+        <p>
+          The app is built for desk work, not for talking and not for
+          sleep, since people blink more when they talk and less when
+          they stare at a screen.
+          <sup><a href="#ref-1">1</a></sup>
+          EyesRhythm aims at a comfortable screen pace, about 15 to 20
+          full blinks a minute, spaced out enough that the eye stays wet.
+        </p>
+
+        <figure class="rates" aria-label="How to glance at ORI">
+          <div class="rate">
+            <p class="rate__n">~18</p>
+            <p class="rate__unit">blinks / min</p>
+            <p class="rate__label">A calm minute at the desk</p>
+          </div>
+          <div class="rate">
+            <p class="rate__n">0–100</p>
+            <p class="rate__unit">ORI</p>
+            <p class="rate__label">How often and how even</p>
+          </div>
+          <div class="rate rate--low">
+            <p class="rate__n">50</p>
+            <p class="rate__unit">default nudge</p>
+            <p class="rate__label">When the score has been low</p>
+          </div>
+          <figcaption>
+            About 15 to 20 blinks a minute is a healthy pace at a screen,
+            and ORI is that rate plus how even the gaps were.
+          </figcaption>
+        </figure>
+
+        <p>
+          Regularity is simply whether the waits between blinks are
+          similar or all over the place.
+          <sup><a href="#ref-2">2</a></sup>
+          Even waits score high, while a clump followed by a long wait
+          scores low. EyesRhythm looks at your recent blinks this way,
+          not as a medical test, but as a live picture of this stretch of
+          looking.
+        </p>
+        <figure class="shot">
+          <img
+            src="/images/ripples.jpg"
+            alt="Even concentric ripples on still water, spreading from a single point of light."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            Regularity is how even the gaps are, so the count can look
+            fine while the waits are all over the place.
+          </figcaption>
+        </figure>
+
+        <h2>How to read the window</h2>
+        <p>
+          You don’t have to watch the number, because the app is meant to
+          sit beside your work. When you do look, this is enough:
+        </p>
+        <ol>
+          <li>
+            <strong>High ORI.</strong> You have enough blinks, and they
+            are not arriving in panics and silences, so this minute is
+            going okay.
+          </li>
+          <li>
+            <strong>Around the middle.</strong> This is where the default
+            nudge lives, when you are blinking less or the gaps have gone
+            lumpy, or both. A full blink, a look away, and then back to
+            the page is often all you need.
+          </li>
+          <li>
+            <strong>Low ORI.</strong> The waits have gotten long, or
+            there are too few blinks, and when the letters go soft this
+            is usually why, not the screen.
+          </li>
+        </ol>
+        <p>
+          The score only runs while the camera can see both eyes looking
+          at the screen, so if you look down, turn to a side monitor, or
+          leave the chair, it pauses on purpose. That isn’t a bug,
+          because it’s only counting screen time, and the
+          <a href="/journal/camera-setup">camera setup</a> guide is the
+          short version of sitting so those minutes count.
+        </p>
+        <p>
+          Comfortable blinking isn’t a perfect beat, and the waits can
+          vary a little. Sore, dry eyes often blink more, with shorter
+          gaps, as if the eye is asking for another wipe.
+          <sup><a href="#ref-3">3</a></sup>
+          A good score isn’t a locked 100 so much as enough blinks
+          without being chaotic, and the number will move, which is
+          normal.
+        </p>
+        <blockquote>
+          <p>
+            “The tendency towards decreased blink rate during visual function
+            tasks, such as computer use, reading, video gaming, and watching
+            TV can exacerbate the signs and symptoms of dry eye.”
+          </p>
+          <cite>Johnston, Rodriguez, Lane, Ousler and Abelson, 2013<sup><a href="#ref-3">3</a></sup></cite>
+        </blockquote>
+        <p>
+          Staring at a screen, a page, a game, or the TV often means
+          fewer blinks, and dry, tired eyes get worse when that goes on.
+        </p>
+
+        <h2>A two-minute practice</h2>
+        <p>
+          Nobody decides to blink less, and focus does it for you. The
+          way back isn’t a lecture so much as a few minutes of even
+          blinking, so your eyelids remember when work gets intense.
+          <sup><a href="#ref-2">2</a></sup>
+        </p>
+        <p>
+          Practice is a two-minute coach where a ball moves and a quiet
+          beep comes about every three seconds, which is close to twenty
+          blinks a minute. Follow the ball with your eyes, blink on the
+          beep, and keep your head still. Let the lids actually meet,
+          because a half blink doesn’t wet the eye.
+        </p>
+        <p>
+          Then close it and go back to work. You don’t need to watch
+          yourself, because a little practice is enough for the live
+          score to have something to climb toward.
+        </p>
+        <figure class="shot">
+          <img
+            src="/images/dewdrop.jpg"
+            alt="A round dewdrop on a sage leaf, catching blue sky like a tiny lens."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            Blinking keeps the eye wet, and even blinking is what a long
+            screen day often forgets.
+          </figcaption>
+        </figure>
+
+        <h2>What this number is not</h2>
+        <p>
+          ORI isn’t a diagnosis or a grade. Bad light, glasses, a camera
+          that cannot see your eyes, or a meeting already using the
+          webcam can all move the number, because the app is a desk tool,
+          not a clinic.
+        </p>
+        <p>
+          A low stretch doesn’t mean something is wrong with you. If
+          your eyes stay sore, or your vision changes, see an eye doctor
+          rather than asking a window on your laptop.
+        </p>
+        <p>
+          Leave the window where you can see it if you want the nudge,
+          or tuck it away and let the quiet pulse do the work. Either
+          way, what matters is this minute, not a count on a sticky note.
+        </p>
+
+        <h2>Sources</h2>
+        <ol class="sources" id="sources">
+          <li id="ref-1">
+            Tsubota K, Nakamori K. Dry eyes and video display terminals.
+            <cite>New England Journal of Medicine</cite>. 1993;328:584.
+            <a href="https://doi.org/10.1056/NEJM199302253280817">doi:10.1056/NEJM199302253280817</a>
+          </li>
+          <li id="ref-2">
+            Cardona G, Argilés M, Pérez-Cabré E. Loss of blink regularity
+            and its impact on ocular surface exposure.
+            <cite>Diagnostics</cite>. 2023;13:2362.
+            <a href="https://doi.org/10.3390/diagnostics13142362">doi:10.3390/diagnostics13142362</a>
+          </li>
+          <li id="ref-3">
+            Johnston PR, Rodriguez J, Lane KJ, Ousler G, Abelson MB. The
+            interblink interval in normal and dry eye subjects.
+            <cite>Clinical Ophthalmology</cite>. 2013;7:253–259.
+            <a href="https://doi.org/10.2147/OPTH.S39104">doi:10.2147/OPTH.S39104</a>
+          </li>
+        </ol>
+        <p class="note">
+          EyesRhythm is a wellness companion, not a medical device. It is
+          not intended to diagnose, treat, or prevent disease. Persistent
+          discomfort or a change in vision belongs with a licensed eye-care
+          professional.
+        </p>
+      </div>
+
+      <p class="back">
+        <a href="/journal">All journal</a>
+        ·
+        <a href="/journal/screens-cut-blink-rate">Why screens cut blink rate</a>
+        ·
+        <a href="/journal/camera-setup">Camera setup</a>
+        ·
+        <button type="button" data-open-purchase>{site.cta}</button>
+      </p>
+    </article>
+  </main>
+</Layout>
+
+<style>
+  .cover {
+    position: relative;
+    width: 100%;
+    min-height: min(72vh, 640px);
+    display: grid;
+    align-items: end;
+    color: #fff;
+    background: #1d1d1f;
+  }
+
+  .cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cover__shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.15) 20%,
+      rgba(0, 0, 0, 0.62) 100%
+    );
+  }
+
+  .cover__copy {
+    position: relative;
+    z-index: 1;
+    width: min(var(--wrap), calc(100% - var(--gutter) * 2));
+    margin: 0 auto;
+    padding: 48px 0 40px;
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+  }
+
+  .cover .kicker {
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  .cover .display {
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    max-width: 16ch;
+    color: #fff;
+  }
+
+  .cover .lede {
+    color: rgba(255, 255, 255, 0.88);
+    max-width: 34rem;
+  }
+
+  .meta {
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .article {
+    padding: 48px 0 96px;
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+  }
+
+  .shot {
+    margin: 16px 0 4px;
+    width: min(100%, 42rem);
+  }
+
+  .shot img {
+    width: 100%;
+    border-radius: 20px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .shot figcaption,
+  .rates figcaption,
+  .tracks figcaption {
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: var(--text-soft);
+  }
+
+  blockquote {
+    margin: 20px 0;
+    padding: 4px 0 4px 18px;
+    border-left: 3px solid var(--blue);
+    max-width: 42rem;
+  }
+
+  blockquote p {
+    font-size: 1.05rem;
+    line-height: 1.55;
+    color: var(--text);
+  }
+
+  blockquote cite {
+    display: block;
+    margin-top: 8px;
+    font-style: normal;
+    font-size: 0.88rem;
+    color: var(--text-soft);
+  }
+
+  .prose sup a {
+    color: var(--blue-deep);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .rates {
+    margin: 20px 0 8px;
+    width: min(100%, 42rem);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .rate {
+    background: var(--band);
+    border-radius: 20px;
+    padding: 20px 12px 16px;
+    text-align: center;
+  }
+
+  .rate--low {
+    background: #eef4fb;
+  }
+
+  .rate__n {
+    margin: 0;
+    font-size: 2.4rem;
+    letter-spacing: -0.05em;
+    line-height: 1;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .rate__unit,
+  .rate__label {
+    margin: 6px 0 0;
+    color: var(--text-soft);
+    font-size: 0.85rem;
+  }
+
+  .rates figcaption {
+    grid-column: 1 / -1;
+  }
+
+  .tracks {
+    margin: 20px 0 8px;
+    width: min(100%, 42rem);
+    display: grid;
+    gap: 14px;
+    padding: 20px 20px 16px;
+    background: var(--band);
+    border-radius: 20px;
+  }
+
+  .tracks__title {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .track {
+    display: grid;
+    gap: 4px;
+  }
+
+  .track__label {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+  }
+
+  .track svg {
+    width: 100%;
+    height: 36px;
+    color: rgba(0, 0, 0, 0.12);
+  }
+
+  .track__note {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-soft);
+  }
+
+  .sources {
+    margin: 8px 0 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 12px;
+    max-width: 42rem;
+    color: var(--text-soft);
+    font-size: 0.92rem;
+  }
+
+  .sources a {
+    overflow-wrap: anywhere;
+  }
+
+  .note {
+    margin-top: 24px;
+    max-width: 42rem;
+    color: var(--text-soft);
+    font-size: 0.92rem;
+  }
+
+  .back {
+    margin-top: 12px;
+    font-size: 0.95rem;
+  }
+
+  .back button {
+    color: var(--blue-deep);
+    font-weight: 600;
+  }
+
+  @media (max-width: 560px) {
+    .rates {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
