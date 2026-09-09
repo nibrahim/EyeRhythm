@@ -1,5 +1,17 @@
 export const posts = [
   {
+    slug: "jobs-that-dry-the-eyes",
+    title: "The jobs that dry your eyes",
+    description:
+      "When your work demands attention, your eyes can forget to blink.",
+    date: "2026-09-09",
+    read: "11 min",
+    kicker: "The desk",
+    cover: "/images/jobs-cover.jpg",
+    coverAlt:
+      "A man working at a laptop on a wooden desk, looking at the screen, a webcam visible on the lid.",
+  },
+  {
     slug: "count-is-not-rhythm",
     title: "Why the blink count is not enough",
     description:
