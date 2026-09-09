@@ -1,0 +1,648 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getPost } from "../../data/journal";
+import { site } from "../../config";
+
+const post = getPost("jobs-that-dry-the-eyes")!;
+---
+
+<Layout title={`${post.title}, EyesRhythm`} description={post.description}>
+  <main id="main">
+    <header class="cover">
+      <img
+        src={post.cover}
+        alt={post.coverAlt}
+        width="1280"
+        height="720"
+      />
+      <div class="cover__shade"></div>
+      <div class="cover__copy">
+        <p class="kicker"><span class="kicker__dot"></span>{post.kicker}</p>
+        <h1 class="display">{post.title}</h1>
+        <p class="lede">{post.description}</p>
+        <p class="meta">{post.read} · 9 September 2026</p>
+      </div>
+    </header>
+
+    <article class="wrap article">
+      <div class="prose">
+        <p>
+          The workday is going well, and then it isn’t—at least not for the
+          eyes.
+        </p>
+        <p>
+          The letters on the screen lose their edge. You rub your eyes, keep
+          typing, and by late afternoon your eyelids feel heavy.
+        </p>
+        <p>
+          For people who work at a computer, this can become a familiar part
+          of the day.
+        </p>
+        <p>
+          Programmers, designers, accountants, researchers, writers and many
+          other professionals spend hours looking at screens. The work is
+          different, but the challenge for the eyes is often similar:
+          <strong
+            >long periods of concentration, fewer natural interruptions and
+            less awareness of
+            <a href="/journal/screens-cut-blink-rate">how often we blink</a
+            >.</strong
+          >
+        </p>
+        <p>And that last part matters more than most people realise.</p>
+
+        <h2>The problem is not just screen time</h2>
+        <p>
+          When we concentrate on a screen, our blinking can become
+          <a href="/journal/screens-cut-blink-rate"
+            >less frequent and less complete</a
+          >. Blinking helps spread tears across the surface of the eye, so
+          changes in blinking can affect how well the tear film is
+          maintained.
+        </p>
+        <p>
+          Research has linked prolonged digital screen use with dry-eye
+          symptoms, including dryness, burning, irritation and fluctuating
+          vision. However, dry eye is a complex condition with several
+          possible causes. Screen use is one contributor, not the whole
+          explanation.
+        </p>
+        <p>
+          This is why two people can spend the same eight hours at a computer
+          and experience very different levels of discomfort.
+        </p>
+        <p>
+          One may take regular breaks and blink normally. Another may become
+          so absorbed in the work that the eyes receive very little
+          interruption.
+        </p>
+        <p>
+          <strong
+            >The number of hours matters. But what happens during those hours
+            matters too.</strong
+          >
+        </p>
+
+        <h2>Which jobs are most likely to affect your eyes?</h2>
+        <p>
+          There is no profession that automatically causes dry eye. The more
+          useful way to think about the problem is to look at jobs that
+          require prolonged, uninterrupted screen use.
+        </p>
+
+        <h3>Software developers and programmers</h3>
+        <p>
+          A programmer may spend hours reading code, debugging errors and
+          switching between windows.
+        </p>
+        <p>
+          The work requires concentration, and it is easy to remain focused
+          on the screen without noticing how long it has been since the last
+          proper blink.
+        </p>
+        <figure class="shot">
+          <img
+            src="/images/jobs-code.jpg"
+            alt="A man typing on an external keyboard in front of two monitors of code, looking at the screens."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            Code is close work. The lids wait while the stack trace is still
+            wrong.
+          </figcaption>
+        </figure>
+
+        <h3>Graphic designers, UI/UX designers and video editors</h3>
+        <p>
+          Designers often work with detailed images, small text, colour
+          differences and precise visual adjustments.
+        </p>
+        <p>A few minutes can easily become an hour.</p>
+        <p>
+          The work may feel creative and engaging. The eyes may experience it
+          as prolonged concentration.
+        </p>
+        <figure class="shot">
+          <img
+            src="/images/jobs-design.jpg"
+            alt="A woman at an Apple monitor and iPad, drawing the same botanical graphic on both screens."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            Design work is a field of tiny edges. The next adjustment is
+            always one click away.
+          </figcaption>
+        </figure>
+        <figure class="shot">
+          <img
+            src="/images/jobs-cad.jpg"
+            alt="A man at dual monitors using 3D CAD software, a mechanical part on one screen and a technical drawing on the other, webcam on the monitor."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            3D design software is the same long look: a part to rotate, a
+            constraint to check, a millimetre to hunt.
+          </figcaption>
+        </figure>
+
+        <h3>Data analysts, accountants and financial professionals</h3>
+        <p>
+          Spreadsheets, dashboards, financial models and reports can require
+          long periods of uninterrupted screen work.
+        </p>
+        <p>
+          The difficulty is often not one particularly long session, but the
+          accumulation of many hours of visual attention throughout the day.
+        </p>
+
+        <h3>Writers, editors and researchers</h3>
+        <p>
+          Writing and research can look different from programming, but the
+          eyes face a similar challenge.
+        </p>
+        <p>
+          A writer may spend the morning reading documents, the afternoon
+          drafting content and the evening reviewing it. A researcher may
+          move between papers, spreadsheets and presentations without
+          spending much time looking away.
+        </p>
+        <p>
+          The result is often
+          <strong
+            >long periods of near work with very little visual
+            interruption</strong
+          >.
+        </p>
+
+        <h3>Customer-service and support professionals</h3>
+        <p>
+          Many customer-service jobs now involve computers for most of the
+          working day.
+        </p>
+        <p>
+          A support agent may read a customer's message, check an account,
+          update a record and respond—all while remaining at the screen.
+        </p>
+        <p>
+          The work may not feel visually demanding in the same way as design
+          or programming, but the eyes are still spending much of the day
+          looking at a nearby display.
+        </p>
+
+        <h3
+          >Teachers, lecturers and other professionals who work with digital
+          documents</h3
+        >
+        <p>
+          Teaching and academic work increasingly involve presentations,
+          online platforms, digital grading and electronic documents.
+        </p>
+        <p>
+          A teacher may spend part of the day in a classroom and another part
+          reviewing assignments or preparing material on a computer.
+        </p>
+        <p>
+          This combination can create long periods of screen exposure that
+          are easy to overlook because the work is divided into different
+          tasks.
+        </p>
+
+        <h2>Why does screen work make the eyes feel dry?</h2>
+        <p>
+          The main issue is often <strong>tear-film instability</strong>.
+        </p>
+        <p>
+          The surface of the eye is covered by a thin layer of tears. This
+          layer helps keep the eye comfortable and the vision clear.
+        </p>
+        <p>When we blink, we refresh and spread that tear film.</p>
+        <p>
+          But during prolonged screen work, blinking may become less frequent
+          or incomplete. This can increase evaporation and leave parts of the
+          eye exposed for longer.
+        </p>
+        <p>
+          A
+          <a href="https://doi.org/10.2147/OPTH.S321591"
+            >review of digital screen use</a
+          >
+          describes blink abnormalities and tear-film changes as important
+          contributors to screen-associated dry eye.
+        </p>
+        <p>This is also why the symptoms can come and go.</p>
+        <p>
+          You may feel fine in the morning, begin to notice irritation after
+          several hours, and then feel better after stepping away from the
+          screen.
+        </p>
+        <p>
+          The eyes are not necessarily becoming permanently damaged. They may
+          simply be struggling to maintain comfort during the task.
+        </p>
+
+        <figure class="shot">
+          <img
+            src="/images/jobs-tear.jpg"
+            alt="Close-up of an open eye, a thin glossy tear film catching the light."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            After a blink, a thin even film sits on the eye. That is the
+            surface you are looking through.
+          </figcaption>
+        </figure>
+
+        <h2>The overlooked part of the problem: blinking</h2>
+        <p>Most people think about screen time in terms of hours.</p>
+        <p>But hours alone do not tell the whole story.</p>
+        <p>
+          Two people may spend eight hours at a computer and experience very
+          different levels of discomfort. One may take regular breaks and
+          blink normally. The other may spend long periods concentrating
+          without much visual interruption.
+        </p>
+        <p>
+          Research suggests that
+          <strong
+            >blink behaviour is an important part of the relationship between
+            digital screen use and dry-eye symptoms</strong
+          >.
+        </p>
+        <p>
+          This is where a different way of thinking about eye comfort becomes
+          useful.
+        </p>
+        <p>Instead of asking only:</p>
+        <blockquote>
+          <p>“How long have I been looking at a screen?”</p>
+        </blockquote>
+        <p>We can also ask:</p>
+        <blockquote>
+          <p>
+            <strong
+              >“What are my eyes doing while I am looking at it?”</strong
+            >
+          </p>
+        </blockquote>
+
+        <h2>Eye care begins with awareness</h2>
+        <p>Most of us do not consciously control every blink.</p>
+        <p>
+          We blink naturally throughout the day, often without thinking about
+          it. But when we become absorbed in a task, that natural rhythm can
+          change.
+        </p>
+        <p>
+          The problem is that we may not notice the change until our eyes
+          begin to feel uncomfortable.
+        </p>
+        <p>
+          A reminder to take a break can help, but a reminder based on your
+          actual blinking behaviour offers a different kind of awareness.
+        </p>
+        <p>
+          It shifts the focus from simply counting screen hours to
+          understanding how your eyes are responding to the work.
+        </p>
+
+        <figure class="shot">
+          <img
+            src="/images/jobs-companion.jpg"
+            alt="Over the shoulder of a man at a laptop, green camera light on, EyesRhythm Trace graph open on the screen."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            EyesRhythm sits in a compact window beside the work. The camera
+            in the lid is how blinks are counted, on this computer.
+          </figcaption>
+        </figure>
+
+        <h2>How EyesRhythm helps</h2>
+        <p>
+          <strong
+            ><a href="/">{site.name} is a quiet blink companion for long
+              screen days.</a
+            ></strong
+          >
+        </p>
+        <p>
+          It is designed for people who spend much of their working day at a
+          computer and want to become more aware of their blinking habits.
+        </p>
+        <p>
+          The app uses your computer’s
+          <a href="/journal/camera-setup">camera</a> to track your blink
+          cadence while you work. It does not require you to stop what you
+          are doing or move away from your desk. Instead, it stays beside
+          your work in a compact window, helping you notice your blinking
+          without becoming another distraction.
+        </p>
+
+        <h3>It looks beyond the blink count</h3>
+        <p>
+          <a href="/journal/count-is-not-rhythm"
+            >A blink count alone does not tell the whole story.</a
+          >
+        </p>
+        <p>
+          Six blinks can arrive in a short burst, followed by a long period
+          without one. Another person may blink fewer times but more evenly.
+        </p>
+        <p>
+          EyesRhythm brings <strong>rate and regularity</strong> together in
+          its <strong>Ocular Rhythm Index (ORI)</strong>, a score from 0 to
+          100 that helps you understand your blink rhythm during screen work.
+        </p>
+        <p>
+          The idea is simple:
+          <strong
+            >not just how often you blink, but how steadily you blink.</strong
+          >
+        </p>
+
+        <h3>It watches quietly while you work</h3>
+        <p>
+          EyesRhythm shows your live blink cadence in a compact window.
+        </p>
+        <p>
+          You can see your ORI, screen time and other tracking information
+          while continuing with your work. The app can also provide a gentle
+          visual alert or an optional sound when your blink rhythm falls
+          below your configured threshold.
+        </p>
+        <p>
+          The goal is not to interrupt your concentration. It is to help you
+          become aware of what your eyes may be doing while you concentrate.
+        </p>
+
+        <h3>It helps you practise</h3>
+        <p>
+          EyesRhythm also includes a
+          <strong>two-minute guided practice session</strong>.
+        </p>
+        <p>
+          The idea is to make the habit easier to feel, rather than simply
+          telling you to blink more. With regular practice, the aim is to
+          build awareness of a healthier blinking rhythm during screen work.
+        </p>
+
+        <h3>It respects your privacy</h3>
+        <p>
+          EyesRhythm is designed to work locally on your computer.
+        </p>
+        <p>
+          After license registration, the app works offline. Camera frames
+          stay on your machine, and the app does not upload or keep a film of
+          your face. Your daily totals and preferences remain in a local
+          folder.
+        </p>
+        <p>
+          For an app that works with a camera, that is an important part of
+          the design.
+        </p>
+
+        <h2>A better way to think about screen breaks</h2>
+        <p>
+          The goal is not to avoid screens. For many people, that is simply
+          not realistic.
+        </p>
+        <p>
+          The goal is to make screen work less demanding on the eyes.
+        </p>
+        <p>
+          Take short breaks. Look away from the screen. Pay attention to
+          blinking. Adjust your workstation if needed.
+        </p>
+        <p>
+          And if you spend most of your day at a computer, consider making
+          eye awareness part of your work routine.
+        </p>
+        <p>
+          <strong
+            >EyesRhythm is built around that idea: a small, quiet companion
+            that helps you notice your blinking while you work.</strong
+          >
+        </p>
+
+        <figure class="shot">
+          <img
+            src="/images/jobs-away.jpg"
+            alt="The same man from the banner, smiling comfortably while working at his laptop."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            Comfortable blinking is not a locked 100. It is enough blinks,
+            without the long dry wait.
+          </figcaption>
+        </figure>
+
+        <h2>Your eyes deserve attention too</h2>
+        <p>
+          The modern workplace asks the eyes to do something they were not
+          designed to do continuously: remain focused on a near task for
+          hours, often with fewer complete blinks.
+        </p>
+        <p>The answer is not to stop working.</p>
+        <p>
+          It is to understand how work affects the eyes—and to build better
+          habits around the way we use screens.
+        </p>
+        <p>
+          <strong
+            >Your eyes are part of your working system. They deserve the same
+            attention you give to your posture, your chair and your
+            productivity.</strong
+          >
+        </p>
+
+        <h3>A note about eye health</h3>
+        <p>
+          EyesRhythm is a wellness companion, not a medical device. It does
+          not diagnose, treat or prevent dry eye disease.
+        </p>
+        <p>
+          If you experience persistent dryness, pain, blurred vision or other
+          eye symptoms, consult a qualified eye-care professional.
+        </p>
+
+        <h2>References</h2>
+        <ol class="sources" id="sources">
+          <li>
+            <a href="https://doi.org/10.2147/OPTH.S321591"
+              ><cite>Digital Screen Use and Dry Eye: A Review.</cite></a
+            >
+            Review of the relationship between digital screen use, blinking
+            and dry-eye symptoms.
+          </li>
+          <li>
+            <a href="/"><cite>EyesRhythm.</cite></a> Official product
+            description, features and privacy information.
+          </li>
+        </ol>
+        <p class="note">
+          Related reading:
+          <a href="/journal/screens-cut-blink-rate"
+            >Why screens cut your blink rate</a
+          >
+          ·
+          <a href="/journal/count-is-not-rhythm"
+            >Why the blink count is not enough</a
+          >
+          ·
+          <a href="/journal/camera-setup">Set up your camera so blinks count</a>
+        </p>
+      </div>
+
+      <p class="back">
+        <a href="/journal">All journal</a>
+        ·
+        <a href="/">EyesRhythm</a>
+        ·
+        <button type="button" data-open-purchase>{site.cta}</button>
+      </p>
+    </article>
+  </main>
+</Layout>
+
+<style>
+  .cover {
+    position: relative;
+    width: 100%;
+    min-height: min(72vh, 640px);
+    display: grid;
+    align-items: end;
+    color: #fff;
+    background: #1d1d1f;
+  }
+
+  .cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 28%;
+  }
+
+  .cover__shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.15) 20%,
+      rgba(0, 0, 0, 0.62) 100%
+    );
+  }
+
+  .cover__copy {
+    position: relative;
+    z-index: 1;
+    width: min(var(--wrap), calc(100% - var(--gutter) * 2));
+    margin: 0 auto;
+    padding: 48px 0 40px;
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+  }
+
+  .cover .kicker {
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  .cover .display {
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    max-width: 16ch;
+    color: #fff;
+  }
+
+  .cover .lede {
+    color: rgba(255, 255, 255, 0.88);
+    max-width: 34rem;
+  }
+
+  .meta {
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .article {
+    padding: 48px 0 96px;
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+  }
+
+  .shot {
+    margin: 16px 0 4px;
+    width: min(100%, 42rem);
+  }
+
+  .shot img {
+    width: 100%;
+    border-radius: 20px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .shot figcaption {
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: var(--text-soft);
+  }
+
+  blockquote {
+    margin: 20px 0;
+    padding: 4px 0 4px 18px;
+    border-left: 3px solid var(--blue);
+    max-width: 42rem;
+  }
+
+  blockquote p {
+    font-size: 1.05rem;
+    line-height: 1.55;
+    color: var(--text);
+  }
+
+  .prose sup a {
+    color: var(--blue-deep);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .sources {
+    margin: 8px 0 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 12px;
+    max-width: 42rem;
+    color: var(--text-soft);
+    font-size: 0.92rem;
+  }
+
+  .sources a {
+    overflow-wrap: anywhere;
+  }
+
+  .note {
+    margin-top: 24px;
+    max-width: 42rem;
+    color: var(--text-soft);
+    font-size: 0.92rem;
+  }
+
+  .back {
+    margin-top: 12px;
+    font-size: 0.95rem;
+  }
+
+  .back button {
+    color: var(--blue-deep);
+    font-weight: 600;
+  }
+</style>
