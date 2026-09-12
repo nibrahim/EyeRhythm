@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import sitemap from "@astrojs/sitemap";
 
 const site = process.env.PUBLIC_SITE_URL || "http://localhost:4321";
 
@@ -6,6 +7,25 @@ const site = process.env.PUBLIC_SITE_URL || "http://localhost:4321";
 // Hosted on Cloudflare Pages from GitHub Actions.
 export default defineConfig({
   site,
+  integrations: [
+    sitemap({
+      filter: (page) => !page.includes("/404"),
+      serialize(item) {
+        const url = item.url.replace(/\/$/, "");
+        if (url === site) {
+          item.changefreq = "weekly";
+          item.priority = 1;
+        } else if (url.endsWith("/blink-rate-detector")) {
+          item.changefreq = "weekly";
+          item.priority = 0.9;
+        } else if (url.includes("/journal")) {
+          item.changefreq = "monthly";
+          item.priority = 0.8;
+        }
+        return item;
+      },
+    }),
+  ],
   output: "static",
   trailingSlash: "never",
   compressHTML: true,

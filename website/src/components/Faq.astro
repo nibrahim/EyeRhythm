@@ -1,0 +1,76 @@
+---
+import { faqs } from "../data/faq";
+
+interface Props {
+  heading?: string;
+  kicker?: string;
+}
+
+const heading = Astro.props.heading ?? "Questions, answered.";
+const kicker = Astro.props.kicker ?? "FAQ";
+---
+
+<section class="faq" id="faq">
+  <div class="wrap">
+    <p class="kicker"><span class="kicker__dot"></span>{kicker}</p>
+    <h2 class="display">{heading}</h2>
+    <div class="faq__list">
+      {
+        faqs.map((item) => (
+          <details>
+            <summary>{item.q}</summary>
+            <p>{item.a}</p>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq {
+    padding: clamp(48px, 8vw, 96px) 0;
+    background: #fff;
+  }
+
+  .wrap {
+    display: grid;
+    gap: 14px;
+    justify-items: start;
+  }
+
+  .display {
+    font-size: clamp(1.9rem, 4vw, 3rem);
+    max-width: 16ch;
+  }
+
+  .faq__list {
+    margin-top: 12px;
+    width: min(100%, 42rem);
+    display: grid;
+    gap: 8px;
+  }
+
+  details {
+    background: var(--band);
+    border-radius: 18px;
+    padding: 4px 22px;
+  }
+
+  summary {
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    padding: 16px 0;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  p {
+    margin: 0 0 18px;
+    color: var(--text-soft);
+  }
+</style>

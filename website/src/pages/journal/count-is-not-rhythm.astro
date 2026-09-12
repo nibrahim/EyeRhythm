@@ -6,7 +6,14 @@ import { site } from "../../config";
 const post = getPost("count-is-not-rhythm")!;
 ---
 
-<Layout title={`${post.title}, EyesRhythm`} description={post.description}>
+<Layout
+  title={`${post.title} | EyesRhythm`}
+  description={post.description}
+  type="article"
+  published={post.date}
+  image={post.cover}
+  imageAlt={post.coverAlt}
+>
   <main id="main">
     <header class="cover">
       <img
@@ -37,7 +44,9 @@ const post = getPost("count-is-not-rhythm")!;
           Most blink apps only count, which sounds useful until you
           remember that your eyes don’t live on a total. They live on
           the gaps between blinks, which is when the surface starts to
-          dry.
+          dry. A
+          <a href="/blink-rate-detector">blink rate detector</a>
+          has to look at both.
         </p>
         <p>
           We already wrote about

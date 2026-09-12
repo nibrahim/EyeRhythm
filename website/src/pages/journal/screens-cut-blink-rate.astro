@@ -6,7 +6,14 @@ import { site } from "../../config";
 const post = getPost("screens-cut-blink-rate")!;
 ---
 
-<Layout title={`${post.title}, EyesRhythm`} description={post.description}>
+<Layout
+  title={`${post.title} | EyesRhythm`}
+  description={post.description}
+  type="article"
+  published={post.date}
+  image={post.cover}
+  imageAlt={post.coverAlt}
+>
   <main id="main">
     <header class="cover">
       <img
@@ -357,7 +364,9 @@ The response is not to stop using screens. It is to learn to notice what happens
           thing for a stiff neck.
         </p>
         <p>
-          EyesRhythm was built around that picture. It watches how often
+          EyesRhythm is a
+          <a href="/blink-rate-detector">blink rate detector</a>
+          built around that picture. It watches how often
           you blink and how even the gaps are, on this computer. Video
           stays here. It is a desk companion, not a clinic. The
           <a href="/journal/count-is-not-rhythm">score in the window</a>

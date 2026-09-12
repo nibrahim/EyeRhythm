@@ -6,7 +6,14 @@ import { site } from "../../config";
 const post = getPost("jobs-that-dry-the-eyes")!;
 ---
 
-<Layout title={`${post.title}, EyesRhythm`} description={post.description}>
+<Layout
+  title={`${post.title} | EyesRhythm`}
+  description={post.description}
+  type="article"
+  published={post.date}
+  image={post.cover}
+  imageAlt={post.coverAlt}
+>
   <main id="main">
     <header class="cover">
       <img
