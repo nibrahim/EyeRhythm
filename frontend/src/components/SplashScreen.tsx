@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchCameras, savePreferences, selectCamera } from "../api";
+import { fetchCameras, savePreferences, selectCamera, type CameraChoice } from "../api";
 import { setSplashLayout, whenBridgeReady } from "../bridge";
 import { useAppVersion } from "../hooks/useAppVersion";
 import { Logo } from "./Logo";
@@ -112,7 +112,7 @@ export function SplashScreen({ onDone }: Props) {
   const [cameras, setCameras] = useState<
     { index: number; label: string }[]
   >([]);
-  const [cameraIndex, setCameraIndex] = useState<number | null>(null);
+  const [cameraIndex, setCameraIndex] = useState<CameraChoice | null>(null);
   const [cameraBusy, setCameraBusy] = useState(false);
   const [cameraError, setCameraError] = useState("");
 
@@ -176,10 +176,14 @@ export function SplashScreen({ onDone }: Props) {
           label: c.label,
         }));
         setCameras(list);
-        const selected = list.some((c) => c.index === payload.selected)
-          ? payload.selected
-          : list[0]?.index ?? null;
-        setCameraIndex(selected);
+        if (payload.mode === "hybrid") {
+          setCameraIndex("hybrid");
+        } else {
+          const selected = list.some((c) => c.index === payload.selected)
+            ? payload.selected
+            : list[0]?.index ?? null;
+          setCameraIndex(selected);
+        }
         if (payload.pick_required && list.length > 1) {
           setStep("camera");
         } else {
@@ -279,8 +283,9 @@ export function SplashScreen({ onDone }: Props) {
             <>
               <h2 className="splash__question">Which camera should EyesRhythm use?</h2>
               <p className="splash__lead">
-                Several webcams were found. Pick the one you sit in front of
-                (usually the built-in camera, not an external USB webcam).
+                Several webcams were found. Pick the one you sit in front of,
+                or Hybrid to use every built-in and USB camera together
+                (phone cameras are left out).
               </p>
               <div
                 className="splash__options"
@@ -305,6 +310,24 @@ export function SplashScreen({ onDone }: Props) {
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={cameraIndex === "hybrid"}
+                  className={`splash__option${cameraIndex === "hybrid" ? " is-active" : ""}`}
+                  onClick={() => setCameraIndex("hybrid")}
+                >
+                  <span className="splash__option-dot" />
+                  <span className="splash__option-text">
+                    <span className="splash__option-title">
+                      Hybrid (utilizes CPU extensively)
+                    </span>
+                    <span className="splash__option-detail">
+                      All desk cameras at full frame rate; each frame uses
+                      the front-facing camera so a blink is counted once
+                    </span>
+                  </span>
+                </button>
               </div>
               {cameraError ? (
                 <p className="splash__error" role="alert">

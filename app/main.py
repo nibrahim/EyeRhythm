@@ -686,16 +686,19 @@ def main() -> None:
     except (TypeError, ValueError):
         saved = -1
 
-    initial, pick_required = resolve_startup_camera(
-        avail, saved, args.camera
+    initial, pick_required, hybrid = resolve_startup_camera(
+        avail, saved, args.camera, str(prefs.get("camera_mode", "single"))
     )
 
-    engine = EyeRhythmEngine(camera_index=initial)
+    engine = EyeRhythmEngine(camera_index=initial, hybrid=hybrid)
     if pick_required:
         engine.set_awaiting_camera_pick(True)
         _log(f"multiple cameras detected {avail} — pick one in the app")
+    elif hybrid:
+        preferences.save(camera_index=initial, camera_mode="hybrid")
+        _log(f"hybrid cameras {avail} ready")
     elif avail:
-        preferences.save(camera_index=initial)
+        preferences.save(camera_index=initial, camera_mode="single")
         _log(f"camera {initial} ready ({len(avail)} found)")
 
     # Local HTTP + WebSocket for the React UI (same machine only).

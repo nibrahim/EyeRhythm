@@ -32,6 +32,7 @@ VALID_EYE_COMFORT = frozenset(
     {"comfortable", "mild", "moderate", "marked", "decline"}
 )
 VALID_ALERT_MODES = frozenset({"visual", "sound"})
+VALID_CAMERA_MODES = frozenset({"single", "hybrid"})
 
 # Canonical “default GUI”: More + Undock. Dock is exactly 2× this width.
 DEFAULT_WIDTH = 480
@@ -77,6 +78,8 @@ _DEFAULTS: dict[str, Any] = {
     "close_delta": 0.18,
     # OpenCV index; -1 = not chosen yet (multiple webcams at launch).
     "camera_index": -1,
+    # "single" = one desk webcam; "hybrid" = every desk webcam except phones.
+    "camera_mode": "single",
 }
 
 # One lock + in-memory copy so the UI and engine can read/write safely.
@@ -181,6 +184,12 @@ def _sanitize(raw: dict[str, Any]) -> dict[str, Any]:
             data["camera_index"] = max(-1, int(raw["camera_index"]))
         except (TypeError, ValueError):
             pass
+
+    mode = raw.get("camera_mode", data["camera_mode"])
+    if isinstance(mode, str) and mode.strip().lower() in VALID_CAMERA_MODES:
+        data["camera_mode"] = mode.strip().lower()
+    else:
+        data["camera_mode"] = "single"
 
     return data
 

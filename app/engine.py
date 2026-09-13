@@ -24,6 +24,7 @@ import subprocess
 import sys
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date as date_cls
 from collections import deque
 from dataclasses import asdict, dataclass
@@ -47,6 +48,20 @@ from app.regularity import RegularityTracker
 # NO_FACE_FPS=3 constants + inline interval logic in the camera loop.
 from app.camera_idle import CameraIdlePolicy, SLEEP_BETWEEN_PEEKS_S
 from app.frame_pacer import FACE_FPS, FramePacer, NO_FACE_FPS
+from app.hybrid_camera import (
+    CAMERA_MODE_HYBRID,
+    FusedBlinkRate,
+    any_on_screen_face,
+    grab_all,
+    hybrid_decode_indices,
+    hybrid_should_count_blink,
+    is_front_facing,
+    missing_camera_indices,
+    next_hybrid_fill_wait,
+    pick_front_facing_index,
+    retrieve_frame,
+    should_drop_silent_hybrid_camera,
+)
 
 # ---------------------------------------------------------------------------
 # Resource root (source run + PyInstaller)
@@ -107,6 +122,12 @@ READ_FAILS_BEFORE_REOPEN = 8
 REOPEN_INITIAL_WAIT_S = 0.4
 REOPEN_BACKOFF_MAX_S = 5.0
 REOPEN_WARMUP_READS = 10
+# macOS AVFoundation often refuses a second open while another session is
+# live, and needs a short pause after release before the next open.
+CAMERA_OPEN_GAP_S = 0.12
+CAMERA_OPEN_RETRIES = 3
+CAMERA_OPEN_RETRY_WAIT_S = 0.35
+CAMERA_RELEASE_SETTLE_S = 0.15
 
 # Low-power capture profile (target ~20% of one core on typical laptops).
 # MediaPipe Face Landmarker dominates CPU — process a small frame; display
@@ -308,7 +329,10 @@ def _release_camera(cap: cv2.VideoCapture | None) -> None:
         pass
 
 
-def _configure_capture(cap: cv2.VideoCapture) -> tuple[int, int, float]:
+def _configure_capture(
+    cap: cv2.VideoCapture,
+    width_hint: int = DISPLAY_CAPTURE_MAX_WIDTH,
+) -> tuple[int, int, float]:
     """
     Hint the driver toward a display-friendly capture size and FACE_FPS.
 
@@ -317,7 +341,7 @@ def _configure_capture(cap: cv2.VideoCapture) -> tuple[int, int, float]:
     unset so the camera keeps its native aspect ratio.
     """
     try:
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, DISPLAY_CAPTURE_MAX_WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, int(width_hint))
         cap.set(cv2.CAP_PROP_FPS, FACE_FPS)
         # Prefer a small buffer so we do not chew through a backlog after sleeps.
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
@@ -364,7 +388,66 @@ def _resize_to_preview_width(frame: np.ndarray) -> tuple[np.ndarray, float]:
     return cv2.resize(frame, (nw, nh), interpolation=interp), scale
 
 
-def open_camera(index: int, *, quiet: bool = False) -> cv2.VideoCapture | None:
+def open_cameras(
+    indices: list[int],
+    *,
+    quiet: bool = False,
+    width_hint: int | None = None,
+) -> dict[int, cv2.VideoCapture]:
+    """
+    Open each desk-camera index; skip ones that still fail after retries.
+
+    Hybrid needs every camera from a clean slate. If one index fails while
+    another is already open (common for the Mac built-in next to a USB
+    webcam), release the whole set and try again so we do not run hybrid
+    on a single leftover camera.
+    """
+    wanted = [int(raw) for raw in indices]
+    if not wanted:
+        return {}
+    out: dict[int, cv2.VideoCapture] = {}
+    for attempt in range(max(1, int(CAMERA_OPEN_RETRIES))):
+        if out:
+            _release_cameras(out)
+        out = {}
+        failed: list[int] = []
+        for i, idx in enumerate(wanted):
+            if i and CAMERA_OPEN_GAP_S > 0:
+                time.sleep(CAMERA_OPEN_GAP_S)
+            cap = open_camera(idx, quiet=quiet, width_hint=width_hint)
+            if cap is not None:
+                out[idx] = cap
+            else:
+                failed.append(idx)
+        if not failed:
+            return out
+        _log(
+            "camera open incomplete "
+            f"(have {sorted(out)}; missing {failed}; "
+            f"attempt {attempt + 1}/{CAMERA_OPEN_RETRIES})"
+        )
+        if attempt + 1 < CAMERA_OPEN_RETRIES:
+            time.sleep(CAMERA_OPEN_RETRY_WAIT_S)
+    return out
+
+
+def _release_cameras(caps: dict[int, cv2.VideoCapture] | None) -> None:
+    """Close every webcam handle in ``caps`` and clear the dict."""
+    if not caps:
+        return
+    for cap in list(caps.values()):
+        _release_camera(cap)
+    caps.clear()
+    if platform.system() == "Darwin" and CAMERA_RELEASE_SETTLE_S > 0:
+        time.sleep(CAMERA_RELEASE_SETTLE_S)
+
+
+def open_camera(
+    index: int,
+    *,
+    quiet: bool = False,
+    width_hint: int | None = None,
+) -> cv2.VideoCapture | None:
     """Open webcam with OS-appropriate backends; verify non-black frames."""
     system = platform.system()
     if system == "Windows":
@@ -380,7 +463,9 @@ def open_camera(index: int, *, quiet: bool = False) -> cv2.VideoCapture | None:
             _release_camera(cap)
             continue
 
-        w, h, cam_fps = _configure_capture(cap)
+        w, h, cam_fps = _configure_capture(
+            cap, width_hint or DISPLAY_CAPTURE_MAX_WIDTH
+        )
 
         good = False
         actual_w, actual_h = w, h
@@ -678,25 +763,29 @@ def resolve_startup_camera(
     available: list[int],
     saved: int,
     cli: int | None,
-) -> tuple[int, bool]:
+    saved_mode: str = "single",
+) -> tuple[int, bool, bool]:
     """
-    Pick which webcam to open at launch.
+    Pick which webcam(s) to open at launch.
 
-    Returns ``(index, pick_required)``. Ask in the splash only when more
-    than one desk camera exists *and* nothing has been chosen yet (no
-    ``--camera``, no saved index that still exists). Re-asking every
-    login re-opens every camera while the window is on screen.
+    Returns ``(index, pick_required, hybrid)``. Ask in the splash only when
+    more than one desk camera exists *and* nothing has been chosen yet (no
+    ``--camera``, no saved hybrid/single index that still exists). Re-asking
+    every login re-opens every camera while the window is on screen.
     """
     avail = [int(i) for i in available]
+    mode = str(saved_mode or "single").strip().lower()
     if cli is not None:
-        return int(cli), False
+        return int(cli), False, False
+    if mode == CAMERA_MODE_HYBRID and len(avail) >= 2:
+        return int(avail[0]), False, True
     if len(avail) == 1:
-        return avail[0], False
+        return avail[0], False, False
     if saved in avail:
-        return int(saved), False
+        return int(saved), False, False
     if avail:
-        return avail[0], True
-    return 0, False
+        return avail[0], True, False
+    return 0, False, False
 
 
 def list_camera_indices(max_index: int = 6) -> list[int]:
@@ -748,6 +837,31 @@ def _reopen_camera(cap: cv2.VideoCapture | None, index: int,
             time.sleep(0.03)
         _log("camera reconnected")
     return new_cap
+
+
+def _reopen_cameras(
+    caps: dict[int, cv2.VideoCapture],
+    indices: list[int],
+    attempt: int,
+    *,
+    width_hint: int | None = None,
+) -> dict[int, cv2.VideoCapture]:
+    """Release every webcam, wait with backoff, then reopen the index list."""
+    _release_cameras(caps)
+    wait = min(
+        REOPEN_BACKOFF_MAX_S,
+        REOPEN_INITIAL_WAIT_S * (1.5 ** min(attempt, 8)),
+    )
+    label = "+".join(str(i) for i in indices) or "?"
+    _log(
+        f"camera(s) {label} lost — reconnect attempt {attempt + 1} "
+        f"(waiting {wait:.1f}s; common after display/system sleep)"
+    )
+    time.sleep(wait)
+    new_caps = open_cameras(indices, quiet=True, width_hint=width_hint)
+    if new_caps:
+        _log("camera(s) reconnected: " + "+".join(str(i) for i in new_caps))
+    return new_caps
 
 
 # ===========================================================================
@@ -1230,8 +1344,15 @@ class EyeRhythmEngine:
     UI reads ``snapshot()`` and optionally ``latest_preview_jpeg()``.
     """
 
-    def __init__(self, camera_index: int = 0, model_path: str = MODEL_PATH):
+    def __init__(
+        self,
+        camera_index: int = 0,
+        model_path: str = MODEL_PATH,
+        *,
+        hybrid: bool = False,
+    ):
         self.camera_index = camera_index
+        self.hybrid = bool(hybrid)
         self.model_path = model_path
 
         self._lock = threading.RLock()
@@ -1279,6 +1400,14 @@ class EyeRhythmEngine:
         self._interblink_hours.sync_screen_seconds(self._screen_time.seconds_today)
         self._regularity = RegularityTracker()
         self._detector: BlinkDetector | None = None
+        self._detectors: dict[int, BlinkDetector] = {}
+        self._fused_rate = FusedBlinkRate()
+        self._look_off_by_cam: dict[int, bool] = {}
+        self._sticky_cam: int | None = None
+        self._hybrid_hunt = True
+        self._capture_width: int | None = None
+        self._hybrid_pool: ThreadPoolExecutor | None = None
+        self._detector_init_lock = threading.Lock()
         self._last_blink_at = 0.0
         self._last_alert_beep_at = 0.0
         # Lens: red eye outlines for 500 ms after a counted blink (not while closed).
@@ -1442,15 +1571,34 @@ class EyeRhythmEngine:
     def is_awaiting_camera_pick(self) -> bool:
         return self._awaiting_camera_pick
 
+    def is_hybrid(self) -> bool:
+        return bool(self.hybrid)
+
     def reselect_camera(self, index: int) -> None:
-        """Switch webcams (startup picker or Settings). Restarts the loop."""
-        index = int(index)
+        """Switch to one webcam (startup picker or Settings). Restarts the loop."""
+        self.reselect_source(index=int(index), hybrid=False)
+
+    def reselect_source(self, index: int | None = None, *, hybrid: bool = False) -> None:
+        """Switch to one webcam or hybrid (all desk cameras). Restarts the loop."""
         running = self._thread is not None and self._thread.is_alive()
-        if running and index == self.camera_index:
+        if hybrid:
+            if running:
+                self.stop()
+            self.hybrid = True
+            idxs = list_camera_indices()
+            self.camera_index = int(idxs[0]) if idxs else int(index or 0)
+            self._awaiting_camera_pick = False
+            self._stop.clear()
+            self.start()
+            _log(f"using hybrid cameras {idxs or [self.camera_index]}")
+            return
+        index = int(index if index is not None else self.camera_index)
+        if running and (not self.hybrid) and index == self.camera_index:
             self.wake_camera()
             return
         if running:
             self.stop()
+        self.hybrid = False
         self.camera_index = index
         self._awaiting_camera_pick = False
         self._stop.clear()
@@ -1555,13 +1703,19 @@ class EyeRhythmEngine:
         return self.get_settings()
 
     def _apply_close_delta_locked(self) -> None:
-        """Push blink close/open deltas onto the live detector (caller holds lock)."""
-        det = self._detector
-        if det is None:
-            return
+        """Push blink close/open deltas onto every live detector (caller holds lock)."""
         d = float(self._close_delta)
-        det.config.close_delta = d
-        det.config.open_delta = max(0.06, d - 0.06)
+        seen: set[int] = set()
+        dets: list[BlinkDetector] = list(self._detectors.values())
+        if self._detector is not None:
+            dets.append(self._detector)
+        for det in dets:
+            ident = id(det)
+            if ident in seen:
+                continue
+            seen.add(ident)
+            det.config.close_delta = d
+            det.config.open_delta = max(0.06, d - 0.06)
 
     def reports_index(self) -> dict[str, Any]:
         return {
@@ -1903,10 +2057,14 @@ class EyeRhythmEngine:
                 # Face just came back — slide the 60s window so BPM does not
                 # drop just because the person looked away for a bit.
                 gap_ms = (now - self._rate_absent_mono) * 1000.0
-                if gap_ms > 250.0 and self._detector is not None:
-                    self._detector.hold_rate_across_gap(gap_ms)
-                    res.blinks_per_minute = self._detector.blinks_per_minute_at(
-                        ts_ms)
+                if gap_ms > 250.0:
+                    if self.hybrid:
+                        self._fused_rate.hold_rate_across_gap(gap_ms)
+                        res.blinks_per_minute = self._fused_rate.bpm(ts_ms)
+                    elif self._detector is not None:
+                        self._detector.hold_rate_across_gap(gap_ms)
+                        res.blinks_per_minute = self._detector.blinks_per_minute_at(
+                            ts_ms)
             self._rate_present = True
             self._rate_absent_mono = None
             self._held_bpm = float(res.blinks_per_minute or 0.0)
@@ -1919,15 +2077,23 @@ class EyeRhythmEngine:
             self._regularity.note_break()
         self._rate_present = False
 
-    def _update_look_down_offscreen(self, res: FrameResult) -> bool:
+    def _update_look_down_offscreen(
+        self,
+        res: FrameResult,
+        *,
+        cam_index: int | None = None,
+    ) -> bool:
         """Off-screen: looking down past writing angle, or left/right past turn angle."""
+        key = int(self.camera_index if cam_index is None else cam_index)
         if not res.face_found:
-            self._look_off_screen = False
+            self._look_off_by_cam[key] = False
+            if cam_index is None:
+                self._look_off_screen = False
             return False
         with self._lock:
             down_lim = float(self._writing_angle_deg)
             side_lim = float(self._turn_angle_deg)
-        currently = self._look_off_screen
+        currently = bool(self._look_off_by_cam.get(key, False))
         looking_down = look_down_offscreen(
             res.face_pitch_deg,
             currently_off=currently,
@@ -1941,8 +2107,11 @@ class EyeRhythmEngine:
             direction=res.face_direction,
             threshold_deg=side_lim,
         )
-        self._look_off_screen = looking_down or looking_side
-        return self._look_off_screen
+        off = looking_down or looking_side
+        self._look_off_by_cam[key] = off
+        if cam_index is None:
+            self._look_off_screen = off
+        return off
 
     @staticmethod
     def _ori_fields(bpm: float, regularity: float | None) -> dict:
@@ -1998,17 +2167,169 @@ class EyeRhythmEngine:
             eyes_closed=False,
         )
 
+    def _active_indices(self) -> list[int]:
+        """OpenCV indices this session should use (hybrid = every desk cam)."""
+        if self.hybrid:
+            idxs = list_camera_indices()
+            return idxs if idxs else [int(self.camera_index)]
+        return [int(self.camera_index)]
+
+    def _ensure_detector(self, index: int) -> BlinkDetector | None:
+        """Return the per-camera detector, creating it if needed."""
+        key = int(index)
+        with self._detector_init_lock:
+            existing = self._detectors.get(key)
+            if existing is not None:
+                return existing
+            try:
+                det = BlinkDetector(self.model_path)
+                with self._lock:
+                    d = float(self._close_delta)
+                    det.config.close_delta = d
+                    det.config.open_delta = max(0.06, d - 0.06)
+                self._detectors[key] = det
+                if self._detector is None:
+                    self._detector = det
+                return det
+            except Exception as exc:
+                _log(f"detector init failed for camera {index}: {exc}")
+                return None
+
+    def _hybrid_adopt_caps(self, caps: dict[int, cv2.VideoCapture]) -> None:
+        """Ensure detectors and the parallel pool cover every open hybrid camera."""
+        for idx in list(caps):
+            self._ensure_detector(int(idx))
+        if self._hybrid_pool is None:
+            self._hybrid_pool = ThreadPoolExecutor(
+                max_workers=max(2, len(caps) or 2),
+                thread_name_prefix="hybrid-mp",
+            )
+
+    def _close_all_detectors(self) -> None:
+        seen: set[int] = set()
+        dets = list(self._detectors.values())
+        if self._detector is not None:
+            dets.append(self._detector)
+        for det in dets:
+            ident = id(det)
+            if ident in seen:
+                continue
+            seen.add(ident)
+            try:
+                det.close()
+            except Exception:
+                pass
+        self._detectors.clear()
+        self._detector = None
+
+    def _infer_frame(
+        self,
+        index: int,
+        frame: np.ndarray,
+        ts_ms: int,
+        *,
+        want_preview: bool,
+    ) -> FrameResult | None:
+        """Run MediaPipe on one frame. Safe for one detector per camera thread."""
+        det = self._ensure_detector(index)
+        if det is None:
+            return None
+        process_frame = _downscale_for_process(frame)
+        return det.process_frame(
+            process_frame, ts_ms, include_mesh=want_preview
+        )
+
+    def _finish_chosen_view(
+        self,
+        index: int,
+        frame: np.ndarray,
+        res: FrameResult,
+        off_screen: bool,
+        *,
+        counting: bool,
+        ts_ms: int,
+        now_mono: float,
+        extras: list[tuple[int, FrameResult, bool]],
+    ) -> tuple[np.ndarray, FrameResult, bool]:
+        """
+        Apply off-screen discard and hybrid fused counting to the chosen view.
+
+        ``extras`` are other cameras processed this tick:
+        ``(index, result, off_screen)``. Their detector totals are cleared so
+        the same physical blink cannot sit on two counters; if an extra view
+        actually finished the blink, hybrid still counts it once on the
+        shared rate (ORI uses that rate).
+        """
+        self._sticky_cam = int(index)
+        self._detector = self._detectors.get(int(index), self._detector)
+        self._look_off_screen = bool(off_screen) if counting else False
+
+        extra_events: list[tuple[bool, bool]] = []
+        extra_dets: list[Any] = []
+        for extra_idx, extra_res, extra_off in extras:
+            extra_events.append(
+                (bool(extra_res.blink_just_counted), bool(extra_off))
+            )
+            det = self._detectors.get(int(extra_idx))
+            if det is None:
+                continue
+            extra_dets.append(det)
+            if extra_res.blink_just_counted:
+                det.discard_last_blink()
+                extra_res.blink_just_counted = False
+
+        if not self.hybrid:
+            if (
+                counting
+                and off_screen
+                and res.blink_just_counted
+                and self._detector is not None
+            ):
+                self._detector.discard_last_blink()
+                res.blink_just_counted = False
+                res.blink_count = self._detector._blink_count
+                res.blinks_per_minute = self._detector.blinks_per_minute_at(ts_ms)
+            return frame, res, self._look_off_screen
+
+        fuse = hybrid_should_count_blink(
+            counting=counting,
+            chosen_counted=bool(res.blink_just_counted),
+            chosen_off_screen=bool(off_screen),
+            extra_counts=extra_events,
+        )
+        det = self._detectors.get(int(index), self._detector)
+        if res.blink_just_counted and det is not None:
+            det.discard_last_blink()
+            res.blink_just_counted = False
+        accepted = bool(fuse and self._fused_rate.allow(now_mono))
+        if accepted:
+            self._fused_rate.on_blink(ts_ms, now_mono)
+            res.blink_just_counted = True
+        if fuse:
+            # Only after a real fused blink: freeze extras so a delayed OPEN
+            # cannot recount. Do not align every tick — that aborts in-progress
+            # blinks on the cameras we are not displaying.
+            if det is not None:
+                det.align_after_shared_blink(ts_ms)
+            for extra_det in extra_dets:
+                extra_det.align_after_shared_blink(ts_ms)
+        res.blink_count = self._fused_rate.count
+        res.blinks_per_minute = self._fused_rate.bpm(ts_ms)
+        return frame, res, self._look_off_screen
+
     def _wait_parked_then_peek(
         self,
-        cap: cv2.VideoCapture | None,
+        caps: dict[int, cv2.VideoCapture],
         idle: CameraIdlePolicy,
-    ) -> cv2.VideoCapture | None:
+        indices: list[int],
+    ) -> dict[int, cv2.VideoCapture]:
         """
-        Release the webcam, wait 2 minutes (or until Practice/Lens), then
-        reopen for a presence peek. Returns the new capture or None.
+        Release the webcam(s), wait 2 minutes (or until Practice/Lens), then
+        reopen for a presence peek. Returns the new captures (possibly empty).
         """
-        _release_camera(cap)
+        _release_cameras(caps)
         self._look_off_screen = False
+        self._look_off_by_cam.clear()
         self._screen_time.tick(False)
         self._alert.update(None, False)
         self._publish_camera_idle("Idle")
@@ -2022,29 +2343,29 @@ class EyeRhythmEngine:
             if self._camera_is_demanded() or self._wake_camera.is_set():
                 self._wake_camera.clear()
                 idle.reset_to_live()
-                new_cap = open_camera(self.camera_index, quiet=True)
-                if new_cap is not None:
+                new_caps = open_cameras(indices, quiet=True, width_hint=self._capture_width)
+                if new_caps:
                     self._publish(camera_ok=True, camera_message="live")
                     _log("camera on — user ready")
-                return new_cap
+                return new_caps
             left = deadline - time.monotonic()
             if left <= 0:
                 break
             self._stop.wait(min(0.5, max(0.05, left)))
 
         if self._stop.is_set():
-            return None
+            return {}
 
         self._publish_camera_idle("Checking…")
-        new_cap = open_camera(self.camera_index, quiet=True)
-        if new_cap is None:
+        new_caps = open_cameras(indices, quiet=True, width_hint=self._capture_width)
+        if not new_caps:
             _log("camera peek failed — will sleep again")
             idle.begin_sleep()
-            return None
+            return {}
         idle.begin_peek(time.monotonic())
         self._publish(camera_ok=True, camera_message="Checking…")
         _log("camera peek (need 30 s of face to resume)")
-        return new_cap
+        return new_caps
 
     def _publish(self, **kwargs) -> None:
         """
@@ -2256,6 +2577,9 @@ class EyeRhythmEngine:
         _log("engine starting")
         self._publish(running=True, camera_message="opening camera",
                       camera_ok=False)
+        self._fused_rate.reset()
+        self._look_off_by_cam.clear()
+        self._detectors.clear()
 
         # Detector may fail if model missing — surface that to UI.
         try:
@@ -2271,14 +2595,37 @@ class EyeRhythmEngine:
             )
             return
 
-        cap = open_camera(self.camera_index)
-        if cap is None:
+        indices = self._active_indices()
+        self._capture_width = None
+        caps = open_cameras(indices, width_hint=self._capture_width)
+        if not caps:
+            label = "+".join(str(i) for i in indices) or str(self.camera_index)
             self._publish(
                 camera_ok=False,
-                camera_message=f"camera {self.camera_index} not usable",
+                camera_message=f"camera {label} not usable",
             )
         else:
+            first_idx = next(iter(caps))
+            self._detectors[first_idx] = self._detector
+            self._sticky_cam = first_idx
+            if self.hybrid:
+                self._hybrid_adopt_caps(caps)
             self._publish(camera_ok=True, camera_message="live")
+            if self.hybrid:
+                missing = missing_camera_indices(indices, list(caps))
+                if missing:
+                    _log(
+                        "hybrid started with "
+                        + "+".join(str(i) for i in caps)
+                        + f" — will retry {missing}"
+                    )
+                else:
+                    _log(
+                        "hybrid cameras "
+                        + "+".join(str(i) for i in caps)
+                        + " — synced grab, parallel detect at full fps "
+                        "(uses CPU extensively)"
+                    )
 
         t0 = time.monotonic()
         fps, frames = 0.0, 0
@@ -2286,9 +2633,16 @@ class EyeRhythmEngine:
         last_ts_ms = -1
         read_fails = 0
         reopen_attempt = 0
+        last_fill_at = 0.0
+        fill_attempt = 0
+        silent_miss: dict[int, int] = {}
         last_res = FrameResult()
         # Adaptive FPS / post-blink rest — see app/frame_pacer.py.
-        pacer = FramePacer()
+        # Hybrid stays uncapped (no 30/1 fps cap, no post-blink pause).
+        pacer = FramePacer(
+            post_blink_sleep=not bool(self.hybrid),
+            uncapped=bool(self.hybrid),
+        )
         # Battery: release the webcam after 1 min with no face; peek every 2 min.
         idle = CameraIdlePolicy(started_at=time.monotonic())
         with self._lock:
@@ -2304,20 +2658,69 @@ class EyeRhythmEngine:
             # update daily stats, then sleep according to the CPU pacer.
             while not self._stop.is_set():
                 if idle.phase == "sleep":
-                    cap = self._wait_parked_then_peek(cap, idle)
-                    pacer = FramePacer()
+                    caps = self._wait_parked_then_peek(caps, idle, indices)
+                    if self.hybrid:
+                        indices = self._active_indices()
+                        if caps:
+                            self._hybrid_adopt_caps(caps)
+                    pacer = FramePacer(
+                        post_blink_sleep=not bool(self.hybrid),
+                        uncapped=bool(self.hybrid),
+                    )
                     read_fails = 0
                     reopen_attempt = 0
+                    fill_attempt = 0
+                    silent_miss.clear()
+                    self._hybrid_hunt = True
                     continue
 
                 loop_start = time.monotonic()
                 # In no-face mode the camera may buffer many frames; drain a few.
                 drain = 3 if pacer.should_drain_buffer() else 0
-                ok, frame = _read_frame(cap, drain=drain)
+                decoded: dict[int, np.ndarray] = {}
+                hybrid_multi = bool(self.hybrid) and len(caps) > 1
+                if hybrid_multi:
+                    ready = grab_all(caps, drain=drain)
+                    decode_idxs = hybrid_decode_indices(
+                        list(ready),
+                        self._sticky_cam,
+                        hunt=self._hybrid_hunt,
+                    )
+                    for idx in decode_idxs:
+                        cap = ready.get(idx)
+                        if cap is None:
+                            continue
+                        got = retrieve_frame(cap)
+                        if got is not None and not _frame_is_black(got):
+                            decoded[int(idx)] = got
+                elif caps:
+                    only_idx, only_cap = next(iter(caps.items()))
+                    ok, frame = _read_frame(only_cap, drain=drain)
+                    if ok and frame is not None and not _frame_is_black(frame):
+                        decoded[only_idx] = frame
+                    ready = {only_idx: only_cap} if decoded else {}
+                else:
+                    ready = {}
 
-                # Camera glitch / lid closed / black frame: hold last numbers
-                # and try to reopen after a few failures in a row.
-                if not ok or _frame_is_black(frame):
+                if self.hybrid and caps:
+                    others_live = bool(ready)
+                    for idx in list(caps):
+                        if idx in ready:
+                            silent_miss[idx] = 0
+                            continue
+                        silent_miss[idx] = silent_miss.get(idx, 0) + 1
+                        if should_drop_silent_hybrid_camera(
+                            silent_miss[idx], others_live=others_live
+                        ):
+                            _log(
+                                f"hybrid camera {idx} went silent — "
+                                "releasing so the full set can reopen"
+                            )
+                            _release_camera(caps.pop(idx, None))
+                            silent_miss.pop(idx, None)
+                            self._hybrid_hunt = True
+
+                if not decoded:
                     read_fails += 1
                     pacer.note_no_signal()
                     self._screen_time.tick(False)
@@ -2356,10 +2759,16 @@ class EyeRhythmEngine:
                     )
 
                     if read_fails >= READ_FAILS_BEFORE_REOPEN:
-                        cap = _reopen_camera(cap, self.camera_index, reopen_attempt)
+                        caps = _reopen_cameras(
+                            caps, indices, reopen_attempt,
+                            width_hint=self._capture_width,
+                        )
                         reopen_attempt += 1
                         read_fails = 0
-                        if cap is not None:
+                        silent_miss.clear()
+                        if self.hybrid and caps:
+                            self._hybrid_adopt_caps(caps)
+                        if caps:
                             msg = (
                                 "Checking…"
                                 if idle.phase == "peek"
@@ -2377,58 +2786,184 @@ class EyeRhythmEngine:
                     msg = "Checking…" if idle.phase == "peek" else "live"
                     self._publish(camera_ok=True, camera_message=msg)
 
-                # Keep full camera frame for Lens; process a smaller copy.
-                display_frame = frame
-                process_frame = _downscale_for_process(frame)
+                if self.hybrid and (loop_start - last_fill_at) >= next_hybrid_fill_wait(fill_attempt):
+                    last_fill_at = loop_start
+                    indices = self._active_indices()
+                    missing = missing_camera_indices(indices, list(caps))
+                    if missing:
+                        for idx in missing:
+                            extra = open_camera(
+                                idx, quiet=True, width_hint=self._capture_width
+                            )
+                            if extra is not None:
+                                caps[idx] = extra
+                                silent_miss[idx] = 0
+                                self._hybrid_hunt = True
+                                _log(f"hybrid added camera {idx}")
+                        still = missing_camera_indices(indices, list(caps))
+                        if still:
+                            # Hot-add often fails on macOS while another
+                            # AVFoundation session is live. Reopen the full
+                            # set the same way switching away from hybrid
+                            # and back recovers both cameras.
+                            _log(
+                                "hybrid recovering cameras "
+                                f"{still} by reopening all desk cameras"
+                            )
+                            caps = _reopen_cameras(
+                                caps,
+                                indices,
+                                fill_attempt,
+                                width_hint=self._capture_width,
+                            )
+                            fill_attempt += 1
+                            silent_miss.clear()
+                            self._hybrid_hunt = True
+                        else:
+                            fill_attempt = 0
+                        if caps:
+                            self._hybrid_adopt_caps(caps)
+                    else:
+                        fill_attempt = 0
 
                 ts_ms = max(int((time.monotonic() - t0) * 1000), last_ts_ms + 1)
                 last_ts_ms = ts_ms
 
                 with self._lock:
                     want_preview = self._preview_wanted
+                preview_idx = (
+                    self._sticky_cam
+                    if self._sticky_cam in decoded
+                    else (next(iter(decoded)) if decoded else None)
+                )
 
-                try:
-                    # Skip mesh packing unless the Lens preview is open.
-                    # Landmarks are normalized — valid on display_frame too
-                    # because process_frame is a uniform scale of the same image.
-                    res = self._detector.process_frame(
-                        process_frame, ts_ms, include_mesh=want_preview)
-                except Exception as exc:
-                    _log(f"frame processing error (skipped): {exc}")
+                process_error = False
+                inferred: list[tuple[int, np.ndarray, FrameResult]] = []
+                items = list(decoded.items())
+                pool = self._hybrid_pool if hybrid_multi else None
+                if pool is not None and len(items) > 1:
+                    futs = [
+                        pool.submit(
+                            self._infer_frame,
+                            idx,
+                            frame,
+                            ts_ms,
+                            want_preview=bool(want_preview and idx == preview_idx),
+                        )
+                        for idx, frame in items
+                    ]
+                    for (idx, frame), fut in zip(items, futs):
+                        try:
+                            cam_res = fut.result()
+                        except Exception as exc:
+                            _log(f"frame processing error camera {idx}: {exc}")
+                            process_error = True
+                            continue
+                        if cam_res is None:
+                            continue
+                        inferred.append((idx, frame, cam_res))
+                else:
+                    for idx, frame in items:
+                        try:
+                            cam_res = self._infer_frame(
+                                idx,
+                                frame,
+                                ts_ms,
+                                want_preview=bool(want_preview and idx == preview_idx),
+                            )
+                        except Exception as exc:
+                            _log(f"frame processing error camera {idx}: {exc}")
+                            process_error = True
+                            continue
+                        if cam_res is None:
+                            continue
+                        inferred.append((idx, frame, cam_res))
+
+                if hybrid_multi:
+                    # Skipped cameras must not finish a stale CLOSED→OPEN
+                    # blink the next time we hunt them.
+                    for idx in caps:
+                        if int(idx) in decoded:
+                            continue
+                        det = self._detectors.get(int(idx))
+                        if det is not None:
+                            det.align_after_shared_blink(ts_ms)
+
+                processed: list[tuple[int, np.ndarray, FrameResult, bool]] = []
+                for idx, frame, cam_res in inferred:
+                    off = self._update_look_down_offscreen(
+                        cam_res, cam_index=idx
+                    )
+                    processed.append((idx, frame, cam_res, off))
+
+                if not processed:
                     self._screen_time.tick(False)
                     self._sync_presence_hold(False, last_res, ts_ms)
                     self._alert.update(None, False)
-                    pacer.sleep_for_frame(loop_start)
+                    if process_error:
+                        pacer.sleep_for_frame(loop_start)
                     continue
 
-                last_res = res
-
+                scored = [
+                    (i, r.face_found, off, r.is_frontal, r.face_angle_deg)
+                    for i, _f, r, off in processed
+                ]
+                best_idx = pick_front_facing_index(
+                    scored, sticky=self._sticky_cam
+                )
+                chosen = next(
+                    (p for p in processed if p[0] == best_idx),
+                    processed[0],
+                )
+                ch_idx, display_frame, res, off_screen = chosen
+                if self.hybrid:
+                    self._hybrid_hunt = not is_front_facing(
+                        face_found=bool(res.face_found),
+                        off_screen=bool(off_screen),
+                        is_frontal=bool(res.is_frontal),
+                    )
+                extras = [
+                    (i, r, o) for i, _f, r, o in processed if i != ch_idx
+                ]
+                face_any = any(
+                    r.face_found for _i, _f, r, _o in processed
+                )
+                on_screen_any = any_on_screen_face(
+                    [(r.face_found, off) for _i, _f, r, off in processed]
+                )
                 if self._camera_is_demanded():
                     idle.reset_to_live()
                     next_phase = "live"
                 else:
-                    next_phase = idle.note_face(
-                        bool(res.face_found), time.monotonic()
-                    )
+                    next_phase = idle.note_face(bool(face_any), time.monotonic())
                 counting = next_phase == "live"
+                if not counting:
+                    off_screen = False
 
-                off_screen = (
-                    self._update_look_down_offscreen(res) if counting else False
+                display_frame, res, off_screen = self._finish_chosen_view(
+                    ch_idx,
+                    display_frame,
+                    res,
+                    off_screen,
+                    counting=counting,
+                    ts_ms=ts_ms,
+                    now_mono=time.monotonic(),
+                    extras=extras,
                 )
-                if (
-                    counting
-                    and off_screen
-                    and res.blink_just_counted
-                    and self._detector is not None
-                ):
-                    self._detector.discard_last_blink()
-                    res.blink_just_counted = False
-                    res.blink_count = self._detector._blink_count
-                    res.blinks_per_minute = self._detector.blinks_per_minute_at(
-                        ts_ms)
+                last_res = res
 
-                # On-screen = a face is found and the person is not looking down.
-                present = counting and bool(res.face_found) and not off_screen
+                # Hybrid: present if ANY desk camera still sees an on-screen
+                # face. Using only the chosen view made ORI freeze whenever
+                # pick hopped to a profile / look-away camera for a tick.
+                if self.hybrid:
+                    present = counting and on_screen_any
+                    off_screen = bool(face_any) and not on_screen_any
+                    res.face_found = bool(face_any)
+                    self._look_off_screen = off_screen if counting else False
+                else:
+                    present = (
+                        counting and bool(res.face_found) and not off_screen
+                    )
                 self._sync_presence_hold(present, res, ts_ms)
                 self._screen_time.tick(present)
                 # Keep research hour buckets aligned with face-present time.
@@ -2473,7 +3008,7 @@ class EyeRhythmEngine:
                 # Adaptive FPS only (face 30 / no-face 1 + post-blink rest).
                 # All other business logic above is unchanged.
                 pacer.observe(
-                    face_found=res.face_found,
+                    face_found=face_any if self.hybrid else res.face_found,
                     blink_just_counted=res.blink_just_counted,
                 )
 
@@ -2561,12 +3096,12 @@ class EyeRhythmEngine:
                 self._ori_log.save(force=True)
             except Exception:
                 pass
-            if self._detector is not None:
-                try:
-                    self._detector.close()
-                except Exception:
-                    pass
-            _release_camera(cap)
+            self._close_all_detectors()
+            pool = self._hybrid_pool
+            self._hybrid_pool = None
+            if pool is not None:
+                pool.shutdown(wait=False, cancel_futures=True)
+            _release_cameras(caps)
             self._publish(running=False, camera_message="stopped", camera_ok=False)
 
 

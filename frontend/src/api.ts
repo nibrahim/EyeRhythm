@@ -34,6 +34,7 @@ export interface Preferences {
   turn_angle_deg?: number;
   close_delta?: number;
   camera_index?: number;
+  camera_mode?: "single" | "hybrid";
 }
 
 export interface LiveSettings {
@@ -154,6 +155,7 @@ export interface CameraOption {
 export interface CamerasPayload {
   cameras: CameraOption[];
   selected: number;
+  mode: "single" | "hybrid";
   pick_required: boolean;
 }
 
@@ -358,12 +360,18 @@ export async function fetchCameras(): Promise<CamerasPayload> {
   return res.json();
 }
 
-/** Choose a webcam and start (or restart) the blink engine. */
-export async function selectCamera(index: number): Promise<void> {
+/** Choose a webcam, or hybrid (every desk camera except phones). */
+export type CameraChoice = number | "hybrid";
+
+export async function selectCamera(choice: CameraChoice): Promise<void> {
+  const body =
+    choice === "hybrid"
+      ? { hybrid: true }
+      : { index: choice, hybrid: false };
   const res = await fetch("/api/camera/select", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ index }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

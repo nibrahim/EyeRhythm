@@ -12,6 +12,7 @@ import {
   saveSettings,
   selectCamera,
   type AuditEntry,
+  type CameraChoice,
   type CameraOption,
   type LiveSettings,
 } from "../api";
@@ -32,7 +33,7 @@ export function SettingsPanel() {
 
   const [restoring, setRestoring] = useState(false);
   const [cameras, setCameras] = useState<CameraOption[]>([]);
-  const [cameraIndex, setCameraIndex] = useState<number | null>(null);
+  const [cameraIndex, setCameraIndex] = useState<CameraChoice | null>(null);
   const [cameraBusy, setCameraBusy] = useState(false);
 
   const reloadAudit = useCallback(() => {
@@ -57,7 +58,9 @@ export function SettingsPanel() {
       .then((payload) => {
         if (!cancelled) {
           setCameras(payload.cameras);
-          setCameraIndex(payload.selected);
+          setCameraIndex(
+            payload.mode === "hybrid" ? "hybrid" : payload.selected,
+          );
         }
       })
       .catch(() => {
@@ -112,11 +115,11 @@ export function SettingsPanel() {
       .finally(() => setRestoring(false));
   };
 
-  const onCameraChange = (index: number) => {
+  const onCameraChange = (choice: CameraChoice) => {
     if (cameraBusy) return;
     setCameraBusy(true);
-    setCameraIndex(index);
-    void selectCamera(index)
+    setCameraIndex(choice);
+    void selectCamera(choice)
       .catch(() => {
         /* keep last selection */
       })
@@ -146,10 +149,19 @@ export function SettingsPanel() {
           </div>
           <select
             className="settings__select"
-            value={cameraIndex ?? cameras[0]?.index ?? 0}
+            value={
+              cameraIndex === "hybrid"
+                ? "hybrid"
+                : String(cameraIndex ?? cameras[0]?.index ?? 0)
+            }
             disabled={cameraBusy}
-            onChange={(e) => onCameraChange(Number(e.target.value))}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "hybrid") onCameraChange("hybrid");
+              else onCameraChange(Number(raw));
+            }}
           >
+            <option value="hybrid">Hybrid (utilizes CPU extensively)</option>
             {cameras.map((cam) => (
               <option key={cam.index} value={cam.index}>
                 {cam.label}
@@ -157,8 +169,11 @@ export function SettingsPanel() {
             ))}
           </select>
           <p className="settings__help">
-            Switch between built-in and external webcams. The engine restarts
-            when you change this.
+            One webcam, or Hybrid to use every built-in and USB camera at
+            once (not a phone). Hybrid keeps full frame rate by running every
+            camera together (utilizes CPU extensively). Each tick grabs all
+            cameras at the same instant, then counts blinks on the
+            front-facing view. The engine restarts when you change this.
           </p>
         </label>
       ) : null}

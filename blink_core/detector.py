@@ -632,6 +632,18 @@ class BlinkDetector:
         self._blink_count = max(0, int(self._blink_count) - 1)
         return True
 
+    def align_after_shared_blink(self, timestamp_ms: int) -> None:
+        """
+        Another camera already counted this physical blink (hybrid sync).
+
+        Force eyes OPEN and start refractory so this stream cannot count
+        the same blink on a later frame (different angle or delayed reopen).
+        Does not add a blink to this detector's total.
+        """
+        self._state = self.STATE_OPEN
+        self._closed_since_ms = None
+        self._last_blink_ms = float(timestamp_ms)
+
     def blinks_per_minute_at(self, timestamp_ms: float) -> float:
         """How many counted blinks fall in the last 60 seconds at this time."""
         return self._bpm(timestamp_ms)

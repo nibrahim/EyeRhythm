@@ -112,7 +112,8 @@ class LicenseActivateBody(BaseModel):
 
 class CameraSelectBody(BaseModel):
     """JSON body for POST /api/camera/select."""
-    index: int = Field(ge=0, le=15)
+    index: int | None = Field(default=None, ge=0, le=15)
+    hybrid: bool = False
 
 
 class ToggleBody(BaseModel):
@@ -136,6 +137,7 @@ class PreferencesPatch(BaseModel):
     eye_comfort: str | None = None
     dock: bool | None = None
     camera_index: int | None = None
+    camera_mode: str | None = None
     ori_threshold: float | None = None
     alert_low_minutes: float | None = None
     writing_angle_deg: float | None = None
@@ -190,8 +192,14 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         """List webcams for the startup picker and Settings."""
         cameras = describe_cameras()
         avail = [int(c["index"]) for c in cameras]
+        prefs = preferences.load()
+        mode = str(prefs.get("camera_mode") or "single").strip().lower()
+        hybrid = mode == "hybrid" and len(avail) >= 2
+        if engine.is_hybrid():
+            hybrid = True
+            mode = "hybrid"
         try:
-            saved = int(preferences.load().get("camera_index", -1))
+            saved = int(prefs.get("camera_index", -1))
         except (TypeError, ValueError):
             saved = -1
         if saved not in avail and avail:
@@ -199,17 +207,36 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         return {
             "cameras": cameras,
             "selected": saved,
+            "mode": "hybrid" if hybrid else "single",
             "pick_required": engine.is_awaiting_camera_pick(),
         }
 
     @app.post("/api/camera/select")
     def post_camera_select(body: CameraSelectBody):
-        """Choose which webcam to use; starts or restarts the engine."""
+        """Choose which webcam to use, or hybrid (all desk cameras)."""
         cameras = describe_cameras()
         avail = {int(c["index"]) for c in cameras}
+        if body.hybrid:
+            if len(avail) < 2:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Hybrid needs at least two desk cameras.",
+                )
+            preferences.save(camera_mode="hybrid")
+            try:
+                engine.reselect_source(hybrid=True)
+            except Exception as exc:
+                raise HTTPException(status_code=500, detail=str(exc)) from exc
+            return {
+                "index": None,
+                "mode": "hybrid",
+                "label": "Hybrid (all desk cameras)",
+            }
+        if body.index is None:
+            raise HTTPException(status_code=400, detail="Choose a camera or hybrid.")
         if body.index not in avail:
             raise HTTPException(status_code=400, detail="That camera is not available.")
-        preferences.save(camera_index=body.index)
+        preferences.save(camera_index=body.index, camera_mode="single")
         try:
             engine.reselect_camera(body.index)
         except Exception as exc:
@@ -218,7 +245,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
             (str(c["label"]) for c in cameras if int(c["index"]) == body.index),
             f"Camera {body.index}",
         )
-        return {"index": body.index, "label": label}
+        return {"index": body.index, "mode": "single", "label": label}
 
     @app.get("/api/health")
     def health():

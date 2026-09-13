@@ -17,6 +17,7 @@ from app.engine import (
     _is_mobile_camera_name,
     _opencv_avfoundation_order,
     describe_cameras,
+    open_cameras,
     resolve_startup_camera,
 )
 
@@ -168,26 +169,55 @@ class CameraDiscoveryTests(unittest.TestCase):
 
     def test_saved_camera_skips_splash_picker(self) -> None:
         """Two webcams + a remembered index → do not ask again at login."""
-        index, pick = resolve_startup_camera([0, 1], saved=0, cli=None)
+        index, pick, hybrid = resolve_startup_camera([0, 1], saved=0, cli=None)
         self.assertEqual(index, 0)
         self.assertFalse(pick)
+        self.assertFalse(hybrid)
 
-        index, pick = resolve_startup_camera([0, 1], saved=1, cli=None)
+        index, pick, hybrid = resolve_startup_camera([0, 1], saved=1, cli=None)
         self.assertEqual(index, 1)
         self.assertFalse(pick)
+        self.assertFalse(hybrid)
 
     def test_unknown_saved_camera_asks_when_several(self) -> None:
-        index, pick = resolve_startup_camera([0, 1], saved=-1, cli=None)
+        index, pick, hybrid = resolve_startup_camera([0, 1], saved=-1, cli=None)
         self.assertEqual(index, 0)
         self.assertTrue(pick)
+        self.assertFalse(hybrid)
 
     def test_cli_and_single_camera_never_ask(self) -> None:
-        index, pick = resolve_startup_camera([0, 1], saved=-1, cli=1)
+        index, pick, hybrid = resolve_startup_camera([0, 1], saved=-1, cli=1)
         self.assertEqual(index, 1)
         self.assertFalse(pick)
-        index, pick = resolve_startup_camera([2], saved=-1, cli=None)
+        self.assertFalse(hybrid)
+        index, pick, hybrid = resolve_startup_camera([2], saved=-1, cli=None)
         self.assertEqual(index, 2)
         self.assertFalse(pick)
+        self.assertFalse(hybrid)
+
+    def test_saved_hybrid_uses_all_desk_cameras(self) -> None:
+        index, pick, hybrid = resolve_startup_camera(
+            [0, 1], saved=-1, cli=None, saved_mode="hybrid",
+        )
+        self.assertFalse(pick)
+        self.assertTrue(hybrid)
+        self.assertEqual(index, 0)
+
+    def test_saved_hybrid_falls_back_when_only_one_camera(self) -> None:
+        index, pick, hybrid = resolve_startup_camera(
+            [2], saved=-1, cli=None, saved_mode="hybrid",
+        )
+        self.assertEqual(index, 2)
+        self.assertFalse(pick)
+        self.assertFalse(hybrid)
+
+    def test_cli_overrides_saved_hybrid(self) -> None:
+        index, pick, hybrid = resolve_startup_camera(
+            [0, 1], saved=0, cli=1, saved_mode="hybrid",
+        )
+        self.assertEqual(index, 1)
+        self.assertFalse(pick)
+        self.assertFalse(hybrid)
 
     def test_describe_cameras_reuses_cache(self) -> None:
         """Splash / Settings must not re-open cameras after the first probe."""
@@ -213,6 +243,30 @@ class CameraDiscoveryTests(unittest.TestCase):
                 self.assertEqual(desc.call_count, 2)
         finally:
             _clear_camera_cache()
+
+    def test_open_cameras_retries_partial_failure_by_reopening_all(self) -> None:
+        """If the built-in fails while USB is already open, retry the full set."""
+
+        class _Cap:
+            def release(self) -> None:
+                return None
+
+        opened: list[int] = []
+        caps = {0: _Cap(), 1: _Cap()}
+
+        def fake_open(idx, quiet=False, width_hint=None):
+            opened.append(int(idx))
+            # First pass: USB (1) works, built-in (0) fails.
+            if len(opened) <= 2:
+                return caps[idx] if idx == 1 else None
+            return caps[idx]
+
+        with patch("app.engine.open_camera", side_effect=fake_open), patch(
+            "app.engine.time.sleep"
+        ):
+            out = open_cameras([0, 1], quiet=True)
+        self.assertEqual(set(out), {0, 1})
+        self.assertGreaterEqual(len(opened), 4)
 
 
 if __name__ == "__main__":
