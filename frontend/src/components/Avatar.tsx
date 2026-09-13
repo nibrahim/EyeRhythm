@@ -77,7 +77,11 @@ function LensView({
         <img src={frameUrl} alt="Live camera" className="avatar-lens__img" />
       ) : (
         <div className="avatar-lens__placeholder">
-          {cameraOk ? "Starting camera…" : cameraMessage || "Camera unavailable"}
+          {cameraOk
+            ? cameraMessage === "live"
+              ? "Loading preview…"
+              : cameraMessage || "Starting camera…"
+            : cameraMessage || "Camera unavailable"}
         </div>
       )}
       <div className="avatar-lens__badge" aria-hidden>

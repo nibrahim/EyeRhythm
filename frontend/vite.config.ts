@@ -7,15 +7,23 @@
  * * `npm run build` — writes a static site into `frontend/dist`, which the
  *   packaged desktop app then serves.
  */
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    fs: {
+      allow: [path.resolve(rootDir, "..")],
+    },
     proxy: {
       "/api": "http://127.0.0.1:8742",
+      "/alert.mp3": "http://127.0.0.1:8742",
       "/ws": {
         target: "ws://127.0.0.1:8742",
         ws: true,

@@ -1,14 +1,17 @@
 /**
  * Settings-dock report charts: daily / weekly / monthly ORI bars.
  * Same visual language as Trace (ORI 0–100, red dotted threshold).
+ * A green dotted line at 75 marks the trained-eye target.
  * Daily and monthly use colours off the app blue so the periods are distinct.
  */
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReportPayload } from "../api";
 
 const PAD = { top: 18, right: 10, bottom: 22, left: 28 };
 const Y_MAX = 100;
+/** Target ORI after the user has trained their blink muscles. */
+const TARGET_ORI = 75;
 
 interface Props {
   report: ReportPayload;
@@ -34,12 +37,31 @@ function barClass(kind: ReportPayload["kind"]): string {
 }
 
 export function ReportChart({ report }: Props) {
-  const w = 340;
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(340);
   const h = 168;
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const apply = (width: number) => {
+      const next = Math.max(200, Math.round(width));
+      setW((prev) => (prev === next ? prev : next));
+    };
+    apply(el.getBoundingClientRect().width);
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0]?.contentRect;
+      if (r && r.width > 0) apply(r.width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const plotW = w - PAD.left - PAD.right;
   const plotH = h - PAD.top - PAD.bottom;
   const threshold = report.ori_threshold ?? 50;
   const alertY = yOf(threshold, plotH);
+  const targetY = yOf(TARGET_ORI, plotH);
 
   const series = useMemo(() => {
     if (report.kind === "daily") return report.points ?? [];
@@ -80,13 +102,38 @@ export function ReportChart({ report }: Props) {
   const mean = summary.mean_ori;
 
   return (
-    <div className="report-chart">
+    <div className="report-chart" ref={wrapRef}>
       <svg
         className="report-chart__svg"
+        width={w}
+        height={h}
         viewBox={`0 0 ${w} ${h}`}
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
         aria-label={`${report.kind} Ocular Rhythm Index`}
       >
+        <line
+          x1={PAD.left}
+          y1={targetY}
+          x2={PAD.left + plotW}
+          y2={targetY}
+          className="report-chart__target-line"
+        />
+        <text
+          x={PAD.left - 4}
+          y={targetY + 3}
+          textAnchor="end"
+          className="report-chart__target-label"
+        >
+          {TARGET_ORI}
+        </text>
+        <text
+          x={PAD.left + plotW - 2}
+          y={targetY - 4}
+          textAnchor="end"
+          className="report-chart__target-label"
+        >
+          target
+        </text>
         <line
           x1={PAD.left}
           y1={alertY}
@@ -94,14 +141,16 @@ export function ReportChart({ report }: Props) {
           y2={alertY}
           className="rate-graph__low-line"
         />
-        <text
-          x={PAD.left - 4}
-          y={alertY + 3}
-          textAnchor="end"
-          className="rate-graph__axis-label"
-        >
-          {Math.round(threshold)}
-        </text>
+        {Math.abs(threshold - TARGET_ORI) >= 6 ? (
+          <text
+            x={PAD.left - 4}
+            y={alertY + 3}
+            textAnchor="end"
+            className="rate-graph__axis-label"
+          >
+            {Math.round(threshold)}
+          </text>
+        ) : null}
         {series.map((p, i) => {
           if (p.ori == null) return null;
           const x = PAD.left + ((i + 0.5) / n) * plotW - bw / 2;

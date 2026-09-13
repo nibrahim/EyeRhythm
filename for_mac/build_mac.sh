@@ -42,6 +42,10 @@ echo "Installing PyInstaller if needed..."
 python3 -m pip install -q pyinstaller
 
 echo
+echo "Tip: if the .app is still huge, remove unused ML extras from the venv:"
+echo "  pip uninstall -y jax jaxlib scipy matplotlib"
+echo "  (keep opencv-contrib-python — MediaPipe requires it)"
+echo
 echo "Building EyesRhythm (this can take a few minutes)..."
 # Prefer the checked-in spec so macOS privacy keys (camera) are baked in.
 # Fall back to the equivalent CLI if the spec is missing.
@@ -93,6 +97,26 @@ stamp_macos_camera_usage() {
     else
         "$buddy" -c "Add :CFBundleIdentifier string com.eyerhythm.app" "$plist"
     fi
+    local ver
+    ver="$(python3 -c 'from app.version import VERSION; print(VERSION)' 2>/dev/null || true)"
+    if [ -n "$ver" ]; then
+        if "$buddy" -c "Print :CFBundleShortVersionString" "$plist" >/dev/null 2>&1; then
+            "$buddy" -c "Set :CFBundleShortVersionString $ver" "$plist"
+        else
+            "$buddy" -c "Add :CFBundleShortVersionString string $ver" "$plist"
+        fi
+        if "$buddy" -c "Print :CFBundleVersion" "$plist" >/dev/null 2>&1; then
+            "$buddy" -c "Set :CFBundleVersion $ver" "$plist"
+        else
+            "$buddy" -c "Add :CFBundleVersion string $ver" "$plist"
+        fi
+        local info="EyesRhythm $ver"
+        if "$buddy" -c "Print :CFBundleGetInfoString" "$plist" >/dev/null 2>&1; then
+            "$buddy" -c "Set :CFBundleGetInfoString $info" "$plist"
+        else
+            "$buddy" -c "Add :CFBundleGetInfoString string $info" "$plist"
+        fi
+    fi
     local icns="$ROOT/assets/EyeRhythm.icns"
     if [ -f "$icns" ]; then
         mkdir -p "$app/Contents/Resources"
@@ -108,11 +132,56 @@ stamp_macos_camera_usage() {
     xattr -cr "$app" 2>/dev/null || true
 }
 
+slim_macos_bundle() {
+    # Drop unused MediaPipe solutions, OpenCV Haar XML, extra matplotlib
+    # fonts, and uvicorn extras so the DMG stays under Dodo's 100 MB upload cap.
+    local app="$1"
+    local res="$app/Contents/Resources"
+    local fw="$app/Contents/Frameworks"
+    local mp="$res/mediapipe/modules"
+    local d
+    for d in pose_landmark pose_detection hand_landmark palm_detection \
+             iris_landmark selfie_segmentation holistic_landmark objectron \
+             face_detection face_landmark; do
+        rm -rf "$mp/$d"
+    done
+    rm -rf "$res/mediapipe/model_maker" "$res/mediapipe/examples" \
+           "$res/cv2/data" "$fw/sentencepiece" "$fw/uvloop" \
+           "$fw/watchfiles" "$fw/httptools"
+    # matplotlib → PIL._imaging needs jpeg/tiff/openjpeg. Keep those
+    # dylibs; drop avif/webp extras that are not on the import path.
+    local pildy="$fw/PIL/__dot__dylibs"
+    if [ -d "$pildy" ]; then
+        find "$pildy" -type f ! \( \
+            -name 'libjpeg*' -o -name 'libtiff*' -o -name 'libopenjp2*' \
+            -o -name 'libz.*' -o -name 'libxcb*' -o -name 'liblzma*' \
+            -o -name 'libXau*' \
+        \) -delete
+    fi
+    find "$app" -type d -name '*.dist-info' -exec rm -rf {} + 2>/dev/null || true
+    find "$app" -type f -name '*_test.py' -delete
+    local fonts="$res/matplotlib/mpl-data/fonts"
+    if [ -d "$fonts" ]; then
+        find "$fonts" -type f ! -name 'DejaVuSans.ttf' -delete
+        find "$fonts" -type d -empty -delete
+        rm -rf "$res/matplotlib/mpl-data/sample_data" \
+               "$res/matplotlib/mpl-data/images"
+    fi
+    find "$app" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 \
+        | xargs -0 strip -x 2>/dev/null || true
+    codesign --force --deep --sign - "$app" >/dev/null
+    xattr -cr "$app" 2>/dev/null || true
+}
+
 echo
 if [ -d "dist/EyesRhythm.app" ]; then
     stamp_macos_camera_usage "$ROOT/dist/EyesRhythm.app"
+    slim_macos_bundle "$ROOT/dist/EyesRhythm.app"
     echo "SUCCESS:  dist/EyesRhythm.app"
     echo "First open: right-click → Open, then Allow the camera."
+    echo
+    echo "Drag-to-Applications installer:"
+    echo "  ./for_mac/make_dmg.sh   →  dist/EyesRhythm.dmg"
 elif [ -f "dist/EyesRhythm/EyesRhythm" ]; then
     echo "SUCCESS:  dist/EyesRhythm/EyesRhythm"
 else

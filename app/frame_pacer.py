@@ -13,6 +13,9 @@ Policy (from inter-blink research: mean IBI ≈ 3 s)
    then resume full rate for the next blink.
 3. While no face → drop to ``NO_FACE_FPS`` (default 1) until a face returns.
 
+This only slows processing. After a full minute with no face, ``camera_idle``
+releases the webcam (see that module).
+
 Nothing here changes blink counting, screen-time rules, regularity, beeps,
 or the research log — only *when* the engine sleeps between frames.
 
@@ -75,11 +78,13 @@ class FramePacer:
         pacer.sleep_for_frame(loop_start)
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, post_blink_sleep: bool = True, uncapped: bool = False) -> None:
         self.face_absent_streak = 0
         # Start at full face rate so first-second UX feels responsive.
-        self._interval_s = FACE_INTERVAL_S
+        self._uncapped = bool(uncapped)
+        self._interval_s = 0.0 if self._uncapped else FACE_INTERVAL_S
         self._pending_post_blink_sleep = False
+        self._post_blink_sleep = bool(post_blink_sleep) and not self._uncapped
 
     # ------------------------------------------------------------------ API
 
@@ -103,6 +108,9 @@ class FramePacer:
         Call once per successfully processed frame, after
         ``BlinkDetector.process_frame`` (and after blink-side effects).
         """
+        if self._uncapped:
+            self._interval_s = 0.0
+            return
         if face_found:
             # Face is back — run at full 30 fps again.
             self.face_absent_streak = 0
@@ -115,11 +123,13 @@ class FramePacer:
 
         # One-shot rest after a counted blink while face is present.
         # (If face was lost on the same frame, prefer hunt pacing instead.)
-        if blink_just_counted and face_found:
+        if blink_just_counted and face_found and self._post_blink_sleep:
             self._pending_post_blink_sleep = True
 
     def note_no_signal(self) -> None:
         """Camera read failed / black frame — treat like face absence."""
+        if self._uncapped:
+            return
         self.face_absent_streak += 1
         if self.face_absent_streak >= NO_FACE_GRACE_FRAMES:
             self._interval_s = NO_FACE_INTERVAL_S
@@ -132,6 +142,8 @@ class FramePacer:
           then return (no additional face-interval sleep).
         * Otherwise → pace so this loop iteration takes about ``interval_s``.
         """
+        if self._uncapped:
+            return
         if self._pending_post_blink_sleep:
             self._pending_post_blink_sleep = False
             if POST_BLINK_SLEEP_S > 0:
@@ -145,9 +157,14 @@ class FramePacer:
 
     def describe(self) -> str:
         """Short log line for engine startup."""
+        if self._uncapped:
+            return "uncapped (hybrid)"
+        sleep = (
+            f"{POST_BLINK_SLEEP_S:.3f}s" if self._post_blink_sleep else "off"
+        )
         return (
             f"face={FACE_FPS:.0f}fps "
             f"no_face={NO_FACE_FPS:.0f}fps "
-            f"post_blink_sleep={POST_BLINK_SLEEP_S:.3f}s "
+            f"post_blink_sleep={sleep} "
             f"grace={NO_FACE_GRACE_FRAMES}"
         )

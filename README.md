@@ -4,7 +4,11 @@
 
 Every day millions of knowledge workers, students and creators spend hours staring at screens. Research from the American Academy of Ophthalmology shows that the spontaneous blink rate drops by **half or more** during computer use. Fewer blinks → dry eyes, fatigue, blurred vision, and the classic symptoms of Computer Vision Syndrome.
 
-EyesRhythm is a lightweight, **on-device** open-source companion that quietly watches your blink rate through the built-in webcam and gently nudges you back toward a healthy rhythm (~15–20 blinks per minute). No accounts, no cloud, no analytics, no video ever leaves your machine. Packaged copies activate once with a Lemon Squeezy license key (internet required that first launch only).
+EyesRhythm is a lightweight, **on-device** companion that quietly watches your blink rate through the built-in webcam and gently nudges you back toward a healthy rhythm (~15–20 blinks per minute). No accounts, no cloud, no analytics, no video ever leaves your machine.
+
+Official **macOS and Windows** copies are sold as a one-time license at [eyesrhythm.com](https://eyesrhythm.com). After payment, Dodo Payments emails a unique key. Packaged builds ask for that key on first launch (internet once). After that the app stays offline.
+
+The source in this tree is MIT-licensed: you may use, modify, and share it under `LICENSE`, provided you keep the copyright notice and the third-party notices in `THIRD_PARTY_NOTICES.md`. Selling a packaged copy does not re-license MediaPipe, OpenCV, FFmpeg, or the other libraries listed there.
 
 > **Privacy first.** After activation, EyesRhythm runs offline. Camera frames are not uploaded. Local JSON under `~/.eyerhythm_blinkcounter/` holds today’s blink count and screen-time minutes (resets at midnight), plus an optional research log of inter-blink interval stats per screen-time hour. The license file in that same folder is the only record of activation.
 
@@ -103,16 +107,34 @@ The default window is small and resizable. Maximising scales typography and layo
 
 ---
 
-## Libraries (open source)
+## Libraries and licenses
 
-* **MediaPipe** Face Landmarker — Apache 2.0  
-* **OpenCV** — Apache 2.0  
-* **NumPy** — BSD  
-* **FastAPI / Uvicorn** — MIT  
-* **pywebview** — BSD  
-* **React / Vite** — MIT  
+All runtime libraries used here allow commercial distribution of a packaged
+app. None of them require EyesRhythm’s own source to be published.
 
-The face-landmarker model is bundled under `models/` (Apache 2.0).
+See **[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)** (also in
+Settings → About, and inside every freeze). Full texts live in `licenses/`.
+
+| Component | License | In the sold app |
+|-----------|---------|-----------------|
+| EyesRhythm source | MIT | Yes |
+| MediaPipe + Face Landmarker model | Apache 2.0 | Yes |
+| OpenCV | Apache 2.0 | Yes |
+| FFmpeg (inside the OpenCV wheel) | LGPLv2.1 | Yes — replaceable library, notice required |
+| NumPy | BSD-3-Clause | Yes |
+| FastAPI, Pydantic, React, Vite | MIT | Yes |
+| Uvicorn, pywebview | BSD-3-Clause | Yes |
+| Inter font | SIL OFL 1.1 | Bundled with the app, not sold alone |
+| PyInstaller | GPL-2.0 with freeze exception | Build tool only |
+
+Packaged copies include `LICENSE`, `THIRD_PARTY_NOTICES.md`, and `licenses/`.
+FFmpeg remains a separate shared library (typically
+`opencv_videoio_ffmpeg*.dll` on Windows) so it can be substituted, as LGPL
+asks.
+
+The alert tone (`alert.mp3`) is the Sound-mode cue shipped with EyesRhythm. Practice
+quotations (`quotes.json`) are from the original list, limited to
+public-domain authors.
 
 ---
 
@@ -124,7 +146,9 @@ EyeRhythm/
 ├── blink_core/          # blink detection & screen-time
 ├── frontend/            # React UI (source + dist/)
 ├── models/              # MediaPipe face landmarker
-├── assets/              # logo + brand assets
+├── assets/              # logo + brand assets + Inter (OFL)
+├── licenses/            # Apache 2.0, LGPLv2.1, SIL OFL texts
+├── THIRD_PARTY_NOTICES.md
 ├── docs/CODE_GUIDE.md   # map of the codebase
 ├── for_mac/             # setup / run / login-start helpers
 ├── for_windows/         # launchers + packaging
@@ -140,6 +164,8 @@ Start with **[`docs/CODE_GUIDE.md`](docs/CODE_GUIDE.md)**, then `app/engine.py` 
 
 ## Feedback & sharing
 
-If the counter feels off for you, or you have ideas for the reserved metric cards, please open an issue. If EyesRhythm is useful, share it — a regular blink habit is one of the easiest gifts we can give our eyes.
+If the counter feels off for you, or you have ideas for the reserved metric cards, please write to [hello@eyesrhythm.com](mailto:hello@eyesrhythm.com). If EyesRhythm is useful, share it — a regular blink habit is one of the easiest gifts we can give our eyes.
 
-*EyesRhythm is free and open-source. Use it, improve it, share it.*
+EyesRhythm is a wellness companion, not a medical device. It is not intended to diagnose, treat, cure, or prevent disease.
+
+Official copies: [eyesrhythm.com](https://eyesrhythm.com). Source terms: [`LICENSE`](LICENSE). Third-party terms: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

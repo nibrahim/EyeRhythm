@@ -49,10 +49,13 @@ Typical runtime: 10–20 minutes. Python is pinned to **3.11**.
    python -m app.main
    ```
 
-2. If you ship Setup.exe, bump the version in `EyeRhythm.iss`:
+2. If you ship a new release, bump **Semantic Versioning** in `app/version.py`
+   (`VERSION = "1.0.0"`) and the matching line in `EyeRhythm.iss`:
    ```iss
    #define MyAppVersion "1.0.0"
    ```
+   Settings → About, the Mac bundle, and Windows Properties all read that
+   number. `tests/test_version.py` fails if they drift.
 
 3. From the project root, with the venv activated:
    ```bat

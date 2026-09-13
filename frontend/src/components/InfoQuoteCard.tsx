@@ -6,42 +6,20 @@ interface Props {
   practicePhase: string;
   countdownS: number;
   remainingS: number;
+  oriThreshold?: number;
+  alertLowMinutes?: number;
 }
 
 // Used if quotes.json cannot be loaded (offline / first-run edge case).
 const FALLBACK: QuoteItem[] = [
-  {
-    text: "Be yourself; everyone else is already taken.",
-    author: "Oscar Wilde",
-  },
-  {
-    text: "In the middle of difficulty lies opportunity.",
-    author: "Albert Einstein",
-  },
-  {
-    text: "It always seems impossible until it is done.",
-    author: "Nelson Mandela",
-  },
-  {
-    text: "Peace begins with a smile.",
-    author: "Mother Teresa",
-  },
-  {
-    text: "Wherever you go, go with all your heart.",
-    author: "Confucius",
-  },
-  {
-    text: "What you seek is seeking you.",
-    author: "Rumi",
-  },
-  {
-    text: "Even the darkest night will end and the sun will rise.",
-    author: "Victor Hugo",
-  },
-  {
-    text: "Adopt the pace of nature: her secret is patience.",
-    author: "Ralph Waldo Emerson",
-  },
+  { text: "Be yourself; everyone else is already taken.", author: "Oscar Wilde" },
+  { text: "Happiness depends upon ourselves.", author: "Aristotle" },
+  { text: "Wherever you go, go with all your heart.", author: "Confucius" },
+  { text: "Keep your face always toward the sunshine.", author: "Walt Whitman" },
+  { text: "The journey of a thousand miles begins with a single step.", author: "Lao Tzu" },
+  { text: "Adopt the pace of nature: her secret is patience.", author: "Ralph Waldo Emerson" },
+  { text: "It is not the man who has too little, but the man who craves more, that is poor.", author: "Seneca" },
+  { text: "Knowing yourself is the beginning of all wisdom.", author: "Aristotle" },
 ];
 
 // How long each quote stays on screen (30 seconds).
@@ -56,13 +34,15 @@ const PRACTICE_INSTRUCTION =
  * Everyday mode shows three short tips (Beep / Alert / Practice).
  * During Practice it swaps those tips for the coach instruction, a
  * countdown or remaining-time label, and a thin progress bar.
- * A famous quote rotates underneath in both modes.
+ * A short Practice line rotates underneath in both modes.
  */
 export function InfoQuoteCard({
   practice,
   practicePhase,
   countdownS,
   remainingS,
+  oriThreshold = 50,
+  alertLowMinutes = 3,
 }: Props) {
   const [quotes, setQuotes] = useState<QuoteItem[]>(FALLBACK);
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -152,7 +132,7 @@ export function InfoQuoteCard({
             <strong>Beep</strong> — sound on each blink
           </li>
           <li>
-            <strong>Alert</strong> — warn if ORI stays below 50 for 3 min in the last 5
+            <strong>Alert</strong> — Visual (default) or Sound when ORI stays below {Math.round(oriThreshold)} for {Math.round(alertLowMinutes)} min in the last 5
           </li>
           <li>
             <strong>Practice</strong> — 2‑min blink coach

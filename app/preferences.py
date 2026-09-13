@@ -31,6 +31,8 @@ VALID_AVATARS = frozenset({"atlas", "lumen", "vesper", "lens", "graph"})
 VALID_EYE_COMFORT = frozenset(
     {"comfortable", "mild", "moderate", "marked", "decline"}
 )
+VALID_ALERT_MODES = frozenset({"visual", "sound"})
+VALID_CAMERA_MODES = frozenset({"single", "hybrid"})
 
 # Canonical “default GUI”: More + Undock. Dock is exactly 2× this width.
 DEFAULT_WIDTH = 480
@@ -53,6 +55,8 @@ TURN_ANGLE_MIN = 20.0
 TURN_ANGLE_MAX = 80.0
 CLOSE_DELTA_MIN = 0.10
 CLOSE_DELTA_MAX = 0.30
+ALERT_LOW_MINUTES_MIN = 1.0
+ALERT_LOW_MINUTES_MAX = 5.0
 
 # First-launch values if the JSON file is missing or broken.
 _DEFAULTS: dict[str, Any] = {
@@ -62,14 +66,20 @@ _DEFAULTS: dict[str, Any] = {
     "window_height": DEFAULT_HEIGHT,
     "beep": False,
     "alert": True,
+    "alert_mode": "visual",
     "ontop": False,
     # Last splash ocular-comfort self-check (empty = never answered).
     "eye_comfort": "",
     "dock": False,
     "ori_threshold": 50.0,
+    "alert_low_minutes": 3.0,
     "writing_angle_deg": 20.0,
     "turn_angle_deg": 50.0,
     "close_delta": 0.18,
+    # OpenCV index; -1 = not chosen yet (multiple webcams at launch).
+    "camera_index": -1,
+    # "single" = one desk webcam; "hybrid" = every desk webcam except phones.
+    "camera_mode": "single",
 }
 
 # One lock + in-memory copy so the UI and engine can read/write safely.
@@ -119,6 +129,12 @@ def _sanitize(raw: dict[str, Any]) -> dict[str, Any]:
         if key in raw:
             data[key] = bool(raw[key])
     # Ignore legacy "practice" key if present in old preference files.
+    data["alert"] = True
+    mode = raw.get("alert_mode", data["alert_mode"])
+    if isinstance(mode, str) and mode.strip().lower() in VALID_ALERT_MODES:
+        data["alert_mode"] = mode.strip().lower()
+    else:
+        data["alert_mode"] = "visual"
 
     comfort = raw.get("eye_comfort", data["eye_comfort"])
     if isinstance(comfort, str) and comfort in VALID_EYE_COMFORT:
@@ -131,6 +147,18 @@ def _sanitize(raw: dict[str, Any]) -> dict[str, Any]:
         ORI_THRESHOLD_MIN,
         ORI_THRESHOLD_MAX,
         50.0,
+    )
+    data["alert_low_minutes"] = float(
+        int(
+            round(
+                _clamp_float(
+                    raw.get("alert_low_minutes", data["alert_low_minutes"]),
+                    ALERT_LOW_MINUTES_MIN,
+                    ALERT_LOW_MINUTES_MAX,
+                    3.0,
+                )
+            )
+        )
     )
     data["writing_angle_deg"] = _clamp_float(
         raw.get("writing_angle_deg", data["writing_angle_deg"]),
@@ -150,6 +178,18 @@ def _sanitize(raw: dict[str, Any]) -> dict[str, Any]:
         CLOSE_DELTA_MAX,
         0.18,
     )
+
+    if "camera_index" in raw:
+        try:
+            data["camera_index"] = max(-1, int(raw["camera_index"]))
+        except (TypeError, ValueError):
+            pass
+
+    mode = raw.get("camera_mode", data["camera_mode"])
+    if isinstance(mode, str) and mode.strip().lower() in VALID_CAMERA_MODES:
+        data["camera_mode"] = mode.strip().lower()
+    else:
+        data["camera_mode"] = "single"
 
     return data
 

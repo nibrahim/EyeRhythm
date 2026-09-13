@@ -14,10 +14,12 @@
  * restored from local preferences.
  */
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
-import { fetchLicense, fetchPreferences, savePreferences, setToggle } from "./api";
+import { fetchLicense, fetchPreferences, savePreferences, setToggle, wakeCamera } from "./api";
+import { useAppVersion } from "./hooks/useAppVersion";
 import { LicenseScreen } from "./components/LicenseScreen";
 import {
   measureCompactOuterHeight,
+  measureMainColumnOuterHeight,
   setCompactLayout,
   setDockLayout,
   whenBridgeReady,
@@ -30,7 +32,7 @@ import { Logo } from "./components/Logo";
 import { MetricCard } from "./components/MetricCard";
 import { InfoQuoteCard } from "./components/InfoQuoteCard";
 import { PracticeScreen } from "./components/PracticeScreen";
-import { SplashScreen } from "./components/SplashScreen";
+import { SplashScreen, todayPlan } from "./components/SplashScreen";
 import { useEngineState } from "./hooks/useEngineState";
 import { useRateHistory } from "./hooks/useRateHistory";
 import { lookAngleTone, oriTone } from "./utils/format";
@@ -48,18 +50,21 @@ function asAvatarId(v: unknown): AvatarId {
 export default function App() {
   // Live blink numbers + whether the local engine is connected.
   const { state, connected } = useEngineState();
+  const version = useAppVersion();
   const [avatarId, setAvatarId] = useState<AvatarId>("atlas");
   // Compact = small companion (avatar + buttons). Expanded = full dashboard.
   const [compact, setCompact] = useState(false);
   const [dock, setDock] = useState(false);
   const [prefsReady, setPrefsReady] = useState(false);
-  // Launch splash: comfort check + notices, until Start or 3 minutes.
+  // Launch splash: camera pick (if several webcams), comfort check, notices.
   const [splashOpen, setSplashOpen] = useState(true);
   // Packaged copies wait here until the emailed key is activated.
   const [licenseGate, setLicenseGate] = useState<"pending" | "needed" | "ok">(
     "pending",
   );
   const [licensePlatform, setLicensePlatform] = useState("this computer");
+  const [cameraHint, setCameraHint] = useState(false);
+  const [eyeComfort, setEyeComfort] = useState("");
 
   // Session-wide Trace history: starts at boot, survives avatar switches + minimize.
   const present = state.face_found && !state.off_screen;
@@ -94,6 +99,25 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (
+      !state.running ||
+      !state.camera_ok ||
+      state.camera_message !== "live" ||
+      state.face_found
+    ) {
+      setCameraHint(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setCameraHint(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [
+    state.running,
+    state.camera_ok,
+    state.camera_message,
+    state.face_found,
+  ]);
+
   // Restore last avatar (and confirm prefs API is up).
   useEffect(() => {
     let cancelled = false;
@@ -102,6 +126,9 @@ export default function App() {
         const prefs = await fetchPreferences();
         if (!cancelled) {
           setAvatarId(asAvatarId(prefs.avatar));
+          if (typeof prefs.eye_comfort === "string") {
+            setEyeComfort(prefs.eye_comfort);
+          }
           // Every launch is the default GUI: More, settings panel closed.
           setCompact(false);
           setDock(false);
@@ -153,16 +180,23 @@ export default function App() {
     void setDockLayout(false);
   }, []);
 
-  // Hug compact content so the gap under the buttons matches the gap
-  // between the title bar and the avatar card.
+  // Hug compact content, and grow the expanded window so Information &
+  // Quote (and the other left-column cards) are not clipped.
   useLayoutEffect(() => {
-    if (!compact || splashOpen || licenseGate !== "ok") return;
+    if (splashOpen || licenseGate !== "ok") return;
     let cancelled = false;
     const id = window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         if (cancelled) return;
-        const height = measureCompactOuterHeight();
-        if (height) void setCompactLayout(true, height);
+        if (compact) {
+          const height = measureCompactOuterHeight();
+          if (height) void setCompactLayout(true, height);
+          return;
+        }
+        const height = measureMainColumnOuterHeight();
+        if (!height) return;
+        if (dock) void setDockLayout(true, height);
+        else void setCompactLayout(false, height);
       });
     });
     return () => {
@@ -221,17 +255,43 @@ export default function App() {
     : state.off_screen
       ? "off-screen"
       : state.face_direction || "straight";
+  const plan = todayPlan(eyeComfort);
+  const alertMode = state.alert_mode === "sound" ? "sound" : "visual";
+  const alertActive = Boolean(state.alert_active);
+  const visualAlert = alertActive && alertMode === "visual";
+
+  useEffect(() => {
+    if (alertMode !== "sound" || !alertActive) return;
+    const audio = new Audio("/alert.mp3");
+    const play = () => {
+      audio.currentTime = 0;
+      void audio.play().catch(() => {
+        /* autoplay / missing file */
+      });
+    };
+    play();
+    const id = window.setInterval(play, 60_000);
+    return () => {
+      window.clearInterval(id);
+      audio.pause();
+    };
+  }, [alertMode, alertActive]);
 
   return (
     <div
-      className={`app-shell${compact ? " is-compact" : ""}${dock ? " is-docked" : ""}`}
+      className={`app-shell${compact ? " is-compact" : ""}${dock ? " is-docked" : ""}${
+        visualAlert ? " is-alert-glow" : ""
+      }`}
       data-prefs-ready={prefsReady ? "1" : "0"}
     >
+      {visualAlert ? (
+        <div className="alert-glow" aria-hidden />
+      ) : null}
       <div className="app-main">
       {/* Brand + camera status light (hidden in compact companion mode). */}
       <header className="topbar">
         <div className="topbar__brand">
-          <Logo size={30} />
+          <Logo size={30} alertPulse={visualAlert} />
           <div>
             <div className="topbar__title">EyesRhythm</div>
             <div className="topbar__tag">Blink companion</div>
@@ -240,7 +300,10 @@ export default function App() {
         <div className="topbar__status">
           <span
             className={`status-dot ${
-              connected && state.camera_ok
+              connected &&
+              state.running &&
+              state.camera_ok &&
+              (state.camera_message === "live" || !state.camera_message)
                 ? "ok"
                 : connected
                   ? "warn"
@@ -250,14 +313,26 @@ export default function App() {
           <span className="status-text">
             {!connected
               ? "Connecting…"
-              : state.camera_ok
-                ? "Live"
-                : state.camera_message || "Camera"}
+              : !state.running
+                ? "Starting engine…"
+                : state.camera_ok &&
+                    (state.camera_message === "live" || !state.camera_message)
+                  ? state.face_found
+                    ? "Live"
+                    : "Live · looking for you"
+                  : state.camera_message || "Camera"}
           </span>
         </div>
       </header>
 
       <main className="dashboard">
+        {cameraHint ? (
+          <p className="camera-hint" role="status">
+            Camera is on but EyesRhythm cannot see your face yet. Tap{" "}
+            <strong>Lens</strong> below to check the view, or change the camera
+            in Settings (W).
+          </p>
+        ) : null}
         {/* Avatar / Lens / Trace plus the blinks-today chip. */}
         <HeroPanel
           state={state}
@@ -299,11 +374,13 @@ export default function App() {
           </button>
         </div>
 
-        <div className="target-strip" role="note" hidden={compact}>
-          <span className="target-strip__label">Target rhythm</span>
-          <span className="target-strip__value">
-            ≈ 15–20 blinks/min while working
-          </span>
+        <div
+          className={`target-strip target-strip--${plan.tone}`}
+          role="note"
+          hidden={compact}
+        >
+          <span className="target-strip__label">Today&apos;s plan</span>
+          <span className="target-strip__value">{plan.text}</span>
         </div>
 
         {/* Four live tiles + the quote card. Hidden while compact. */}
@@ -344,18 +421,25 @@ export default function App() {
             tone={lookTone}
             palette="lavender"
           />
-          {/* Always full-width gray card: tips + famous quotes (practice mode overlays coach) */}
+          {/* Always full-width gray card: tips + Practice lines (practice mode overlays coach) */}
           <InfoQuoteCard
             practice={Boolean(state.practice)}
             practicePhase={state.practice_phase ?? "off"}
             countdownS={state.practice_countdown_s ?? 0}
             remainingS={state.practice_remaining_s ?? 0}
+            oriThreshold={state.ori_threshold ?? 50}
+            alertLowMinutes={state.alert_low_minutes ?? 3}
           />
         </section>
       </main>
 
       <div className="shell-footer">
         <ControlsBar state={state} />
+        <p className="footer-disclaimer">
+          <strong>For general wellness use only.</strong> EyesRhythm is not a
+          medical device and does not diagnose, treat, cure, or prevent disease —
+          full disclaimer in Settings → About.
+        </p>
       </div>
       </div>
 
@@ -372,7 +456,13 @@ export default function App() {
       ) : null}
 
       {licenseGate === "ok" && splashOpen ? (
-        <SplashScreen onDone={() => setSplashOpen(false)} />
+        <SplashScreen
+          onDone={(comfort) => {
+            if (comfort) setEyeComfort(comfort);
+            setSplashOpen(false);
+            void wakeCamera();
+          }}
+        />
       ) : null}
 
       {licenseGate === "pending" ? (
@@ -382,7 +472,9 @@ export default function App() {
               <Logo size={32} />
               <div className="splash__brand">
                 <div className="splash__title">EyesRhythm</div>
-                <div className="splash__tag">Checking this copy…</div>
+                <div className="splash__tag">
+                  Checking this copy{version ? ` · ${version}` : "…"}
+                </div>
               </div>
             </header>
           </div>

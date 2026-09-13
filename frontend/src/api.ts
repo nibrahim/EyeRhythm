@@ -8,7 +8,7 @@
  * * REST  — one-shot questions (“save this avatar”, “flip Beep”, “activate”)
  * * WebSocket — a live pipe of blink numbers (~10 times a second)
  *
- * License activation is forwarded by Python to Lemon Squeezy. Blink data
+ * License activation is forwarded by Python to Dodo Payments. Blink data
  * stays on this machine.
  *
  * If a call fails, the UI stays on its last known values rather than crashing.
@@ -23,18 +23,23 @@ export interface Preferences {
   window_height: number;
   beep: boolean;
   alert: boolean;
+  alert_mode?: "visual" | "sound";
   ontop: boolean;
   /** Last splash self-check: comfortable | mild | moderate | marked | decline */
   eye_comfort?: string;
   dock?: boolean;
   ori_threshold?: number;
+  alert_low_minutes?: number;
   writing_angle_deg?: number;
   turn_angle_deg?: number;
   close_delta?: number;
+  camera_index?: number;
+  camera_mode?: "single" | "hybrid";
 }
 
 export interface LiveSettings {
   ori_threshold: number;
+  alert_low_minutes: number;
   writing_angle_deg: number;
   turn_angle_deg: number;
   close_delta: number;
@@ -77,7 +82,7 @@ export interface ReportPayload {
   };
 }
 
-/** One famous quote shown on the Information card. */
+/** One Practice line shown on the Information card. */
 export interface QuoteItem {
   text: string;
   author: string;
@@ -92,6 +97,13 @@ export interface QuotesPayload {
 }
 
 /** Load the quote list from disk via the local API. */
+/** Third-party license notice bundled with this copy. */
+export async function fetchNotices(): Promise<string> {
+  const res = await fetch("/api/notices", { cache: "no-store" });
+  if (!res.ok) throw new Error("notices fetch failed");
+  return res.text();
+}
+
 export async function fetchQuotes(): Promise<QuotesPayload> {
   const res = await fetch("/api/quotes", { cache: "no-store" });
   if (!res.ok) throw new Error("quotes fetch failed");
@@ -111,12 +123,40 @@ export async function fetchQuotes(): Promise<QuotesPayload> {
 }
 
 
+export interface HealthPayload {
+  ok: boolean;
+  service: string;
+  version: string;
+}
+
+/** Product SemVer from the local Python process. */
+export async function fetchHealth(): Promise<HealthPayload> {
+  const res = await fetch("/api/health", { cache: "no-store" });
+  if (!res.ok) throw new Error("health fetch failed");
+  return res.json();
+}
+
 export interface LicenseStatus {
   required: boolean;
   activated: boolean;
   platform: "mac" | "windows" | "other" | string;
   platform_label: string;
   email?: string;
+}
+
+export interface CameraOption {
+  index: number;
+  label: string;
+  name: string;
+  width: number;
+  height: number;
+}
+
+export interface CamerasPayload {
+  cameras: CameraOption[];
+  selected: number;
+  mode: "single" | "hybrid";
+  pick_required: boolean;
 }
 
 function apiErrorMessage(data: unknown, fallback: string): string {
@@ -302,6 +342,41 @@ export async function setPreviewEnabled(enabled: boolean): Promise<void> {
   await fetch(`/api/preview/${enabled ? "enable" : "disable"}`, {
     method: "POST",
   });
+}
+
+/** Reopen the webcam after the launch splash or idle sleep. */
+export async function wakeCamera(): Promise<void> {
+  try {
+    await fetch("/api/camera/wake", { method: "POST" });
+  } catch {
+    /* engine still starting */
+  }
+}
+
+/** List webcams for the startup picker and Settings. */
+export async function fetchCameras(): Promise<CamerasPayload> {
+  const res = await fetch("/api/cameras", { cache: "no-store" });
+  if (!res.ok) throw new Error("camera list failed");
+  return res.json();
+}
+
+/** Choose a webcam, or hybrid (every desk camera except phones). */
+export type CameraChoice = number | "hybrid";
+
+export async function selectCamera(choice: CameraChoice): Promise<void> {
+  const body =
+    choice === "hybrid"
+      ? { hybrid: true }
+      : { index: choice, hybrid: false };
+  const res = await fetch("/api/camera/select", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(apiErrorMessage(data, "Could not switch to that camera."));
+  }
 }
 
 /**

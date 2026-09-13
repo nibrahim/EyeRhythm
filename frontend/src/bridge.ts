@@ -20,7 +20,10 @@ export interface EyeRhythmBridge {
   /** Grow a compact window for the launch splash; restore on dismiss. */
   set_splash_layout?: (enabled: boolean) => Promise<void> | void;
   /** Grow / shrink horizontally for the Settings / Reports dock. */
-  set_dock_layout?: (docked: boolean) => Promise<void> | void;
+  set_dock_layout?: (
+    docked: boolean,
+    height?: number,
+  ) => Promise<void> | void;
 }
 
 declare global {
@@ -113,14 +116,41 @@ export async function setPracticeFullscreen(enabled: boolean): Promise<void> {
 }
 
 /** Grow / shrink the native window for the Settings / Reports side dock. */
-export async function setDockLayout(docked: boolean): Promise<void> {
+export async function setDockLayout(
+  docked: boolean,
+  height?: number,
+): Promise<void> {
   const api = window.pywebview?.api;
   if (!api?.set_dock_layout) return;
   try {
-    await api.set_dock_layout(docked);
+    if (height != null && Number.isFinite(height)) {
+      await api.set_dock_layout(docked, Math.round(height));
+    } else {
+      await api.set_dock_layout(docked);
+    }
   } catch {
     /* browser / unsupported */
   }
+}
+
+/**
+ * Outer window height that shows the full left column (metrics + quote).
+ * Uses dashboard scrollHeight so clipped Information & Quote is counted.
+ */
+export function measureMainColumnOuterHeight(): number | undefined {
+  const dashboard = document.querySelector(".dashboard");
+  if (!(dashboard instanceof HTMLElement)) return undefined;
+  const clipped = Math.max(
+    0,
+    Math.ceil(dashboard.scrollHeight - dashboard.clientHeight),
+  );
+  const chrome = Math.max(
+    0,
+    Math.round(window.outerHeight - window.innerHeight),
+  );
+  const next = window.innerHeight + clipped + (chrome || 28) + 8;
+  if (next < 200) return undefined;
+  return next;
 }
 
 /** Grow the native window for the launch splash; restore on dismiss. */

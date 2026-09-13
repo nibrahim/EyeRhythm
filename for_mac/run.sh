@@ -31,6 +31,13 @@ else
     exit 1
 fi
 
+# A leftover process holds the webcam and the default port.
+if pgrep -f "[p]ython -m app.main" >/dev/null 2>&1; then
+    echo "Stopping previous EyesRhythm (frees the camera)…"
+    pkill -f "python -m app.main" || true
+    sleep 1
+fi
+
 # Build React UI on demand (requires Node.js once).
 if [ ! -f frontend/dist/index.html ]; then
     if ! command -v npm >/dev/null 2>&1; then

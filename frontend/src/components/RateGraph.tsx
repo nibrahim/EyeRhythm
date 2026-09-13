@@ -438,7 +438,7 @@ export function RateGraph({
         width={w}
         height={h}
         viewBox={`0 0 ${w} ${h}`}
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
       >
         <rect
           x={PAD.left}

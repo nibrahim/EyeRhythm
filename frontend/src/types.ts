@@ -41,6 +41,8 @@ export interface EngineState {
   off_screen: boolean;
   /** Alert / Trace low-ORI line (default 50). */
   ori_threshold: number;
+  /** Minutes of low ORI in the last 5 required before Alert beeps (default 3). */
+  alert_low_minutes: number;
   /** Downward look (°) treated as off-screen (default 20). */
   writing_angle_deg: number;
   /** Left/right yaw (°) treated as off-screen (default 50). */
@@ -50,6 +52,10 @@ export interface EngineState {
 
   beep: boolean;
   alert: boolean;
+  /** Alert channel: visual (default) or sound. */
+  alert_mode: "visual" | "sound";
+  /** True while low-ORI Alert is currently latched. */
+  alert_active: boolean;
   ontop: boolean;
   practice: boolean;
   /** "off" | "countdown" | "active" | "summary" */
@@ -112,11 +118,14 @@ export const EMPTY_STATE: EngineState = {
   face_direction: null,
   off_screen: false,
   ori_threshold: 50,
+  alert_low_minutes: 3,
   writing_angle_deg: 20,
   turn_angle_deg: 50,
   close_delta: 0.18,
   beep: false,
-  alert: false,
+  alert: true,
+  alert_mode: "visual",
+  alert_active: false,
   ontop: false,
   practice: false,
   practice_phase: "off",

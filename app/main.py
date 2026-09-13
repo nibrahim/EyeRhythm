@@ -17,6 +17,7 @@ import argparse
 import platform
 import socket
 import sys
+import threading
 import time
 import webbrowser
 from pathlib import Path
@@ -29,7 +30,12 @@ if str(ROOT) not in sys.path:
 
 from app import license as app_license  # noqa: E402
 from app import preferences  # noqa: E402
-from app.engine import EyeRhythmEngine, MODEL_PATH  # noqa: E402
+from app.engine import (  # noqa: E402
+    EyeRhythmEngine,
+    MODEL_PATH,
+    describe_cameras,
+    resolve_startup_camera,
+)
 from app.server import run_server, UI_DIST  # noqa: E402
 
 # The dashboard talks to this machine only (never the internet).
@@ -104,7 +110,9 @@ class _WindowApi:
                 )
             else:
                 target_h = preferences.DEFAULT_HEIGHT
-            window.resize(target_w, target_h)
+                if fit_h is not None:
+                    target_h = max(target_h, fit_h)
+            self._resize_if_needed(target_w, min(int(target_h), 1400))
         except Exception as exc:
             _log(f"compact layout toggle failed: {exc}")
 
@@ -116,13 +124,33 @@ class _WindowApi:
             return
         try:
             w, h = preferences.default_gui_size()
-            window.resize(w, h)
-        except Exception as exc:
-            _log(f"splash layout failed: {exc}")
+            self._resize_if_needed(w, h)
+        except Exception as splash_exc:
+            _log(f"splash layout failed: {splash_exc}")
 
-    def set_dock_layout(self, docked: bool) -> None:
+    def _resize_if_needed(self, width: int, height: int) -> None:
         """
-        Dock → 2× default GUI width at default height (More).
+        Resize the native window only when the size actually changes.
+
+        pywebview's Cocoa backend redraws WKWebView from scratch on
+        ``resize`` — a no-op resize is a blank-white flash.
+        """
+        window = self._window
+        if window is None:
+            return
+        width, height = int(width), int(height)
+        try:
+            cur_w = int(getattr(window, "width", 0) or 0)
+            cur_h = int(getattr(window, "height", 0) or 0)
+            if cur_w == width and cur_h == height:
+                return
+        except Exception:
+            pass
+        window.resize(width, height)
+
+    def set_dock_layout(self, docked: bool, height=None) -> None:
+        """
+        Dock → 2× default GUI width; height grows if the left column needs it.
         Undock → default GUI width and height.
         """
         window = self._window
@@ -136,12 +164,22 @@ class _WindowApi:
         self._dock_active = want
         if window is None:
             return
+        fit_h = None
+        if height is not None:
+            try:
+                fit_h = int(round(float(height)))
+            except (TypeError, ValueError):
+                fit_h = None
         try:
             if want:
                 w, h = preferences.docked_gui_size()
+                if fit_h is not None:
+                    h = max(h, fit_h)
             else:
                 w, h = preferences.default_gui_size()
-            window.resize(w, h)
+                if fit_h is not None:
+                    h = max(h, fit_h)
+            self._resize_if_needed(w, min(int(h), 1400))
         except Exception as exc:
             _log(f"dock layout failed: {exc}")
 
@@ -323,6 +361,132 @@ def _apply_app_icon() -> None:
         _log(f"could not set app icon: {exc}")
 
 
+# Win32 FlashWindowEx: blink the taskbar button while Visual alert is on
+# and the window is minimized. No-ops on macOS / Linux.
+_FLASHW_STOP = 0
+_FLASHW_ALL = 3
+_FLASHW_TIMER = 4
+
+
+def _windows_hwnd(window) -> int | None:
+    """HWND for the pywebview window, or None if it is not a Win32 form yet."""
+    native = getattr(window, "native", None)
+    if native is not None:
+        handle = getattr(native, "Handle", None)
+        if handle is not None:
+            try:
+                return int(handle.ToInt64())
+            except Exception:
+                try:
+                    return int(handle)
+                except Exception:
+                    pass
+    try:
+        import ctypes
+
+        hwnd = int(ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE) or 0)
+        return hwnd or None
+    except Exception:
+        return None
+
+
+def _windows_is_minimized(hwnd: int | None) -> bool:
+    if not hwnd:
+        return False
+    try:
+        import ctypes
+
+        return bool(ctypes.windll.user32.IsIconic(hwnd))
+    except Exception:
+        return False
+
+
+def _flash_windows_taskbar(hwnd: int | None, enable: bool) -> None:
+    if not hwnd:
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class FLASHWINFO(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", wintypes.UINT),
+                ("hwnd", wintypes.HWND),
+                ("dwFlags", wintypes.DWORD),
+                ("uCount", wintypes.UINT),
+                ("dwTimeout", wintypes.DWORD),
+            ]
+
+        info = FLASHWINFO()
+        info.cbSize = ctypes.sizeof(FLASHWINFO)
+        info.hwnd = hwnd
+        if enable:
+            info.dwFlags = _FLASHW_ALL | _FLASHW_TIMER
+            info.uCount = 0
+            info.dwTimeout = 500
+        else:
+            info.dwFlags = _FLASHW_STOP
+            info.uCount = 0
+            info.dwTimeout = 0
+        ctypes.windll.user32.FlashWindowEx(ctypes.byref(info))
+    except Exception as exc:
+        _log(f"taskbar flash failed: {exc}")
+
+
+def _bind_windows_visual_alert_flash(window, engine: EyeRhythmEngine) -> None:
+    """
+    Pulse the minimized taskbar button while Visual alert is latched.
+
+    The orange GUI glow stays in the window; this is only for when the
+    window is in the taskbar and that glow is not visible.
+    """
+    if platform.system() != "Windows":
+        return
+
+    state = {"wanted": False, "flashing": False}
+
+    def sync() -> None:
+        hwnd = _windows_hwnd(window)
+        should = bool(state["wanted"] and _windows_is_minimized(hwnd))
+        if should == state["flashing"]:
+            return
+        state["flashing"] = should
+        _flash_windows_taskbar(hwnd, should)
+
+    def on_visual(wanted: bool) -> None:
+        state["wanted"] = bool(wanted)
+        if not state["wanted"]:
+            hwnd = _windows_hwnd(window)
+            state["flashing"] = False
+            _flash_windows_taskbar(hwnd, False)
+            return
+        sync()
+
+    engine.on_visual_alert_change(on_visual)
+
+    def on_min_change() -> None:
+        sync()
+
+    for name in ("minimized", "restored", "shown", "maximized"):
+        try:
+            evt = getattr(window.events, name)
+            evt += on_min_change
+        except Exception:
+            pass
+
+    def poll() -> None:
+        while True:
+            time.sleep(0.5 if state["wanted"] else 2.0)
+            try:
+                sync()
+            except Exception:
+                return
+
+    threading.Thread(
+        target=poll, daemon=True, name="taskbar-alert"
+    ).start()
+
+
 def _open_webview(
     url: str, engine: EyeRhythmEngine, *, start_engine: bool = True
 ) -> None:
@@ -360,6 +524,7 @@ def _open_webview(
             pass
 
     engine.on_ontop_change(apply_ontop)
+    _bind_windows_visual_alert_flash(window, engine)
 
     def on_resized():
         if api._splash_active:
@@ -374,6 +539,8 @@ def _open_webview(
             preferences.set_toggles(**engine.get_toggles())
         except Exception:
             pass
+        if platform.system() == "Windows":
+            _flash_windows_taskbar(_windows_hwnd(window), False)
 
     # pywebview event hooks (versions differ slightly — guard each).
     try:
@@ -389,23 +556,57 @@ def _open_webview(
             pass
 
     def _boot() -> None:
-        # Start the camera only after the native window exists. Otherwise a
-        # failed WebView2 init looked like “camera blinks, then nothing”.
-        # Packaged copies also wait until the Lemon Squeezy key is activated.
+        # Start the camera only after the native window has painted.
+        # Opening AVFoundation / creating MediaPipe's OpenGL context on
+        # the Cocoa thread before WKWebView's first frame leaves a blank
+        # white window (worse at login, when the GPU is still coming up).
         if not start_engine:
             return
         if app_license.is_required() and not app_license.is_activated():
+            return
+        if engine.is_awaiting_camera_pick():
             return
         try:
             engine.start()
         except Exception as exc:
             _log(f"engine start failed: {exc}")
 
+    started = {"done": False}
+    fallback = {"timer": None}
+
+    def _start_once() -> None:
+        if started["done"]:
+            return
+        started["done"] = True
+        timer = fallback["timer"]
+        if timer is not None:
+            try:
+                timer.cancel()
+            except Exception:
+                pass
+        _boot()
+
+    try:
+        window.events.loaded += _start_once
+    except Exception:
+        pass
+
+    def _gui_initialized() -> None:
+        # `loaded` is the right moment (page has painted). If that event
+        # is missing, wait a beat so WKWebView can draw before MediaPipe
+        # creates its OpenGL context.
+        if started["done"]:
+            return
+        timer = threading.Timer(1.0, _start_once)
+        timer.daemon = True
+        fallback["timer"] = timer
+        timer.start()
+
     # Block until the window is closed.
     start_kwargs = {"debug": False}
     if sys.platform == "win32":
         start_kwargs["gui"] = "edgechromium"
-    webview.start(_boot, **start_kwargs)
+    webview.start(_gui_initialized, **start_kwargs)
     # Final save after start() returns (window gone).
     _save_window_size(window)
 
@@ -423,8 +624,8 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(
         description="EyesRhythm — blink rhythm companion (React UI)")
-    parser.add_argument("--camera", type=int, default=0,
-                        help="webcam index (default 0)")
+    parser.add_argument("--camera", type=int, default=None,
+                        help="webcam index (skip picker; default: ask if several)")
     parser.add_argument("--host", default=DEFAULT_HOST,
                         help="local API host (default 127.0.0.1)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT,
@@ -438,7 +639,7 @@ def main() -> None:
     parser.add_argument(
         "--require-license",
         action="store_true",
-        help="ask for a Lemon Squeezy key even when running from source",
+        help="ask for a Dodo Payments key even when running from source",
     )
     parser.add_argument(
         "--skip-license",
@@ -463,16 +664,42 @@ def main() -> None:
     port = args.port
     try:
         if not _port_free(args.host, port):
+            _log(
+                f"port {port} is already in use — another EyesRhythm window "
+                f"may still be running. Quit every copy, then run again."
+            )
             port = _find_port(args.host, port)
-            _log(f"port {args.port} busy — using {port}")
+            _log(f"using port {port} instead")
     except RuntimeError as exc:
         _fatal(str(exc))
 
     # The engine owns the webcam and all blink numbers. --no-engine is a
     # developer shortcut: show the dashboard without opening the camera.
-    # Camera starts after the window is up (see _open_webview), so a failed
-    # desktop window no longer looks like a camera flash then a silent exit.
-    engine = EyeRhythmEngine(camera_index=args.camera)
+    # Probe cameras *before* the native window exists (AVFoundation would
+    # otherwise stall WKWebView). Ask in the splash only when more than one
+    # desk camera exists and none has been chosen yet.
+    prefs = preferences.load()
+    cameras = describe_cameras()
+    avail = [int(c["index"]) for c in cameras]
+    try:
+        saved = int(prefs.get("camera_index", -1))
+    except (TypeError, ValueError):
+        saved = -1
+
+    initial, pick_required, hybrid = resolve_startup_camera(
+        avail, saved, args.camera, str(prefs.get("camera_mode", "single"))
+    )
+
+    engine = EyeRhythmEngine(camera_index=initial, hybrid=hybrid)
+    if pick_required:
+        engine.set_awaiting_camera_pick(True)
+        _log(f"multiple cameras detected {avail} — pick one in the app")
+    elif hybrid:
+        preferences.save(camera_index=initial, camera_mode="hybrid")
+        _log(f"hybrid cameras {avail} ready")
+    elif avail:
+        preferences.save(camera_index=initial, camera_mode="single")
+        _log(f"camera {initial} ready ({len(avail)} found)")
 
     # Local HTTP + WebSocket for the React UI (same machine only).
     run_server(engine, host=args.host, port=port)
@@ -508,8 +735,14 @@ def main() -> None:
         if args.no_engine:
             return
         if app_license.is_required() and not app_license.is_activated():
+            _log("camera waiting — activate this copy in the app first")
             return
-        engine.start()
+        if engine.is_awaiting_camera_pick():
+            return
+        try:
+            engine.start()
+        except Exception as exc:
+            _log(f"engine start failed: {exc}")
 
     try:
         if use_browser:
@@ -520,6 +753,9 @@ def main() -> None:
             # On Windows a freeze can miss WebView2 / pythonnet; keep the
             # dashboard reachable in the system browser instead of dying.
             try:
+                # Do not open the webcam until the native window has painted.
+                # Camera + MediaPipe GL on the Cocoa thread before first
+                # paint is the blank-white-window bug at login.
                 _open_webview(url, engine, start_engine=not args.no_engine)
             except Exception as exc:
                 _log(f"desktop window failed ({exc}) — falling back to browser")

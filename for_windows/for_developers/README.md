@@ -112,7 +112,7 @@ End users who run Setup.exe get:
 |------|---------|
 | `build_exe.bat` | PyInstaller via `EyeRhythm.spec` → `dist\EyesRhythm` |
 | `build_installer.bat` | Full pipeline (exe + Setup.exe) |
-| `EyeRhythm.iss` | Inno Setup script (edit version number here) |
+| `EyeRhythm.iss` | Inno Setup script (`MyAppVersion` must match `app/version.py`) |
 | `BUILD_INSTALLER.md` | Release checklist |
 
 When you change the application code, re-run Actions or `build_installer.bat`.

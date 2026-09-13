@@ -4,9 +4,9 @@ Local HTTP + WebSocket API for the React UI
 
 Serves:
 * Built static frontend (production) or is used with Vite dev proxy
-* GET  /api/health
+* GET  /api/health         — liveness + product version (SemVer)
 * GET  /api/license        — whether this copy must activate
-* POST /api/license/activate — first-run Lemon Squeezy key + machine id
+* POST /api/license/activate — first-run Dodo Payments key + machine id
 * GET  /api/state          — one-shot engine snapshot
 * POST /api/toggles/{name} — beep | alert | ontop | practice  body: {"value": bool?}
 * GET  /api/preview        — latest JPEG bytes (when camera panel open)
@@ -14,7 +14,7 @@ Serves:
 * WS   /ws/preview         — live JPEG frames as binary (when client asks)
 
 The UI talks to localhost only. First-run license activation is the
-Python process calling Lemon Squeezy; blink data is never uploaded.
+Python process calling Dodo Payments; blink data is never uploaded.
 """
 
 from __future__ import annotations
@@ -34,9 +34,12 @@ from pydantic import BaseModel, Field
 from app import audit
 from app import license as app_license
 from app import preferences
+from app.version import APP_NAME, VERSION
 
 if TYPE_CHECKING:
     from app.engine import EyeRhythmEngine
+else:
+    from app.engine import describe_cameras
 
 
 def _project_root() -> Path:
@@ -65,13 +68,16 @@ def _ui_dist() -> Path:
 # Built dashboard folder (index.html + JS/CSS). Empty until `npm run build`.
 UI_DIST = _ui_dist()
 QUOTES_PATH = _project_root() / "quotes.json"
+ALERT_WAV = _project_root() / "alert.wav"
+ALERT_MP3 = _project_root() / "alert.mp3"
+NOTICES_PATH = _project_root() / "THIRD_PARTY_NOTICES.md"
 # Quotes are tiny and never change at runtime — load once, reuse forever.
 _QUOTES_CACHE: list[dict[str, str]] | None = None
 
 
 def _load_quotes() -> list[dict[str, str]]:
     """
-    Load famous quotes as ``{"text": str, "author": str}``.
+    Load Practice lines as ``{"text": str, "author": str}``.
 
     Supports the v2 schema (objects with text+author) and falls back for
     legacy plain-string lists.
@@ -104,6 +110,12 @@ class LicenseActivateBody(BaseModel):
     key: str = Field(default="", min_length=0, max_length=256)
 
 
+class CameraSelectBody(BaseModel):
+    """JSON body for POST /api/camera/select."""
+    index: int | None = Field(default=None, ge=0, le=15)
+    hybrid: bool = False
+
+
 class ToggleBody(BaseModel):
     """JSON body for POST /api/toggles/{name}. Missing value = flip it."""
     value: bool | None = Field(
@@ -120,10 +132,14 @@ class PreferencesPatch(BaseModel):
     window_height: int | None = None
     beep: bool | None = None
     alert: bool | None = None
+    alert_mode: str | None = None
     ontop: bool | None = None
     eye_comfort: str | None = None
     dock: bool | None = None
+    camera_index: int | None = None
+    camera_mode: str | None = None
     ori_threshold: float | None = None
+    alert_low_minutes: float | None = None
     writing_angle_deg: float | None = None
     turn_angle_deg: float | None = None
     close_delta: float | None = None
@@ -133,6 +149,7 @@ class PreferencesPatch(BaseModel):
 class SettingsPatch(BaseModel):
     """Live Settings-dock knobs. Any subset is applied immediately."""
     ori_threshold: float | None = None
+    alert_low_minutes: float | None = None
     writing_angle_deg: float | None = None
     turn_angle_deg: float | None = None
     close_delta: float | None = None
@@ -146,7 +163,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     or “please turn Beep on”, and this file forwards that to the engine.
     """
     # Hide the auto-generated API docs — this is a private localhost app.
-    app = FastAPI(title="EyesRhythm", version="2.0.0", docs_url=None, redoc_url=None)
+    app = FastAPI(title=APP_NAME, version=VERSION, docs_url=None, redoc_url=None)
 
     # Vite dev server may call from another port during development.
     app.add_middleware(
@@ -159,10 +176,104 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
 
     app.state.engine = engine
 
+    def _try_start_engine() -> None:
+        """Start the camera loop if it is not running yet (idempotent)."""
+        if app_license.is_required() and not app_license.is_activated():
+            return
+        if engine.is_awaiting_camera_pick():
+            return
+        try:
+            engine.start()
+        except Exception:
+            pass
+
+    @app.get("/api/cameras")
+    def get_cameras():
+        """List webcams for the startup picker and Settings."""
+        cameras = describe_cameras()
+        avail = [int(c["index"]) for c in cameras]
+        prefs = preferences.load()
+        mode = str(prefs.get("camera_mode") or "single").strip().lower()
+        hybrid = mode == "hybrid" and len(avail) >= 2
+        if engine.is_hybrid():
+            hybrid = True
+            mode = "hybrid"
+        try:
+            saved = int(prefs.get("camera_index", -1))
+        except (TypeError, ValueError):
+            saved = -1
+        if saved not in avail and avail:
+            saved = avail[0]
+        return {
+            "cameras": cameras,
+            "selected": saved,
+            "mode": "hybrid" if hybrid else "single",
+            "pick_required": engine.is_awaiting_camera_pick(),
+        }
+
+    @app.post("/api/camera/select")
+    def post_camera_select(body: CameraSelectBody):
+        """Choose which webcam to use, or hybrid (all desk cameras)."""
+        cameras = describe_cameras()
+        avail = {int(c["index"]) for c in cameras}
+        if body.hybrid:
+            if len(avail) < 2:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Hybrid needs at least two desk cameras.",
+                )
+            preferences.save(camera_mode="hybrid")
+            try:
+                engine.reselect_source(hybrid=True)
+            except Exception as exc:
+                raise HTTPException(status_code=500, detail=str(exc)) from exc
+            return {
+                "index": None,
+                "mode": "hybrid",
+                "label": "Hybrid (all desk cameras)",
+            }
+        if body.index is None:
+            raise HTTPException(status_code=400, detail="Choose a camera or hybrid.")
+        if body.index not in avail:
+            raise HTTPException(status_code=400, detail="That camera is not available.")
+        preferences.save(camera_index=body.index, camera_mode="single")
+        try:
+            engine.reselect_camera(body.index)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+        label = next(
+            (str(c["label"]) for c in cameras if int(c["index"]) == body.index),
+            f"Camera {body.index}",
+        )
+        return {"index": body.index, "mode": "single", "label": label}
+
     @app.get("/api/health")
     def health():
-        """“Is the local server alive?” — used by the UI / installers."""
-        return {"ok": True, "service": "EyesRhythm"}
+        """Liveness plus the product version shown in Settings → About."""
+        return {"ok": True, "service": APP_NAME, "version": VERSION}
+
+    @app.get("/alert.mp3")
+    def get_alert_mp3():
+        """Sound-alert cue (played at most once a minute while Alert is latched)."""
+        headers = {"Cache-Control": "no-cache"}
+        if ALERT_MP3.is_file():
+            return FileResponse(
+                ALERT_MP3, media_type="audio/mpeg", headers=headers
+            )
+        if ALERT_WAV.is_file():
+            return FileResponse(ALERT_WAV, media_type="audio/wav", headers=headers)
+        raise HTTPException(status_code=404, detail="alert sound missing")
+
+    @app.get("/api/notices")
+    def get_notices():
+        """Third-party license text shown in Settings → About."""
+        if NOTICES_PATH.is_file():
+            return FileResponse(
+                NOTICES_PATH,
+                media_type="text/plain; charset=utf-8",
+                filename="THIRD_PARTY_NOTICES.md",
+            )
+        raise HTTPException(status_code=404, detail="notices missing")
 
     @app.get("/api/license")
     def get_license():
@@ -172,7 +283,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     @app.post("/api/license/activate")
     def post_license_activate(body: LicenseActivateBody):
         """
-        First-run activation: send the emailed key to Lemon Squeezy together
+        First-run activation: send the emailed key to Dodo Payments together
         with this machine’s fingerprint. Later launches stay offline.
         """
         try:
@@ -184,7 +295,8 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         # Camera stays off until this copy is activated.
         if status.get("activated"):
             try:
-                engine.start()
+                if not engine.is_awaiting_camera_pick():
+                    engine.start()
             except Exception:
                 pass
         return status
@@ -192,6 +304,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     @app.get("/api/state")
     def state():
         """One-shot snapshot of every live number (blink rate, toggles, …)."""
+        _try_start_engine()
         return engine.snapshot().to_dict()
 
     @app.get("/api/toggles")
@@ -218,7 +331,8 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         # Live toggles win if they differ mid-session.
         toggles = engine.get_toggles()
         prefs["beep"] = toggles["beep"]
-        prefs["alert"] = toggles["alert"]
+        prefs["alert"] = True
+        prefs["alert_mode"] = toggles.get("alert_mode", "visual")
         prefs["ontop"] = toggles["ontop"]
         prefs.update(engine.get_settings())
         return prefs
@@ -244,6 +358,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
             k: patch.pop(k)
             for k in (
                 "ori_threshold",
+                "alert_low_minutes",
                 "writing_angle_deg",
                 "turn_angle_deg",
                 "close_delta",
@@ -257,6 +372,8 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         prefs = preferences.load()
         toggles = engine.get_toggles()
         prefs.update({k: toggles[k] for k in ("beep", "alert", "ontop")})
+        prefs["alert"] = True
+        prefs["alert_mode"] = toggles.get("alert_mode", "visual")
         prefs.update(engine.get_settings())
         return prefs
 
@@ -325,6 +442,12 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
         engine.set_preview_wanted(True)
         return {"preview": True}
 
+    @app.post("/api/camera/wake")
+    def camera_wake():
+        """Reopen the webcam after launch splash or idle sleep."""
+        engine.wake_camera()
+        return {"ok": True}
+
     @app.post("/api/preview/disable")
     def preview_disable():
         """Stop encoding preview frames — saves CPU when Lens is hidden."""
@@ -343,6 +466,7 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
     async def ws_stats(ws: WebSocket):
         """Live feed of metrics (~10 times a second) for the dashboard cards."""
         await ws.accept()
+        _try_start_engine()
         try:
             while True:
                 snap = engine.snapshot().to_dict()

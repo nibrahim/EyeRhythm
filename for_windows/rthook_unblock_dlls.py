@@ -1,14 +1,13 @@
 """
 PyInstaller runtime hook — Windows only.
 
-Downloaded zips carry a Mark-of-the-Web (Zone.Identifier) on every extracted
-file. The .NET Framework then refuses to load ``Python.Runtime.dll``, and
-pywebview cannot open a desktop window:
+1. Strip Mark-of-the-Web (Zone.Identifier) from DLLs so pythonnet / OpenCV /
+   NumPy can load after a downloaded Setup or zip.
+2. Register ``os.add_dll_directory`` for ``_internal`` and ``*.libs`` folders.
+   Python 3.8+ ignores PATH for extension DLLs; without this, NumPy fails with
+   ``DLL load failed while importing _multiarray_umath``.
 
-    Failed to resolve Python.Runtime.Loader.Initialize from ...\\Python.Runtime.dll
-
-This runs *before* application code, so pythonnet never sees a blocked DLL.
-Safe to include in the Mac freeze as well: it returns immediately there.
+Safe to include in the Mac freeze: it returns immediately there.
 """
 
 from __future__ import annotations
@@ -36,6 +35,46 @@ def _unblock_tree(root: str) -> None:
                 pass
 
 
+def _add_dll_dirs(root: str) -> None:
+    if sys.platform != "win32" or not root or not os.path.isdir(root):
+        return
+    add = getattr(os, "add_dll_directory", None)
+    if add is None:
+        return
+    seen: set[str] = set()
+
+    def _add(path: str) -> None:
+        if not path or not os.path.isdir(path):
+            return
+        key = os.path.normcase(os.path.abspath(path))
+        if key in seen:
+            return
+        seen.add(key)
+        try:
+            add(path)
+        except (OSError, ValueError):
+            pass
+
+    _add(root)
+    try:
+        for name in os.listdir(root):
+            full = os.path.join(root, name)
+            if not os.path.isdir(full):
+                continue
+            lower = name.lower()
+            if lower.endswith(".libs") or lower in {"cv2", "numpy", "mediapipe", "webview"}:
+                _add(full)
+    except OSError:
+        pass
+    for sub in (
+        "numpy.libs",
+        "cv2",
+        os.path.join("cv2", ".libs"),
+        os.path.join("webview", "lib"),
+    ):
+        _add(os.path.join(root, sub))
+
+
 def _run() -> None:
     if sys.platform != "win32":
         return
@@ -53,6 +92,7 @@ def _run() -> None:
             continue
         seen.add(key)
         _unblock_tree(root)
+        _add_dll_dirs(root)
 
 
 _run()
