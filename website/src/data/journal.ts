@@ -3,7 +3,7 @@ export const posts = [
     slug: "jobs-that-dry-the-eyes",
     title: "The jobs that dry your eyes",
     description:
-      "When your work demands attention, your eyes can forget to blink.",
+      "When desk work holds your attention, blink rate falls. These are the jobs that dry the eyes, and what a blink rate detector is for.",
     date: "2026-09-09",
     read: "11 min",
     kicker: "The desk",
@@ -15,7 +15,7 @@ export const posts = [
     slug: "count-is-not-rhythm",
     title: "Why the blink count is not enough",
     description:
-      "Six blinks can still mean two very different minutes, because what matters is how often you blink and how evenly you do it. That is what the number in the window is trying to show.",
+      "A blink counter is not a blink rate detector. Six blinks can still mean two very different minutes, because rate and regularity both matter.",
     date: "2026-09-07",
     read: "7 min",
     kicker: "The score",
@@ -27,7 +27,7 @@ export const posts = [
     slug: "screens-cut-blink-rate",
     title: "Why screens cut your blink rate",
     description:
-      "The sting at four is not only brightness. Attention holds the lids, the tear film waits, and the research on that pause is older than most of the screens we use.",
+      "Screens often cut blink rate in half. Attention holds the lids, the tear film waits, and the research on that pause is older than most of the screens we use.",
     date: "2026-09-04",
     read: "9 min",
     kicker: "The science",
@@ -39,7 +39,7 @@ export const posts = [
     slug: "camera-setup",
     title: "Set up your camera so blinks count",
     description:
-      "Sit as you usually work, turn on EyesRhythm and allow the camera a clear view of your eyes. Here is how.",
+      "How to set up a webcam so a blink rate detector can see your eyes. Sit as you usually work, then give the camera a clear view.",
     date: "2026-08-27",
     read: "8 min",
     kicker: "First journal",

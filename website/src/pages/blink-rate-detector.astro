@@ -1,0 +1,256 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { site } from "../config";
+import { faqJsonLd } from "../data/faq";
+import Faq from "../components/Faq.astro";
+
+const origin = Astro.site ?? new URL(site.url);
+const pageUrl = new URL("/blink-rate-detector", origin).toString();
+const home = new URL("/", origin).toString();
+
+const breadcrumbs = {
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: home,
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Blink rate detector",
+      item: pageUrl,
+    },
+  ],
+};
+---
+
+<Layout
+  title="Blink rate detector for Mac and Windows | EyesRhythm"
+  description="EyesRhythm is a webcam blink rate detector for Mac and Windows. It measures how often and how steadily you blink during screen work, on this computer, with no video leaving the machine."
+  image="/images/blink-cover.jpg"
+  imageAlt="Someone sitting still at a laptop, the kind of long screen stretch a blink rate detector is built for."
+  jsonLd={[faqJsonLd(), breadcrumbs]}
+>
+  <main id="main">
+    <header class="cover">
+      <img
+        src="/images/blink-cover.jpg"
+        alt="Someone sitting still at a laptop by a window, looking at the screen for a long stretch of work."
+        width="1280"
+        height="720"
+      />
+      <div class="cover__shade"></div>
+      <div class="cover__copy">
+        <p class="kicker"><span class="kicker__dot"></span>On-device · Mac and Windows</p>
+        <h1 class="display">Blink rate detector.</h1>
+        <p class="lede">
+          EyesRhythm watches your webcam, counts blinks on this computer, and
+          turns how often and how evenly you blink into one quiet score.
+        </p>
+        <div class="btn-row">
+          <button class="btn btn--primary" type="button" data-open-purchase>
+            {site.cta}
+          </button>
+          <a class="btn btn--ghost" href="/journal/camera-setup">Camera setup</a>
+        </div>
+      </div>
+    </header>
+
+    <article class="wrap article">
+      <div class="prose">
+        <p>
+          Focused computer use often cuts blink rate in half. The sting at
+          four o’clock is easy not to notice until the eyes already hurt.
+          EyesRhythm is a blink rate detector built to sit beside the work
+          rather than become another job.
+        </p>
+
+        <h2>What a blink rate detector actually measures</h2>
+        <p>
+          A blink rate detector uses a camera to notice each blink and measure
+          how often they happen, usually as blinks per minute. That number
+          matters. Office workers in a well-known study blinked about 22 times
+          a minute at rest, 10 while reading a book, and 7 while looking at a
+          screen. The screen took more than the book.
+        </p>
+        <p>
+          Count alone still misses the hour. Six blinks spread through a minute
+          and six blinks piled into clumps, with a long wait in the middle,
+          produce the same average and two very different surfaces. EyesRhythm
+          folds rate and regularity into the
+          <a href="/journal/count-is-not-rhythm">Ocular Rhythm Index</a>, from 0
+          to 100.
+        </p>
+
+        <h2>How EyesRhythm detects blinks</h2>
+        <ol>
+          <li>
+            Sit as you usually work. A built-in laptop camera or a USB webcam
+            is enough, as long as it can see your eyes.
+          </li>
+          <li>
+            The app reads frames on this computer. Nothing is uploaded. Nothing
+            is kept as a film of your face.
+          </li>
+          <li>
+            Each counted blink updates the live cadence. Trace shows the last
+            minutes. Alert can pulse or make a sound if you ask it to.
+          </li>
+          <li>
+            Practice is a two-minute coach, so a fuller blink is easier to feel
+            again after a long stretch of looking.
+          </li>
+        </ol>
+        <p>
+          The <a href="/journal/camera-setup">camera setup guide</a> covers
+          distance, glasses, and the few things that help the detector count
+          cleanly.
+        </p>
+
+        <h2>Why screens cut blink rate</h2>
+        <p>
+          A blink is a short blackout. When the work on the screen is dense,
+          the brain parks those blackouts or holds them back. You keep seeing.
+          The tear film waits. Incomplete blinks, where the lids never quite
+          meet, leave a strip unwiped. That is why a detector that only nags
+          you to “blink more” is not the whole picture.
+        </p>
+        <p>
+          The journal piece on
+          <a href="/journal/screens-cut-blink-rate">why screens cut your blink rate</a>
+          walks through the research, including incomplete blinks and lumpy
+          timing. The piece on
+          <a href="/journal/jobs-that-dry-the-eyes">jobs that dry the eyes</a>
+          is for the kinds of desk work that hold the lids still.
+        </p>
+
+        <h2>Private after you register the license</h2>
+        <p>
+          {site.price.label} one time, macOS or Windows, not both. Internet once,
+          to register the license. Then no account, cloud, or analytics. Camera
+          frames stay on this computer. Today’s totals live in a local folder,
+          yours alone.
+        </p>
+        <p>
+          EyesRhythm is a wellness companion, not a medical device. It is not
+          intended to diagnose, treat, or prevent disease. If your eyes keep
+          hurting or your vision changes, see an eye-care professional.
+        </p>
+      </div>
+    </article>
+
+    <Faq heading="Blink rate detector, in short." />
+
+    <section class="cta">
+      <div class="wrap">
+        <h2 class="display">Keep it nearby. Pay once.</h2>
+        <p class="lede">
+          {site.price.label} one time. A license key and that OS’s installer
+          arrive by email.
+        </p>
+        <button class="btn btn--primary" type="button" data-open-purchase>
+          {site.cta}
+        </button>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .cover {
+    position: relative;
+    width: 100%;
+    min-height: min(72vh, 640px);
+    display: grid;
+    align-items: end;
+    color: #fff;
+    background: #1d1d1f;
+  }
+
+  .cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cover__shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.15) 20%,
+      rgba(0, 0, 0, 0.62) 100%
+    );
+  }
+
+  .cover__copy {
+    position: relative;
+    z-index: 1;
+    width: min(var(--wrap), calc(100% - var(--gutter) * 2));
+    margin: 0 auto;
+    padding: 48px 0 40px;
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+  }
+
+  .cover .kicker {
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  .cover .display {
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    max-width: 12ch;
+    color: #fff;
+  }
+
+  .cover .lede {
+    color: rgba(255, 255, 255, 0.88);
+    max-width: 34rem;
+  }
+
+  .cover .btn-row {
+    margin-top: 4px;
+  }
+
+  .cover .btn--ghost {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+
+  .cover .btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .article {
+    padding: 48px 0 24px;
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+  }
+
+  .cta {
+    padding: clamp(48px, 8vw, 88px) 0;
+    background: var(--band);
+    text-align: center;
+  }
+
+  .cta .wrap {
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+  }
+
+  .cta .display {
+    font-size: clamp(1.9rem, 4vw, 3rem);
+  }
+
+  .cta .lede {
+    text-align: center;
+  }
+</style>

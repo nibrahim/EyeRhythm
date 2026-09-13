@@ -10,9 +10,9 @@ const comingSoonPublic = false;
 
 export const site = {
   name: "EyesRhythm",
-  tagline: "A quiet rhythm for long screen days",
+  tagline: "Blink rate detector for long screen days",
   description:
-    "A private, offline blink companion that turns how often and how steadily you blink into a single, useful rhythm score, so screen days can last longer without the eyes paying first.",
+    "EyesRhythm is a private webcam blink rate detector for Mac and Windows. It scores how often and how steadily you blink during screen work, then stays fully offline after you register the license.",
   url:
     typeof import.meta.env.SITE === "string" && import.meta.env.SITE
       ? String(import.meta.env.SITE).replace(/\/$/, "")

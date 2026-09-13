@@ -9,21 +9,111 @@ import "../styles/global.css";
 interface Props {
   title?: string;
   description?: string;
+  type?: "website" | "article";
+  published?: string;
+  image?: string;
+  imageAlt?: string;
+  noindex?: boolean;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 const hold = site.comingSoon;
 const title = hold
   ? `${site.name}, Coming soon`
-  : (Astro.props.title ?? `${site.name}, ${site.tagline}`);
+  : (Astro.props.title ?? `${site.name} — Blink rate detector for Mac and Windows`);
 const description = hold
   ? "EyesRhythm is a private blink companion for the desk. Copies will be available when checkout is connected."
   : (Astro.props.description ?? site.description);
+const type = Astro.props.type ?? "website";
+const published = Astro.props.published;
+const imageAlt = Astro.props.imageAlt ?? "EyesRhythm blink rate detector";
 
 const origin = Astro.site ?? new URL(site.url);
 const canonical = new URL(hold ? "/" : Astro.url.pathname, origin).toString();
-const ogImageUrl = new URL("/app-icon.png", origin);
-ogImageUrl.searchParams.set("v", "3");
+const home = new URL("/", origin).toString();
+const ogImageUrl = new URL(Astro.props.image ?? "/images/blink-cover.jpg", origin);
+ogImageUrl.searchParams.set("v", "4");
 const ogImage = ogImageUrl.toString();
+const iconUrl = new URL("/app-icon.png", origin);
+iconUrl.searchParams.set("v", "3");
+const noindex = hold || Astro.props.noindex;
+
+const extraLd = Astro.props.jsonLd
+  ? Array.isArray(Astro.props.jsonLd)
+    ? Astro.props.jsonLd
+    : [Astro.props.jsonLd]
+  : [];
+const path = Astro.url.pathname.replace(/\/$/, "") || "/";
+const isProduct = path === "/" || path === "/blink-rate-detector";
+
+const organization = {
+  "@type": "Organization",
+  "@id": `${home}#org`,
+  name: site.name,
+  url: home,
+  email: site.contactEmail,
+  logo: iconUrl.toString(),
+};
+
+const websiteLd = {
+  "@type": "WebSite",
+  "@id": `${home}#website`,
+  name: site.name,
+  url: home,
+  description: site.description,
+  publisher: { "@id": `${home}#org` },
+  inLanguage: "en",
+};
+
+const softwareLd = {
+  "@type": "SoftwareApplication",
+  "@id": `${home}#app`,
+  name: site.name,
+  url: home,
+  applicationCategory: "HealthApplication",
+  operatingSystem: "macOS, Windows",
+  description: site.description,
+  featureList: [
+    "Webcam blink rate detection",
+    "Blink regularity scoring",
+    "On-device processing",
+    "Optional blink and dryness alerts",
+  ],
+  offers: {
+    "@type": "Offer",
+    price: String(site.price.amount),
+    priceCurrency: site.price.currency,
+    availability: "https://schema.org/InStock",
+  },
+  publisher: { "@id": `${home}#org` },
+};
+
+const articleLd =
+  type === "article"
+    ? {
+        "@type": "Article",
+        headline: title.replace(/\s+\|\s+EyesRhythm$/, ""),
+        description,
+        image: ogImage,
+        datePublished: published,
+        dateModified: published,
+        mainEntityOfPage: canonical,
+        author: { "@id": `${home}#org` },
+        publisher: { "@id": `${home}#org` },
+        inLanguage: "en",
+      }
+    : null;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    organization,
+    websiteLd,
+    ...(isProduct ? [softwareLd] : []),
+    ...(articleLd ? [articleLd] : []),
+    ...extraLd,
+  ],
+};
 ---
 
 <!doctype html>
@@ -34,16 +124,26 @@ const ogImage = ogImageUrl.toString();
     <meta name="theme-color" content="#ffffff" />
     <meta name="description" content={description} />
     <meta name="color-scheme" content="light" />
-    {hold ? <meta name="robots" content="noindex, nofollow" /> : null}
+    <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
+    <meta name="author" content={site.name} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
     <link rel="apple-touch-icon" href="/app-icon.png?v=3" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={type === "article" ? "article" : "website"} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImage} />
+    <meta property="og:image:alt" content={imageAlt} />
+    {published ? <meta property="article:published_time" content={published} /> : null}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
     <title>{title}</title>
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>
     {
