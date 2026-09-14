@@ -55,6 +55,40 @@ class CameraDiscoveryTests(unittest.TestCase):
             "iPhone13,1",
         ))
 
+    def test_desk_cameras_listed_when_probe_fails(self) -> None:
+        """Settings still shows Brio + FaceTime if the first frame is black."""
+        devices = [
+            {
+                "name": "FaceTime HD Camera (Built-in)",
+                "model_id": "UVC Camera VendorID_1452 ProductID_34068",
+                "unique_id": "0x8020000005ac8514",
+            },
+            {
+                "name": "Brio 100",
+                "model_id": "UVC Camera VendorID_1133 ProductID_2380",
+                "unique_id": "0x14130000046d094c",
+            },
+            {
+                "name": "iPhone12Mini Camera",
+                "model_id": "iPhone13,1",
+                "unique_id": "67A0AFDB-0410-4AE1-B838-268500000001",
+            },
+        ]
+        with patch(
+            "app.engine._probe_camera_index",
+            return_value=(False, 0, 0, 0.0, 0.0),
+        ):
+            matched = _describe_from_os_devices(
+                devices, max_index=6, backend=0,
+            )
+
+        self.assertEqual(
+            [(m["name"], m["index"], m["label"]) for m in matched],
+            [("Brio 100", 0, "Brio 100"),
+             ("FaceTime HD Camera (Built-in)", 1,
+              "FaceTime HD Camera (Built-in)")],
+        )
+
     def test_os_index_matches_opencv_index(self) -> None:
         """Without unique IDs, list slot i still maps to OpenCV index i."""
         devices = [

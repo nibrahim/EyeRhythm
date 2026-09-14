@@ -1,5 +1,25 @@
 # EyesRhythm release notes
 
+## 1.2.1 — 13 September 2026
+
+Camera picker is visible again in Settings after 1.2.0 hid it on machines with more than one desk webcam.
+
+### Camera picker
+
+- Settings shows **Camera** whenever a desk webcam is found. A black first frame no longer empties the list for the whole session.
+- **Hybrid** still appears when there are two or more desk cameras (built-in plus USB). Phone, iPad, and Continuity cameras stay out of the list.
+
+### Files
+
+| Platform | Installer |
+|----------|-----------|
+| macOS | `EyesRhythm-1.2.1.dmg` |
+| Windows | `EyesRhythm-Setup-1.2.1.exe` |
+
+Drag the Mac app into Applications. On Windows, run Setup (per-user, no administrator account). Allow the camera when the system asks.
+
+---
+
 ## 1.2.0 — 13 September 2026
 
 Hybrid multi-camera support. If you have more than one desk webcam (built-in plus USB), you can use them together instead of picking a single camera.

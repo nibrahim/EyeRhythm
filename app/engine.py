@@ -535,7 +535,7 @@ def _macos_profiler_camera_devices() -> list[dict[str, str]]:
                 out.append({
                     "name": name,
                     "model_id": str(item.get("spcamera_model-id") or "").strip(),
-                    "unique_id": "",
+                    "unique_id": str(item.get("spcamera_unique-id") or "").strip(),
                 })
         return out
     except (OSError, subprocess.SubprocessError, ValueError, TypeError):
@@ -665,8 +665,16 @@ def _probe_camera_index(
     if not cap.isOpened():
         _release_camera(cap)
         return False, 0, 0, 0.0, 0.0
-    ok, frame = cap.read()
+    ok, frame = False, None
+    # First frames are often black on USB / FaceTime; match open_camera warmup.
+    for _ in range(8):
+        ok, frame = cap.read()
+        if ok and _frame_is_usable(frame):
+            break
+        time.sleep(0.05)
     _release_camera(cap)
+    if platform.system() == "Darwin" and CAMERA_RELEASE_SETTLE_S > 0:
+        time.sleep(CAMERA_RELEASE_SETTLE_S)
     if not ok or not _frame_is_usable(frame):
         return False, 0, 0, 0.0, 0.0
     h, w = frame.shape[:2]
@@ -686,6 +694,11 @@ def _describe_from_os_devices(
     the same way OpenCV sorts them. Phone / Continuity entries are omitted
     from the picker but do not shift the index numbers of the cameras that
     remain.
+
+    A failed probe must not hide a named desk camera. Opening each index
+    to confirm a live frame is best-effort for the resolution label only —
+    first frames are often black, and a camera already in use will not
+    reopen. An empty picker then hides Settings → Camera for the session.
     """
     work = list(devices) if devices else []
     if any(str(d.get("unique_id") or "") for d in work):
@@ -700,13 +713,22 @@ def _describe_from_os_devices(
             model_id = str(dev.get("model_id") or "")
             if not _is_desk_camera(name, model_id):
                 continue
-        else:
-            name = f"Camera {index}"
+            ok, w, h, _mean, _std = _probe_camera_index(index, backend)
+            out.append(
+                {
+                    "index": index,
+                    "label": f"{name} ({w}×{h})" if ok and w and h else name,
+                    "name": name,
+                    "width": w if ok else 0,
+                    "height": h if ok else 0,
+                }
+            )
+            continue
 
+        name = f"Camera {index}"
         ok, w, h, _mean, _std = _probe_camera_index(index, backend)
         if not ok:
             continue
-
         out.append(
             {
                 "index": index,
@@ -743,9 +765,10 @@ def describe_cameras(
     on macOS (same as OpenCV). Phone / iPad Continuity cameras are omitted
     from the picker.
 
-    The first call actually opens each index to confirm it works. Later
-    calls reuse that list unless ``refresh=True`` — re-opening cameras
-    after the desktop window is up stalls WKWebView (blank white window).
+    The first call may open each index for a resolution label. Later calls
+    reuse that list unless ``refresh=True`` — re-opening cameras after the
+    desktop window is up stalls WKWebView (blank white window). Named desk
+    cameras stay in the picker even if that first open fails.
     """
     global _cameras_cache
     with _cameras_cache_lock:
