@@ -179,34 +179,92 @@ function initRails() {
 
 function initHeroPager() {
   const stage = document.querySelector("[data-hero-stage]");
-  const dashes = Array.from(
+  const rail = document.querySelector<HTMLElement>("[data-hero-rail]");
+  const tabs = Array.from(
     document.querySelectorAll<HTMLButtonElement>("[data-hero-dash]"),
   );
   const caption = document.querySelector("[data-hero-caption]");
   const slides = stage?.querySelectorAll<HTMLElement>("[data-slide]");
-  if (!stage || !dashes.length || !slides?.length) return;
+  if (!stage || !tabs.length || !slides?.length) return;
+  rail?.style.setProperty("--n", String(tabs.length));
 
-  const labels = dashes.map(
+  const labels = tabs.map(
     (btn) =>
       btn.getAttribute("data-caption") || btn.getAttribute("aria-label") || "",
   );
 
-  const show = (index: number) => {
+  const show = (index: number, focusTab = false) => {
     slides.forEach((slide, i) => {
-      slide.classList.toggle("is-on", i === index);
+      const on = i === index;
+      slide.classList.toggle("is-on", on);
+      slide.setAttribute("aria-hidden", on ? "false" : "true");
     });
-    dashes.forEach((btn, i) => {
-      btn.setAttribute("aria-selected", i === index ? "true" : "false");
+    tabs.forEach((btn, i) => {
+      const on = i === index;
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+      btn.tabIndex = on ? 0 : -1;
     });
+    rail?.style.setProperty("--i", String(index));
     if (caption) caption.textContent = labels[index] || "";
+    if (focusTab) tabs[index]?.focus();
   };
 
-  dashes.forEach((btn) => {
+  let current = 0;
+  let timer = 0;
+  let paused = false;
+  const waitMs = 5200;
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const arm = () => {
+    window.clearInterval(timer);
+    if (reduced || paused) return;
+    timer = window.setInterval(advance, waitMs);
+  };
+
+  const go = (index: number, focusTab = false) => {
+    current = (index + tabs.length) % tabs.length;
+    show(current, focusTab);
+    arm();
+  };
+
+  const advance = () => {
+    go(current + 1);
+  };
+
+  tabs.forEach((btn) => {
     btn.addEventListener("click", () => {
       const index = Number(btn.dataset.heroDash);
-      if (Number.isFinite(index)) show(index);
+      if (Number.isFinite(index)) go(index);
     });
   });
+
+  rail?.addEventListener("keydown", (event) => {
+    const key = event.key;
+    let next: number | null = null;
+    if (key === "ArrowRight" || key === "ArrowDown") next = current + 1;
+    else if (key === "ArrowLeft" || key === "ArrowUp") next = current - 1;
+    else if (key === "Home") next = 0;
+    else if (key === "End") next = tabs.length - 1;
+    if (next == null) return;
+    event.preventDefault();
+    go(next, true);
+  });
+
+  const pause = () => {
+    paused = true;
+    window.clearInterval(timer);
+  };
+  const resume = () => {
+    paused = false;
+    arm();
+  };
+  rail?.addEventListener("pointerenter", pause);
+  rail?.addEventListener("pointerleave", resume);
+  rail?.addEventListener("focusin", pause);
+  rail?.addEventListener("focusout", resume);
+
+  show(0);
+  arm();
 }
 
 onReady(() => {

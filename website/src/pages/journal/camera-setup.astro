@@ -1,7 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { getPost } from "../../data/journal";
-import { site } from "../../config";
 
 const post = getPost("camera-setup")!;
 ---
@@ -222,8 +221,6 @@ const post = getPost("camera-setup")!;
         <a href="/blink-rate-detector">Blink rate detector</a>
         ·
         <a href="/journal/count-is-not-rhythm">Why the blink count is not enough</a>
-        ·
-        <button type="button" data-open-purchase>{site.cta}</button>
       </p>
     </article>
   </main>

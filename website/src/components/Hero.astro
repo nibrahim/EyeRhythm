@@ -1,32 +1,40 @@
 ---
-import { site } from "../config";
-
 const slides = [
   {
-    label: "Trace Rhythm",
-    caption: "Watch the last minutes of your blink cadence as a quiet line.",
+    label: "Live 5-minute graph",
+    caption: "See the last 5 minutes of your blink rhythm on a live graph.",
+    image: "/images/hero/trace.png",
+    alt: "EyesRhythm Trace view showing a five-minute live ORI graph",
   },
   {
     label: "Avatars",
-    caption: "Pick a face that fits you, Atlas, Lumen, Vesper, Lens, or Trace.",
+    caption: "Pick a look that fits you. Atlas, Lumen, Vesper, Lens, or Trace.",
+    image: "/images/hero/avatars.png",
+    alt: "EyesRhythm Lumen avatar with Atlas, Vesper, Lens, and Trace in the picker",
   },
   {
-    label: "Beep on a blink",
-    caption:
-      "An optional click on every counted blink, for days when you want the rhythm in your ear.",
+    label: "Several cameras",
+    caption: "Use more than one camera if you work across several screens.",
+    image: "/images/hero/cameras.png",
+    alt: "EyesRhythm camera setting with Hybrid multi-camera mode selected",
   },
   {
-    label: "Practice",
-    caption: "A two-minute coach so blinking feels natural again.",
+    label: "Glow or sound",
+    caption: "Get a quiet glow, a sound, or a click when you need a nudge.",
+    image: "/images/hero/alerts.png",
+    alt: "EyesRhythm companion with Beep, Visual, and Practice controls",
   },
   {
-    label: "A few settings",
-    caption: "Tune Alert, look angle, and blink sensitivity if you need to.",
+    label: "Smart FPS",
+    caption: "The camera slows down when you look away, so it uses less CPU.",
+    image: "/images/hero/fps.png",
+    alt: "EyesRhythm dashboard highlighting the auto FPS camera pipeline card",
   },
   {
-    label: "Feel the difference",
-    caption:
-      "If it helps you, a small copy helps the builder. Pay once for Mac or Windows, a license key arrives by email.",
+    label: "Day, week, month",
+    caption: "Monitor your progress. See how you did today, this week, and this month.",
+    image: "/images/hero/reports.png",
+    alt: "EyesRhythm daily ORI report chart with weekly and monthly tabs",
   },
 ];
 ---
@@ -36,135 +44,64 @@ const slides = [
     <p class="kicker"><span class="kicker__dot"></span>On-device · No cloud</p>
     <h1 class="display">More than just a blink rate detector.</h1>
     <p class="lede">
-      EyesRhythm uses your webcam to measure how often and how steadily you
-      blink on long screen days. No account. No video leaving this machine.
+      EyesRhythm uses your webcam to score how often and how steadily you blink
+      on long screen days. Live ORI, avatars, multi-camera desks, and reports —
+      no account, and no video leaving your machine.
     </p>
-    <div class="btn-row">
-      <button class="btn btn--primary" type="button" data-open-purchase>
-        {site.cta}
-      </button>
-    </div>
 
     <div class="hero__stage" data-hero-stage>
-      <!-- 1. Trace -->
-      <div class="slide is-on" data-slide="0">
-        <div class="win">
-          <div class="win__bar"><i></i><i></i><i></i><span>Trace</span></div>
-          <svg class="trace" viewBox="0 0 360 180" aria-hidden="true">
-            <rect x="36" y="28" width="308" height="72" fill="rgba(91,159,224,0.1)"></rect>
-            <line x1="36" y1="100" x2="344" y2="100" stroke="#e05a52" stroke-dasharray="4 3" stroke-width="1.2"></line>
-            <path
-              d="M36 70 C70 62 90 78 120 58 C150 40 170 86 200 72 C230 58 250 48 280 66 C310 84 330 52 344 46"
-              fill="none"
-              stroke="#3d8fd6"
-              stroke-width="2.2"
-              stroke-linecap="round"></path>
-            <circle cx="90" cy="72" r="3" fill="#f0a040"></circle>
-            <circle cx="168" cy="64" r="3" fill="#f0a040"></circle>
-            <circle cx="252" cy="54" r="3" fill="#f0a040"></circle>
-            <text x="40" y="24" font-size="11" fill="#5a6f82">ORI</text>
-            <text x="300" y="172" font-size="10" fill="#8a9aab">−5 min</text>
-            <text x="36" y="172" font-size="10" fill="#8a9aab">now</text>
-          </svg>
-        </div>
-      </div>
-
-      <!-- 2. Avatars -->
-      <div class="slide" data-slide="1">
-        <div class="avatars">
-          <figure>
-            <svg viewBox="0 0 220 280" aria-hidden="true">
-              <path d="M110 30 C154 30 186 72 186 118 C186 158 166 190 146 204 L148 246 C148 262 132 270 110 270 C88 270 72 262 72 246 L74 204 C54 190 34 158 34 118 C34 72 66 30 110 30Z" fill="#B89A7A"></path>
-              <ellipse cx="84" cy="110" rx="12" ry="5.5" fill="#1A2A38"></ellipse>
-              <ellipse cx="136" cy="110" rx="12" ry="5.5" fill="#1A2A38"></ellipse>
-            </svg>
-            <figcaption>Atlas</figcaption>
-          </figure>
-          <figure>
-            <svg viewBox="0 0 220 280" aria-hidden="true">
-              <path d="M110 36 C150 36 178 74 178 118 C178 154 162 186 146 200 L146 244 C146 260 130 268 110 268 C90 268 74 260 74 244 L74 200 C58 186 42 154 42 118 C42 74 70 36 110 36Z" fill="#E0C8B8"></path>
-              <path d="M50 100 C50 52 78 28 110 28 C142 28 170 52 170 100 C166 72 148 52 110 50 C72 52 54 72 50 100Z" fill="#2A201C"></path>
-              <ellipse cx="86" cy="112" rx="12" ry="5.5" fill="#3A2A28"></ellipse>
-              <ellipse cx="134" cy="112" rx="12" ry="5.5" fill="#3A2A28"></ellipse>
-            </svg>
-            <figcaption>Lumen</figcaption>
-          </figure>
-          <figure>
-            <svg viewBox="0 0 220 280" aria-hidden="true">
-              <path d="M110 28 C148 28 182 64 184 112 C186 158 166 194 148 208 L150 246 C150 262 132 270 110 270 C88 270 70 262 70 246 L72 208 C54 194 34 158 36 112 C38 64 72 28 110 28Z" fill="#8FB8D0"></path>
-              <ellipse cx="82" cy="112" rx="14" ry="8" fill="#0E1A28"></ellipse>
-              <ellipse cx="138" cy="112" rx="14" ry="8" fill="#0E1A28"></ellipse>
-            </svg>
-            <figcaption>Vesper</figcaption>
-          </figure>
-        </div>
-        <p class="chips"><span>Lens</span><span>Trace</span></p>
-      </div>
-
-      <!-- 3. Beep on a blink -->
-      <div class="slide" data-slide="2">
-        <article class="card-slide soft">
-          <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
-            <circle cx="36" cy="36" r="34" fill="#e4eef8"></circle>
-            <path d="M28 28 v16 h8 l12 10 V18 L36 28 Z" fill="#2f78c4"></path>
-            <path d="M50 28 c6 4 6 12 0 16" fill="none" stroke="#5b9fe0" stroke-width="2.4" stroke-linecap="round"></path>
-          </svg>
-          <p>Optional click on each blink.</p>
-        </article>
-      </div>
-
-      <!-- 4. Practice -->
-      <div class="slide" data-slide="3">
-        <div class="win win--practice">
-          <div class="win__bar"><i></i><i></i><i></i><span>Practice</span></div>
-          <svg class="practice-art" viewBox="0 0 360 200" aria-hidden="true">
-            <line x1="180" y1="100" x2="300" y2="36" stroke="#5b9fe0" stroke-width="2"></line>
-            <circle cx="180" cy="100" r="5" fill="#1e2c3a"></circle>
-            <circle cx="300" cy="36" r="16" fill="#5b9fe0"></circle>
-            <circle cx="306" cy="30" r="4" fill="white" opacity="0.85"></circle>
-          </svg>
-        </div>
-      </div>
-
-      <!-- 5. Settings -->
-      <div class="slide" data-slide="4">
-        <div class="win">
-          <div class="win__bar"><i></i><i></i><i></i><span>Settings</span></div>
-          <ul class="tunes">
-            <li><span>ORI threshold</span><b></b></li>
-            <li><span>Look angle</span><b></b></li>
-            <li><span>Blink feel</span><b></b></li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- 6. Feel the difference -->
-      <div class="slide" data-slide="5">
-        <article class="card-slide gift">
-          <p class="gift__price">{site.price.label}</p>
-          <p>one time · Mac and Windows</p>
-          <button class="btn btn--primary" type="button" data-open-purchase>
-            {site.cta}
-          </button>
-        </article>
-      </div>
-    </div>
-
-    <div class="hero__pager" role="tablist" aria-label="App views">
       {
         slides.map((slide, i) => (
-          <button
-            type="button"
-            role="tab"
-            data-hero-dash={i}
-            aria-selected={i === 0 ? "true" : "false"}
-            aria-label={slide.label}
-            data-caption={slide.caption}
-          ></button>
+          <div
+            class:list={["slide", i === 0 && "is-on"]}
+            data-slide={i}
+            id={`hero-slide-${i}`}
+            role="tabpanel"
+            aria-labelledby={`hero-tab-${i}`}
+            aria-hidden={i === 0 ? "false" : "true"}
+          >
+            <figure class="shot">
+              <img
+                src={slide.image}
+                alt={slide.alt}
+                width="840"
+                height="640"
+                loading={i === 0 ? "eager" : "lazy"}
+              />
+            </figure>
+          </div>
         ))
       }
     </div>
-    <p class="hero__caption" data-hero-caption>{slides[0].caption}</p>
+
+    <div class="hero__below">
+      <div
+        class="hero__rail"
+        role="tablist"
+        aria-label="App views"
+        data-hero-rail
+        style="--i: 0; --n: 6;"
+      >
+        <span class="hero__rail-track" aria-hidden="true"></span>
+        <span class="hero__rail-thumb" data-hero-thumb aria-hidden="true"></span>
+        {
+          slides.map((slide, i) => (
+            <button
+              type="button"
+              role="tab"
+              id={`hero-tab-${i}`}
+              data-hero-dash={i}
+              aria-selected={i === 0 ? "true" : "false"}
+              aria-controls={`hero-slide-${i}`}
+              tabindex={i === 0 ? "0" : "-1"}
+              aria-label={slide.label}
+              data-caption={slide.caption}
+            ></button>
+          ))
+        }
+      </div>
+      <p class="hero__caption" data-hero-caption>{slides[0].caption}</p>
+    </div>
   </div>
 </section>
 
@@ -197,34 +134,32 @@ const slides = [
 
   .lede {
     text-align: center;
-    max-width: 34rem;
-    width: 100%;
-  }
-
-  .btn-row {
-    display: flex;
-    justify-content: center;
+    max-width: 36rem;
     width: 100%;
   }
 
   .hero__stage {
     position: relative;
-    width: 100%;
-    height: 300px;
-    display: grid;
-    place-items: center;
+    flex: 0 0 auto;
+    width: min(100%, 520px);
+    height: clamp(340px, 72vw, 480px);
+    background: #fff;
     margin-top: 8px;
+    overflow: hidden;
   }
 
   .slide {
-    grid-area: 1 / 1;
+    position: absolute;
+    inset: 0;
     opacity: 0;
     pointer-events: none;
     transform: translateY(8px);
     transition: opacity 0.28s ease, transform 0.28s ease;
-    width: 100%;
     display: grid;
-    justify-items: center;
+    place-items: center;
+    background: #fff;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .slide.is-on {
@@ -233,193 +168,144 @@ const slides = [
     transform: none;
   }
 
-  .win {
-    width: min(100%, 420px);
-    background: #e8eef6;
-    border: 1px solid rgba(30, 48, 72, 0.1);
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: 0 18px 40px rgba(30, 48, 72, 0.08);
-    text-align: left;
-  }
-
-  .win__bar {
+  .shot {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
     display: flex;
     align-items: center;
-    gap: 6px;
-    height: 32px;
-    padding: 0 12px;
-    background: #f6f8fb;
-    font-size: 0.72rem;
-    color: var(--text-soft);
-  }
-
-  .win__bar i {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #ff5f57;
-  }
-  .win__bar i:nth-child(2) {
-    background: #febc2e;
-  }
-  .win__bar i:nth-child(3) {
-    background: #28c840;
-  }
-  .win__bar span {
-    margin-left: auto;
-  }
-
-  .trace {
-    display: block;
-    width: 100%;
-    height: 180px;
-    background: linear-gradient(180deg, #f7fafc, #eef4fa);
-  }
-
-  .avatars {
-    display: flex;
-    gap: 10px;
     justify-content: center;
-    align-items: end;
+    background: #fff;
+    overflow: hidden;
   }
 
-  .avatars figure {
-    margin: 0;
-    width: 92px;
-  }
-
-  .avatars svg {
-    width: 100%;
+  .shot img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
     height: auto;
-    display: block;
+    object-fit: contain;
+    border-radius: 18px;
   }
 
-  .avatars figcaption {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-soft);
-  }
-
-  .chips {
-    display: flex;
-    gap: 8px;
-    margin: 8px 0 0;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--blue-deep);
-  }
-
-  .chips span {
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: #e4eef8;
-  }
-
-  .card-slide {
-    width: min(100%, 380px);
-    min-height: 240px;
-    border-radius: 28px;
-    padding: 28px;
-    display: grid;
-    align-content: center;
-    justify-items: center;
-    gap: 10px;
-    background: var(--band);
-  }
-
-  .soft p,
-  .gift p {
-    color: var(--text-soft);
-    margin: 0;
-  }
-
-  .gift .gift__price {
-    color: var(--text);
-  }
-
-  .practice-art {
-    display: block;
+  .hero__below {
     width: 100%;
-    height: 200px;
-    background: #f7fafc;
-  }
-
-  .tunes {
-    list-style: none;
-    margin: 0;
-    padding: 18px 20px 22px;
-    display: grid;
-    gap: 14px;
-  }
-
-  .tunes li {
-    display: grid;
-    gap: 6px;
-    font-size: 0.82rem;
-    color: var(--text-soft);
-  }
-
-  .tunes b {
-    display: block;
-    height: 6px;
-    border-radius: 99px;
-    background: linear-gradient(90deg, var(--blue) 55%, rgba(91, 159, 224, 0.2) 55%);
-  }
-
-  .tunes li:nth-child(2) b {
-    background: linear-gradient(90deg, var(--blue) 35%, rgba(91, 159, 224, 0.2) 35%);
-  }
-
-  .tunes li:nth-child(3) b {
-    background: linear-gradient(90deg, var(--blue) 42%, rgba(91, 159, 224, 0.2) 42%);
-  }
-
-  .gift__price {
-    font-size: 3rem;
-    font-weight: 600;
-    letter-spacing: -0.05em;
-    color: var(--text);
-  }
-
-  .hero__pager {
+    max-width: 32rem;
+    min-height: 5.6rem;
+    padding-top: 16px;
     display: flex;
-    gap: 6px;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-top: 4px;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
   }
 
-  .hero__pager button {
-    width: 28px;
-    height: 22px;
-    border-radius: 99px;
-    background: transparent;
+  .hero__rail {
+    --i: 0;
+    --n: 6;
+    --cell: 32px;
     position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--n), var(--cell));
+    width: calc(var(--n) * var(--cell));
+    height: 36px;
+    align-items: center;
+    justify-content: center;
   }
 
-  .hero__pager button::after {
+  .hero__rail-track {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: 50%;
+    height: 1px;
+    border-radius: 99px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(91, 159, 224, 0.28) 12%,
+      rgba(91, 159, 224, 0.28) 88%,
+      transparent
+    );
+    pointer-events: none;
+  }
+
+  .hero__rail-thumb {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 16px;
+    height: 3px;
+    border-radius: 99px;
+    background: #5b9fe0;
+    box-shadow: 0 0 10px 1px rgba(91, 159, 224, 0.7),
+      0 0 22px 4px rgba(91, 159, 224, 0.28);
+    transform: translate(
+      calc(var(--i) * var(--cell) + var(--cell) / 2 - 50%),
+      -50%
+    );
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .hero__rail button {
+    position: relative;
+    z-index: 1;
+    width: var(--cell);
+    height: 36px;
+    background: transparent;
+    display: grid;
+    place-items: center;
+  }
+
+  .hero__rail button::before {
+    content: "";
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(91, 159, 224, 0.28);
+    box-shadow: 0 0 0 0 rgba(91, 159, 224, 0);
+    transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  }
+
+  .hero__rail button:hover::before,
+  .hero__rail button:focus-visible::before {
+    background: rgba(91, 159, 224, 0.7);
+    transform: scale(1.2);
+  }
+
+  .hero__rail button[aria-selected="true"]::before {
+    background: #5b9fe0;
+    box-shadow: 0 0 8px 1px rgba(91, 159, 224, 0.85);
+    transform: scale(1.15);
+  }
+
+  .hero__rail button:focus-visible {
+    outline: none;
+  }
+
+  .hero__rail button:focus-visible::after {
     content: "";
     position: absolute;
-    left: 2px;
-    right: 2px;
-    top: 8px;
-    height: 6px;
-    border-radius: 99px;
-    background: rgba(0, 0, 0, 0.16);
+    inset: 6px 4px;
+    border-radius: 8px;
+    box-shadow: 0 0 0 2px rgba(91, 159, 224, 0.45);
   }
 
-  .hero__pager button[aria-selected="true"]::after {
-    left: 0;
-    right: 0;
-    background: #1d1d1f;
+  @media (prefers-reduced-motion: reduce) {
+    .hero__rail-thumb {
+      transition: none;
+    }
   }
 
   .hero__caption {
-    margin: 0 0 16px;
-    font-size: 0.92rem;
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.45;
     color: var(--text-soft);
-    max-width: 32rem;
-    min-height: 2.6em;
+    min-height: 2.9em;
   }
 </style>

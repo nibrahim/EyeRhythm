@@ -1,7 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { getPost } from "../../data/journal";
-import { site } from "../../config";
 
 const post = getPost("count-is-not-rhythm")!;
 ---
@@ -328,8 +327,6 @@ const post = getPost("count-is-not-rhythm")!;
         <a href="/journal/screens-cut-blink-rate">Why screens cut blink rate</a>
         ·
         <a href="/journal/camera-setup">Camera setup</a>
-        ·
-        <button type="button" data-open-purchase>{site.cta}</button>
       </p>
     </article>
   </main>

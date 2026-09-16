@@ -296,3 +296,44 @@ export function _resetRateHistoryForTests(): void {
   lastSampleAt = lastNotifyAt = 0;
   listeners.clear();
 }
+
+/**
+ * Backfill a 5-minute Trace for marketing screenshots.
+ * `agoS` is seconds before now (300 = left edge of the window).
+ */
+export function seedRateHistoryForCapture(
+  series: {
+    agoS: number;
+    ori: number | null;
+    present?: boolean;
+    bpm?: number | null;
+    regularity?: number | null;
+  }[],
+): void {
+  _resetRateHistoryForTests();
+  const now = nowMs();
+  const ordered = [...series].sort((a, b) => b.agoS - a.agoS);
+  for (const p of ordered) {
+    const present = p.present !== false && p.ori !== null;
+    samples.push({
+      t: now - p.agoS * 1000,
+      ori: present ? capGraph(p.ori as number) : null,
+      present,
+      bpm: present ? (p.bpm ?? 16) : null,
+      regularity: present ? (p.regularity ?? 82) : null,
+    });
+  }
+  const last = samples[samples.length - 1];
+  if (last && last.present && last.ori !== null) {
+    ema1 = ema2 = ema3 = smooth = last.ori;
+    targetOri = last.ori;
+    targetPresent = true;
+    targetBpm = last.bpm;
+    targetRegularity = last.regularity;
+    filtersLive = true;
+  }
+  if (last) lastSampleAt = last.t;
+  running = true;
+  intervalId = setInterval(tick, SAMPLE_MS);
+  notify();
+}
