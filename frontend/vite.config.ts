@@ -35,5 +35,8 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     assetsDir: "assets",
+    rollupOptions: {
+      input: path.resolve(rootDir, "index.html"),
+    },
   },
 });
