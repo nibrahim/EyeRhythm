@@ -1,7 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { getPost } from "../../data/journal";
-import { site } from "../../config";
 
 const post = getPost("screens-cut-blink-rate")!;
 ---
@@ -441,8 +440,6 @@ The response is not to stop using screens. It is to learn to notice what happens
         <a href="/journal/count-is-not-rhythm">Why the blink count is not enough</a>
         ·
         <a href="/journal/camera-setup">Camera setup</a>
-        ·
-        <button type="button" data-open-purchase>{site.cta}</button>
       </p>
     </article>
   </main>

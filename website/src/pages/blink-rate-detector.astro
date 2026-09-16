@@ -51,9 +51,6 @@ const breadcrumbs = {
           turns how often and how evenly you blink into one quiet score.
         </p>
         <div class="btn-row">
-          <button class="btn btn--primary" type="button" data-open-purchase>
-            {site.cta}
-          </button>
           <a class="btn btn--ghost" href="/journal/camera-setup">Camera setup</a>
         </div>
       </div>
@@ -143,19 +140,6 @@ const breadcrumbs = {
     </article>
 
     <Faq heading="Blink rate detector, in short." />
-
-    <section class="cta">
-      <div class="wrap">
-        <h2 class="display">Keep it nearby. Pay once.</h2>
-        <p class="lede">
-          {site.price.label} one time. A license key and that OS’s installer
-          arrive by email.
-        </p>
-        <button class="btn btn--primary" type="button" data-open-purchase>
-          {site.cta}
-        </button>
-      </div>
-    </section>
   </main>
 </Layout>
 
@@ -232,25 +216,5 @@ const breadcrumbs = {
     display: grid;
     gap: 16px;
     justify-items: start;
-  }
-
-  .cta {
-    padding: clamp(48px, 8vw, 88px) 0;
-    background: var(--band);
-    text-align: center;
-  }
-
-  .cta .wrap {
-    display: grid;
-    justify-items: center;
-    gap: 14px;
-  }
-
-  .cta .display {
-    font-size: clamp(1.9rem, 4vw, 3rem);
-  }
-
-  .cta .lede {
-    text-align: center;
   }
 </style>

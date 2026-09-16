@@ -1,0 +1,137 @@
+/* Local-only marketing capture. Not shipped in the packaged app. */
+
+html,
+body,
+#root {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+  background: #ffffff;
+}
+
+body {
+  overflow: visible;
+}
+
+.capture-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: #ffffff;
+}
+
+.capture-win {
+  width: 420px;
+  background: #e8eef6;
+  border: 1px solid rgba(30, 48, 72, 0.12);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.capture-win--wide {
+  width: 520px;
+}
+
+.capture-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  background: linear-gradient(180deg, #f6f8fb, #e9eef5);
+  border-bottom: 1px solid rgba(30, 48, 72, 0.08);
+  position: relative;
+}
+
+.capture-bar__dots {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.capture-bar__dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff5f57;
+}
+
+.capture-bar__dots i:nth-child(2) {
+  background: #febc2e;
+}
+
+.capture-bar__dots i:nth-child(3) {
+  background: #28c840;
+}
+
+.capture-bar__title {
+  font-size: 0.8rem;
+  font-weight: 550;
+  color: #5a6f82;
+}
+
+.capture-body {
+  padding: 10px;
+}
+
+.capture-body .app-shell {
+  height: auto;
+  padding: 0;
+  overflow: visible;
+}
+
+.capture-fps .metric-card.palette-sky {
+  outline: 2px solid #2f78c4;
+  outline-offset: 0;
+}
+
+.capture-fps__note {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(30, 48, 72, 0.09);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #5a6f82;
+}
+
+.capture-fps__note strong {
+  color: #1e2c3a;
+}
+
+.capture-camera .settings {
+  gap: 0;
+}
+
+.capture-reports {
+  min-height: 280px;
+}
+
+.capture-nav {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  z-index: 9;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 220px;
+}
+
+.capture-nav a {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid rgba(30, 48, 72, 0.12);
+  font-size: 11px;
+  color: #1e2c3a;
+  text-decoration: none;
+}
+
+.capture-nav a.is-on {
+  background: #d4e8f8;
+  border-color: rgba(91, 159, 224, 0.5);
+}
