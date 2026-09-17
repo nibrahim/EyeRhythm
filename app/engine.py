@@ -86,6 +86,9 @@ MODEL_PATH = str(ROOT / "models" / "face_landmarker.task")
 # ORI alert: beep after enough time below this; stop at/above it.
 ALERT_ORI_THRESHOLD = 50.0
 ALERT_POLL_S = 0.5
+# Once a Sound-mode cue has played, wait this long before the next one while
+# ORI is still below the threshold. Latch flicker must not restart the timer.
+ALERT_BEEP_INTERVAL_S = 60.0
 # After a fresh start (or face return after a long break), rate (and therefore
 # ORI) is still filling its 60 s window and would look artificially low.
 # Suppress alert beeps for this long so we act on real data only.
@@ -910,6 +913,9 @@ class AlertMonitor:
     history. They can resume if ORI dips below 50 again while that history
     still qualifies.
 
+    Sound cues fire at most once every ``ALERT_BEEP_INTERVAL_S`` (60 s) after
+    the first beep. Brief face / ORI flicker does not reset that gap.
+
     Alert beeps are also suppressed for ``ALERT_WARMUP_S`` (default 60 s) after:
       * construction / first face of the session, and
       * face re-detection after an absence of ``FACE_BREAK_S`` or more.
@@ -950,6 +956,8 @@ class AlertMonitor:
         self._trend: deque[tuple[float, float]] = deque()
         self._last_trend_sample_at: float | None = None
         self._active = False
+        # 0 = never beeped this process. Interval is measured from the last cue.
+        self._last_beep_mono = 0.0
 
     def update(self, ori: float | None, face_found: bool) -> None:
         """
@@ -1065,6 +1073,24 @@ class AlertMonitor:
             return False
         return self._low_ori_duration_s(now) >= self._low_duration_s
 
+    def _maybe_fire_alert_beep_locked(self, now: float, should: bool) -> bool:
+        """
+        True once per ``ALERT_BEEP_INTERVAL_S`` while the low-ORI latch holds.
+
+        The timer is **not** cleared when ``should`` briefly goes false, so a
+        flickering face or ORI around the line cannot re-trigger immediately.
+        Caller holds the lock.
+        """
+        if not should:
+            return False
+        if (
+            self._last_beep_mono > 0.0
+            and (now - self._last_beep_mono) < ALERT_BEEP_INTERVAL_S
+        ):
+            return False
+        self._last_beep_mono = now
+        return True
+
     def _on_face_reappeared(self, now: float) -> None:
         """Apply warmup after first face or after a long absence (caller holds lock)."""
         if not self._ever_had_face:
@@ -1136,6 +1162,7 @@ class AlertMonitor:
     def _run(self) -> None:
         """Wake every half-second: keep Alert latched while ORI is still low."""
         while not self._stop.is_set():
+            fire_beep = False
             with self._lock:
                 now = self._time()
                 # Keep trend head fresh even between sparse camera frames.
@@ -1144,9 +1171,15 @@ class AlertMonitor:
                 should = self._should_beep_locked(now)
                 changed = should != self._active
                 self._active = should
+                fire_beep = self._maybe_fire_alert_beep_locked(now, should)
             if changed and self._on_active is not None:
                 try:
                     self._on_active(should)
+                except Exception:
+                    pass
+            if fire_beep and self._on_alert_beep is not None:
+                try:
+                    self._on_alert_beep()
                 except Exception:
                     pass
             self._stop.wait(self._poll_s)

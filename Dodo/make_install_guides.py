@@ -39,7 +39,7 @@ GUIDES = [
                 "Download the Mac installer from Google Drive. Click "
                 f"{drive_link(MAC_DRIVE, 'Download EyesRhythm for macOS')} "
                 f"or paste this address into your browser:<br/>{drive_link(MAC_DRIVE, MAC_DRIVE)}<br/>"
-                "Save <b>EyesRhythm-1.2.1.dmg</b> (this is the app, not a zip). If Google asks you to sign in, email hello@eyesrhythm.com."
+                "Save <b>EyesRhythm-1.3.0.dmg</b> (this is the app, not a zip). If Google asks you to sign in, email hello@eyesrhythm.com."
             ),
             "Double-click the <b>.dmg</b>. Drag EyesRhythm into the <b>Applications</b> folder. Eject the disk image.",
             "Open Applications and double-click EyesRhythm. If macOS says it cannot be opened because it is from an unidentified developer: Control-click EyesRhythm → <b>Open</b> → <b>Open</b>. You only do this once.",
@@ -58,7 +58,7 @@ GUIDES = [
                 "Download the Windows installer from Google Drive. Click "
                 f"{drive_link(WIN_DRIVE, 'Download EyesRhythm for Windows')} "
                 f"or paste this address into your browser:<br/>{drive_link(WIN_DRIVE, WIN_DRIVE)}<br/>"
-                "Save <b>EyesRhythm-Setup-1.2.1.exe</b> (this is the installer, not a zip). If Google asks you to sign in, email hello@eyesrhythm.com."
+                "Save <b>EyesRhythm-Setup-1.3.0.exe</b> (this is the installer, not a zip). If Google asks you to sign in, email hello@eyesrhythm.com."
             ),
             "Right-click the <b>.exe</b> → Properties → tick <b>Unblock</b> → Apply, if Windows shows that box.",
             "Double-click the Setup file. You do not need an administrator account. If Windows shows “Windows protected your PC”: <b>More info</b> → <b>Run anyway</b>.",

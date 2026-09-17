@@ -1,5 +1,31 @@
 # EyesRhythm release notes
 
+## 1.3.0 — 17 September 2026
+
+Screen-time reports in the dock, and Sound-mode alerts that stay on a one-minute cadence.
+
+### Screen time reports
+
+- Reports splits into **Ocular rhythm** and **Screen time**. Both use the same Daily / Weekly / Monthly picker.
+- Daily screen time is minutes at the screen in each 5-minute slot. Weekly and monthly show hours per day, with total, daily average, and days present.
+- These charts read the screen-time seconds already stored in the local ORI history bins. No extra diary file.
+
+### Sound alert
+
+- After a low-ORI Sound cue plays, the next cue waits **one minute**, even if the alert latch flickers (brief face loss or ORI bouncing around the line).
+- Beeps still stop as soon as ORI is back at or above the threshold.
+
+### Files
+
+| Platform | Installer |
+|----------|-----------|
+| macOS | `EyesRhythm-1.3.0.dmg` |
+| Windows | `EyesRhythm-Setup-1.3.0.exe` |
+
+Drag the Mac app into Applications. On Windows, run Setup (per-user, no administrator account). Allow the camera when the system asks.
+
+---
+
 ## 1.2.1 — 13 September 2026
 
 Camera picker is visible again in Settings after 1.2.0 hid it on machines with more than one desk webcam.

@@ -52,6 +52,17 @@ export function formatBpm(n: number): string {
   return n < 10 ? n.toFixed(1) : Math.round(n).toString();
 }
 
+/** Face-on-screen duration, matching the dashboard Screen card. */
+export function formatScreenTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "0m";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const m = Math.floor(seconds / 60);
+  const h = Math.floor(m / 60);
+  if (h <= 0) return `${m}m`;
+  const rem = m % 60;
+  return `${h}h ${String(rem).padStart(2, "0")}m`;
+}
+
 /** Status pill on the avatar: “Eyes open”, “Eyes closed”, “No face”, … */
 export function eyesLabel(
   face: boolean,

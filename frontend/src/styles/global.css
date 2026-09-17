@@ -2532,6 +2532,23 @@ button {
   color: var(--text-faint);
 }
 
+.reports__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--stroke);
+}
+
+.reports__section-title {
+  margin: 0;
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--blue-deep);
+}
+
 .report-chart {
   position: relative;
 }
@@ -2572,6 +2589,23 @@ button {
   fill: #6b5ea8;
 }
 
+.report-chart__bar--screen {
+  fill: #2c8f8a;
+}
+
+.report-chart__bar--screen.report-chart__bar--daily {
+  fill: #3aa6a0;
+}
+
+.report-chart__bar--screen.report-chart__bar--monthly {
+  fill: #1f6f75;
+}
+
+.report-chart__grid {
+  stroke: rgba(47, 120, 196, 0.12);
+  stroke-width: 1;
+}
+
 .report-chart__empty {
   position: absolute;
   inset: 28px 12px 48px;
@@ -2589,6 +2623,10 @@ button {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin: 10px 0 0;
+}
+
+.report-chart__stats--2 {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .report-chart__stats div {

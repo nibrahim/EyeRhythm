@@ -39,6 +39,21 @@ import { lookAngleTone, oriTone } from "./utils/format";
 
 const AVATARS: AvatarId[] = ["atlas", "lumen", "vesper", "lens", "graph"];
 
+/** Sound-mode cue: at most one play per minute, even if the latch flickers. */
+const ALERT_SOUND_GAP_MS = 60_000;
+let lastAlertSoundMs = 0;
+
+function playAlertSound() {
+  const now = Date.now();
+  if (now - lastAlertSoundMs < ALERT_SOUND_GAP_MS) return;
+  lastAlertSoundMs = now;
+  const audio = new Audio("/alert.mp3");
+  audio.currentTime = 0;
+  void audio.play().catch(() => {
+    /* autoplay / missing file */
+  });
+}
+
 function asAvatarId(v: unknown): AvatarId {
   // Unknown / corrupted preference → fall back to Atlas (the default face).
   if (typeof v === "string" && (AVATARS as string[]).includes(v)) {
@@ -262,18 +277,13 @@ export default function App() {
 
   useEffect(() => {
     if (alertMode !== "sound" || !alertActive) return;
-    const audio = new Audio("/alert.mp3");
-    const play = () => {
-      audio.currentTime = 0;
-      void audio.play().catch(() => {
-        /* autoplay / missing file */
-      });
-    };
-    play();
-    const id = window.setInterval(play, 60_000);
+    // Play on latch, then retry every second; playAlertSound enforces 1 min.
+    // alert_active can flicker (face / ORI around the line). A 60s interval
+    // tied to this effect used to restart and beep again immediately.
+    playAlertSound();
+    const id = window.setInterval(playAlertSound, 1_000);
     return () => {
       window.clearInterval(id);
-      audio.pause();
     };
   }, [alertMode, alertActive]);
 

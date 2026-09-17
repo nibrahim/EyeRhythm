@@ -106,7 +106,7 @@ function dailyReport(): ReportPayload {
       i,
       t: `${String(Math.floor(hour)).padStart(2, "0")}:${String((i % 12) * 5).padStart(2, "0")}`,
       ori,
-      screen_s: ori == null ? 0 : 280,
+      screen_s: ori == null ? 0 : 300,
       blinks: ori == null ? 0 : 12,
     };
   });
@@ -121,8 +121,8 @@ function dailyReport(): ReportPayload {
     points,
     summary: {
       mean_ori: mean,
-      screen_s: 11520,
-      blinks: 2184,
+      screen_s: livePts.length * 300,
+      blinks: livePts.length * 12,
       days_with_data: 1,
     },
   };
@@ -311,11 +311,21 @@ function ReportsScene() {
               Monthly
             </button>
           </div>
-          <p className="reports__caption">
-            5-minute mean ORI across 24 hours · Green dotted line is the
-            trained-eye target (75)
-          </p>
-          <ReportChart report={report} />
+          <section className="reports__section">
+            <h3 className="reports__section-title">Ocular rhythm</h3>
+            <p className="reports__caption">
+              5-minute mean ORI across 24 hours · Green dotted line is the
+              trained-eye target (75)
+            </p>
+            <ReportChart report={report} metric="ori" />
+          </section>
+          <section className="reports__section">
+            <h3 className="reports__section-title">Screen time</h3>
+            <p className="reports__caption">
+              Minutes looking at the screen in each 5-minute slot
+            </p>
+            <ReportChart report={report} metric="screen" />
+          </section>
         </div>
       </div>
     </CaptureFrame>

@@ -2,9 +2,10 @@
 Ocular Rhythm Index history for Reports
 =======================================
 
-While a face is on-screen, the engine samples ORI and we fold those
-samples into **5-minute bins** for each local calendar day. Reports read
-this file — never the live 5-minute Trace buffer.
+While a face is on-screen, the engine samples ORI and screen time and
+we fold those samples into **5-minute bins** for each local calendar day.
+Reports (ocular rhythm and screen time) read this file — never the live
+5-minute Trace buffer.
 
 File (local only)::
 
