@@ -2,15 +2,15 @@
 Dodo Payments license activation
 ================================
 
-Paid Mac/Windows builds ask for the key from the purchase email on first
-launch. The desktop app talks to Dodo (unique keys, payment, activation
-store). Blink data still never leaves the machine.
+Copies open without a purchase key, including packaged Mac/Windows
+builds, so the app can be shared for free. Blink data still never
+leaves the machine.
 
-Running from source does not require a key, so contributors can keep
-working. Packaged copies (PyInstaller) do. Override with::
+The Dodo Payments gate is off unless you turn it on::
 
     EYERHYTHM_REQUIRE_LICENSE=1   # force the gate (useful while developing)
-    EYERHYTHM_SKIP_LICENSE=1      # skip even in a packaged build
+    --require-license             # same, from the command line
+    EYERHYTHM_SKIP_LICENSE=1      # skip even when the gate was forced
     EYERHYTHM_DODO_TEST=1         # talk to Dodo test mode, not live
 
 Fill ``DODO_PRODUCT_MAC`` / ``DODO_PRODUCT_WINDOWS`` after the Dodo
@@ -69,7 +69,11 @@ def _env_flag(name: str) -> bool:
 
 
 def is_required() -> bool:
-    """True when this process must activate before the dashboard."""
+    """True when this process must activate before the dashboard.
+
+    Free by default, including PyInstaller freezes. Turn the gate on
+    with ``--require-license`` or ``EYERHYTHM_REQUIRE_LICENSE=1``.
+    """
     if _env_flag("EYERHYTHM_SKIP_LICENSE"):
         return False
     if _ENFORCEMENT is False:
@@ -78,7 +82,7 @@ def is_required() -> bool:
         return True
     if _env_flag("EYERHYTHM_REQUIRE_LICENSE"):
         return True
-    return bool(getattr(sys, "frozen", False))
+    return False
 
 
 def current_platform() -> str:

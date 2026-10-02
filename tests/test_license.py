@@ -74,6 +74,16 @@ class LicenseTests(unittest.TestCase):
             self.assertFalse(app_license.is_required())
             self.assertTrue(app_license.is_activated())
 
+    def test_packaged_copy_is_free_unless_gate_is_forced(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {"EYERHYTHM_SKIP_LICENSE": "", "EYERHYTHM_REQUIRE_LICENSE": ""},
+        ):
+            app_license.set_enforcement(None)
+            with patch.object(app_license.sys, "frozen", True, create=True):
+                self.assertFalse(app_license.is_required())
+                self.assertTrue(app_license.is_activated())
+
     def test_activate_saves_local_file(self) -> None:
         payload = _activate_payload()
         with (
