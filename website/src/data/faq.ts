@@ -9,7 +9,7 @@ export const faqs = [
   },
   {
     q: "Does any video leave my computer?",
-    a: "No. After you register the license, frames are read on this machine and discarded. There is no account, cloud, or analytics. Camera frames are not uploaded or kept as a film of your face.",
+    a: "No. Frames are read on this machine and discarded. There is no account, no license key, no cloud, and no analytics. Camera frames are not uploaded or kept as a film of your face.",
   },
   {
     q: "How is this different from a blink counter?",

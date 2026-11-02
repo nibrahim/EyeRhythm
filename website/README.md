@@ -61,52 +61,32 @@ That is not enough by itself:
 Indexing a new domain often takes days to a few weeks. Rankings need
 links from other sites as well as this copy.
 
-Keep the GitHub repo **private**. Do not make a public GitHub Release — that would be a download.
+Keep the GitHub repo **private**.
 
-### Payment (keep cards and installers off this site)
+### Downloads (free)
 
-Do not put `.zip` / `.dmg` / `.exe` in `website/public`. CI will fail if you do.
-`downloadsOpen` in `src/config.ts` stays `false` — installers go out from
-Dodo Payments, not this origin.
+The app is free. **Download** on the site starts the Mac `.dmg` and the
+Windows Setup `.exe` directly. Those files are about 93 MB and 81 MB, which
+is over the Cloudflare Pages file limit, so they are not stored in
+`website/public`. The links live in `src/config.ts` (`downloads.mac` /
+`downloads.windows`).
 
-Dodo Payments is the single provider: they take the $12, generate a unique
-license key, email it to the buyer, store activations, and pay you out to
-an Indian bank account. There is no monthly fee; they take a cut of each
-sale (currently about 4% + 40¢, plus 1.5% on international cards).
+Do not commit `.zip` / `.dmg` / `.exe` under `website/public`. CI will fail
+if you do.
 
-When you are ready to take $12:
-
-1. Create a Dodo Payments account as **India** (PAN + Indian bank in your
-   name). Do not register as Canada.
-2. Create two **products**: **EyesRhythm for macOS** and **EyesRhythm for
-   Windows**. Do not put both installers on one product — a purchase is
-   one OS.
-3. On each product: enable **license keys**, set **activation limit** to 1
-   (or 2 if you want a free reinstall). Attach only that OS’s installer.
-   Price each at **$12 USD**.
-4. Copy each product’s checkout / payment-link URL into `src/config.ts`
-   (`dodo.checkoutMac` / `checkoutWindows`).
-5. Copy each product id (`pdt_…`) into `app/license.py`
-   (`DODO_PRODUCT_MAC`, `DODO_PRODUCT_WINDOWS`) so the app rejects a key
-   bought for the other OS.
-6. Set `comingSoon` to `false` and redeploy.
-7. **Get a copy** sends the buyer to Dodo. After payment they get the key
-   by email. First launch of the app asks for that key (internet once).
-   After that the app stays offline.
-
-This origin never sees card numbers (PCI stays with Dodo). Do not load a
-checkout overlay script on this site — a plain HTTPS redirect keeps the
-marketing page free of third-party JavaScript.
+The license gate in the app is off. The Dodo checkout URLs stay in
+`src/config.ts` under `dodo` so they can be restored later. They are not
+shown on the site.
 
 ## Iterate
 
 While `comingSoon` is `true` in `src/config.ts`, every page shows a
-single holding screen (no Get a copy, no journal). Set it to `false` and
-redeploy when the Dodo Payments checkout URLs are pasted.
+single holding screen (no Download, no journal). Set it to `false` and
+redeploy when the download links in `src/config.ts` are ready.
 
 | Want to change | File |
 |---|---|
-| Coming soon / price, CTA, contact | `src/config.ts` |
+| Coming soon / download links, CTA, contact | `src/config.ts` |
 | Colors, type | `src/styles/global.css` |
 | A section | `src/components/*.astro` |
 | Journal | `src/data/journal.ts` and `src/pages/journal/` |

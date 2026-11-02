@@ -1,61 +1,39 @@
 ---
-import { site, checkoutUrl } from "../config";
+import { site } from "../config";
 
-const macUrl = checkoutUrl("mac");
-const winUrl = checkoutUrl("windows");
+const mac = site.downloads.mac;
+const win = site.downloads.windows;
 ---
 
 <section class="get" id="get">
   <div class="wrap">
     <p class="kicker"><span class="kicker__dot"></span>A copy for your desk</p>
-    <h2 class="display">Keep it nearby. Pay once.</h2>
+    <h2 class="display">Keep it nearby. It’s free.</h2>
     <p class="lede">
-      {site.price.label} one time, macOS or Windows, not both.
-      {site.price.updates}. After you pay, you get a license key and that OS’s
-      installer by email. First launch needs the internet once.
+      Download for macOS or Windows. No account and no license key. The app
+      stays on this computer.
     </p>
     <div class="ticket">
       <p class="ticket__price">{site.price.label}</p>
-      <p class="ticket__sub">one-time · one computer · one OS</p>
+      <p class="ticket__sub">macOS and Windows</p>
       <ul>
-        <li>Unique license key, emailed to you</li>
-        <li>Activate on first run, then fully offline</li>
-        <li>{site.price.updates}</li>
+        <li>No account and no license key</li>
+        <li>Stays on this computer</li>
+        <li>Camera frames never leave the machine</li>
       </ul>
       <div class="os-row">
-        {
-          macUrl ? (
-            <a class="btn btn--primary" href={macUrl} data-download-card="mac">
-              macOS
-            </a>
-          ) : (
-            <button
-              class="btn btn--primary"
-              type="button"
-              data-open-purchase="mac"
-              data-download-card="mac"
-            >
-              macOS
-            </button>
-          )
-        }
-        {
-          winUrl ? (
-            <a class="btn btn--primary" href={winUrl} data-download-card="windows">
-              Windows
-            </a>
-          ) : (
-            <button
-              class="btn btn--primary"
-              type="button"
-              data-open-purchase="windows"
-              data-download-card="windows"
-            >
-              Windows
-            </button>
-          )
-        }
+        <a class="btn btn--primary" href={mac.href} data-download-card="mac">
+          macOS
+        </a>
+        <a class="btn btn--primary" href={win.href} data-download-card="windows">
+          Windows
+        </a>
       </div>
+      <p class="ticket__files">
+        EyesRhythm {site.version}. Your browser saves {mac.file} ({mac.size}) or{" "}
+        {win.file} ({win.size}). Drag the Mac app into Applications. On Windows,
+        run Setup.
+      </p>
     </div>
     <p class="get__machine">{site.recommendedMachine}</p>
   </div>
@@ -102,9 +80,16 @@ const winUrl = checkoutUrl("windows");
   }
 
   .ticket__sub,
-  .ticket li {
+  .ticket li,
+  .ticket__files {
     color: var(--text-soft);
     font-size: 0.95rem;
+  }
+
+  .ticket__files {
+    margin: 4px 0 0;
+    font-size: 0.82rem;
+    line-height: 1.45;
   }
 
   ul {

@@ -1,7 +1,6 @@
 # Cloudflare Pages headers — HTTPS, cache, and a tight first-party CSP.
-# Checkout lives on Dodo Payments (redirect), not on this origin.
-# When you add an embedded checkout, extend script-src / frame-src / connect-src
-# to that provider only — never 'unsafe-eval', never a wildcard for all HTTPS.
+# Installer downloads are normal links off this origin. Do not embed a
+# checkout. Never add 'unsafe-eval', and never wildcard all HTTPS.
 
 /*
   X-Content-Type-Options: nosniff

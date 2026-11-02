@@ -1,53 +1,35 @@
 ---
-import { site, checkoutUrl } from "../config";
+import { site } from "../config";
 
-const macUrl = checkoutUrl("mac");
-const winUrl = checkoutUrl("windows");
+const mac = site.downloads.mac;
+const win = site.downloads.windows;
 ---
 
 <section class="section" id="purchase">
   <div class="wrap buy">
     <div class="buy__copy">
-      <p class="kicker"><span class="kicker__dot"></span>A license, not a subscription</p>
-      <h2 class="display">Pay once. Keep it on your machine.</h2>
+      <p class="kicker"><span class="kicker__dot"></span>Free, not a subscription</p>
+      <h2 class="display">Download it. Keep it on your machine.</h2>
       <p class="lede">
-        EyesRhythm is yours to run locally. Pick macOS or Windows at checkout.
-        You get a unique key by email. First launch binds it to that computer.
-        After that, nothing phones home.
+        EyesRhythm is free for macOS and Windows. There is no account and no
+        license key. After you install it, nothing phones home.
       </p>
       <ul>
-        <li>One-time personal use on one computer</li>
-        <li>macOS or Windows, not both from one purchase</li>
-        <li>Internet once, to activate; blink data stays on the machine</li>
-        <li>Supports the work of keeping it quiet and private</li>
+        <li>Free for personal use</li>
+        <li>macOS and Windows, each with its own installer</li>
+        <li>Blink data stays on the machine</li>
       </ul>
     </div>
     <aside class="card ticket">
-      <p class="ticket__kicker">Personal license</p>
+      <p class="ticket__kicker">Download</p>
       <p class="ticket__price">
         <strong>{site.price.label}</strong>
         <span>{site.price.cadence}</span>
       </p>
-      <p class="ticket__sub">One OS · no subscription</p>
+      <p class="ticket__sub">Mac and Windows</p>
       <div class="os-row">
-        {
-          macUrl ? (
-            <a class="btn btn--primary" href={macUrl}>macOS</a>
-          ) : (
-            <button class="btn btn--primary" type="button" data-open-purchase="mac">
-              macOS
-            </button>
-          )
-        }
-        {
-          winUrl ? (
-            <a class="btn btn--primary" href={winUrl}>Windows</a>
-          ) : (
-            <button class="btn btn--primary" type="button" data-open-purchase="windows">
-              Windows
-            </button>
-          )
-        }
+        <a class="btn btn--primary" href={mac.href}>macOS</a>
+        <a class="btn btn--primary" href={win.href}>Windows</a>
       </div>
     </aside>
   </div>
