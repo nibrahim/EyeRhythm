@@ -11,8 +11,8 @@
 /** Hold the deployed site to a coming-soon screen. Local `astro dev` ignores this. */
 const comingSoonPublic = false;
 
-const MAC_FILE_ID = "1BTVMSQ6OCXOvIch8FsmO4FxIK4iSuKYE";
-const WINDOWS_FILE_ID = "1L3UdbNhzzGyhEphri-nl4wHehDXTEQPu";
+const MAC_FILE_ID = "1L-S5o-zDXvchb49qCjmAxMatFvO-Rp0P";
+const WINDOWS_FILE_ID = "1yAIShWaZTTMQ2_OUoVDVX1cG9BsLrDzV";
 
 function driveDownload(fileId: string): string {
   return `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`;
@@ -40,19 +40,19 @@ export const site = {
     cadence: "free",
     updates: "Free for Mac and Windows",
   },
-  version: "1.4.0",
+  version: "1.5.0",
   recommendedMachine:
     "Tested on Intel Core i7 and on Mac processors. We recommend this configuration.",
   downloads: {
     mac: {
       href: driveDownload(MAC_FILE_ID),
-      file: "EyesRhythm-1.4.0.dmg",
+      file: "EyesRhythm-1.5.0.dmg",
       size: "93 MB",
       label: "macOS",
     },
     windows: {
       href: driveDownload(WINDOWS_FILE_ID),
-      file: "EyesRhythm-Setup-1.4.0.exe",
+      file: "EyesRhythm-Setup-1.5.0.exe",
       size: "84 MB",
       label: "Windows",
     },
