@@ -27,7 +27,7 @@ from typing import Any
 STORAGE_DIR = Path.home() / ".eyerhythm_blinkcounter"
 PREFS_FILE = STORAGE_DIR / "preferences.json"
 
-VALID_AVATARS = frozenset({"atlas", "lumen", "vesper", "lens", "graph"})
+VALID_AVATARS = frozenset({"atlas", "lumen", "vesper", "lens", "graph", "poise"})
 VALID_EYE_COMFORT = frozenset(
     {"comfortable", "mild", "moderate", "marked", "decline"}
 )

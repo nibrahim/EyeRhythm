@@ -1,5 +1,25 @@
 # EyesRhythm release notes
 
+## 1.4.0 — 2 November 2026
+
+EyesRhythm is free. Packaged Mac and Windows copies open with no license key.
+
+### License
+
+- The activation gate stays in the app and is off. First launch goes straight to the splash.
+- Turn it back on with `--require-license` or `EYERHYTHM_REQUIRE_LICENSE=1`.
+
+### Files
+
+| Platform | Installer |
+|----------|-----------|
+| macOS | `EyesRhythm-1.4.0.dmg` |
+| Windows | `EyesRhythm-Setup-1.4.0.exe` |
+
+Drag the Mac app into Applications. On Windows, run Setup (per-user, no administrator account). Allow the camera when the system asks.
+
+---
+
 ## 1.3.0 — 17 September 2026
 
 Screen-time reports in the dock, and Sound-mode alerts that stay on a one-minute cadence.

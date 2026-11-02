@@ -31,32 +31,15 @@ function initNav() {
   });
 }
 
-function initPurchase() {
-  const dialog = document.querySelector<HTMLDialogElement>("#purchase-dialog");
+function initDownload() {
+  const dialog = document.querySelector<HTMLDialogElement>("#download-dialog");
   if (!dialog) return;
 
-  const openers = document.querySelectorAll("[data-open-purchase]");
-  const closers = document.querySelectorAll("[data-close-purchase]");
-  const form = dialog.querySelector<HTMLFormElement>("#purchase-form");
-  const error = dialog.querySelector("[data-form-error]");
-
-  const selectPlatform = (platform: string) => {
-    const input = dialog.querySelector<HTMLInputElement>(
-      `input[name="platform"][value="${platform}"]`,
-    );
-    if (input) input.checked = true;
-  };
-
-  const reset = () => {
-    form?.reset();
-    error?.classList.remove("is-on");
-  };
+  const openers = document.querySelectorAll("[data-open-download]");
+  const closers = document.querySelectorAll("[data-close-download]");
 
   openers.forEach((btn) => {
     btn.addEventListener("click", () => {
-      reset();
-      const pref = btn.getAttribute("data-open-purchase");
-      if (pref === "mac" || pref === "windows") selectPlatform(pref);
       dialog.showModal();
     });
   });
@@ -67,34 +50,6 @@ function initPurchase() {
 
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) dialog.close();
-  });
-}
-
-function initForm() {
-  const form = document.querySelector<HTMLFormElement>("#purchase-form");
-  const error = document.querySelector("[data-form-error]");
-  if (!form) return;
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const chosen = form.querySelector<HTMLInputElement>(
-      'input[name="platform"]:checked',
-    );
-    const url = chosen?.getAttribute("data-checkout") || "";
-    if (!chosen) {
-      error?.classList.add("is-on");
-      return;
-    }
-    error?.classList.remove("is-on");
-    if (!/^https:\/\//i.test(url)) {
-      error?.classList.add("is-on");
-      if (error) {
-        error.textContent =
-          "Checkout for that OS is not connected yet.";
-      }
-      return;
-    }
-    window.location.assign(url);
   });
 }
 
@@ -269,8 +224,7 @@ function initHeroPager() {
 
 onReady(() => {
   initNav();
-  initPurchase();
-  initForm();
+  initDownload();
   initDownloadHint();
   initLivingMock();
   initRails();

@@ -37,7 +37,7 @@ import { useEngineState } from "./hooks/useEngineState";
 import { useRateHistory } from "./hooks/useRateHistory";
 import { lookAngleTone, oriTone } from "./utils/format";
 
-const AVATARS: AvatarId[] = ["atlas", "lumen", "vesper", "lens", "graph"];
+const AVATARS: AvatarId[] = ["atlas", "lumen", "vesper", "lens", "graph", "poise"];
 
 /** Sound-mode cue: at most one play per minute, even if the latch flickers. */
 const ALERT_SOUND_GAP_MS = 60_000;
@@ -73,7 +73,7 @@ export default function App() {
   const [prefsReady, setPrefsReady] = useState(false);
   // Launch splash: camera pick (if several webcams), comfort check, notices.
   const [splashOpen, setSplashOpen] = useState(true);
-  // Packaged copies wait here until the emailed key is activated.
+  // The license gate is off unless this copy was started with it forced on.
   const [licenseGate, setLicenseGate] = useState<"pending" | "needed" | "ok">(
     "pending",
   );

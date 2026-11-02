@@ -4,12 +4,13 @@
  *
  * Atlas, Lumen and Vesper are drawn faces. Their eyelids close when the
  * engine reports a blink. Lens is your real webcam still. Trace (the
- * graph) is a separate component; this file only draws the faces.
+ * graph) and Poise (the movement map) are separate components; this file
+ * only draws the faces and the picker.
  *
  * Product names are on purpose — not “camera” / “graph” in the picker.
  */
 
-export type AvatarId = "atlas" | "lumen" | "vesper" | "lens" | "graph";
+export type AvatarId = "atlas" | "lumen" | "vesper" | "lens" | "graph" | "poise";
 
 export const AVATAR_OPTIONS: { id: AvatarId; label: string }[] = [
   { id: "atlas", label: "Atlas" },
@@ -17,6 +18,7 @@ export const AVATAR_OPTIONS: { id: AvatarId; label: string }[] = [
   { id: "vesper", label: "Vesper" },
   { id: "lens", label: "Lens" },
   { id: "graph", label: "Trace" },
+  { id: "poise", label: "Poise" },
 ];
 
 interface Props {
@@ -312,7 +314,7 @@ interface PickerProps {
   onChange: (id: AvatarId) => void;
 }
 
-/** Five equal chips under the hero: pick Atlas / Lumen / Vesper / Lens / Trace. */
+/** Chips under the hero: Atlas / Lumen / Vesper / Lens / Trace / Poise. */
 export function AvatarPicker({ value, onChange }: PickerProps) {
   return (
     <div className="avatar-picker" role="radiogroup" aria-label="Avatar style">

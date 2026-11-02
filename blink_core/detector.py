@@ -241,10 +241,37 @@ class FrameResult:
     # "straight" | "left" | "right" | "top" | "bottom" | "right-top" | …
     face_direction: str | None = None
 
+    # Full 468-point face mesh in normalized image space, shape (468, 3).
+    # Not part of the JSON snapshot. Poise uses it to measure motion around
+    # a fixed center; the live cloud itself still follows the head.
+    landmarks_xyz: np.ndarray | None = None
+
 
 # ==========================================================================
 # Small math helpers (no MediaPipe needed)
 # ==========================================================================
+
+def _pack_face_mesh(landmarks) -> np.ndarray | None:
+    """
+    Copy the 468 face-mesh points into a float32 array.
+
+    Iris points (468–477) are left out: they are not in the face tessellation
+    Poise draws. Returns None if this frame does not have a full mesh.
+    """
+    try:
+        n = len(landmarks)
+    except TypeError:
+        return None
+    if n < 468:
+        return None
+    xyz = np.empty((468, 3), dtype=np.float32)
+    for i in range(468):
+        p = landmarks[i]
+        xyz[i, 0] = p.x
+        xyz[i, 1] = p.y
+        xyz[i, 2] = p.z
+    return xyz
+
 
 def _dist(a, b) -> float:
     """
@@ -727,6 +754,7 @@ class BlinkDetector:
         # First (and only) face’s landmark list.
         landmarks = detection.face_landmarks[0]
         result.face_found = True
+        result.landmarks_xyz = _pack_face_mesh(landmarks)
 
         # ---- Step 3b: face axis vs camera (look angle + direction) ----
         # Computed every face frame; independent of blink gating.

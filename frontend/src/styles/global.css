@@ -413,6 +413,91 @@ button {
   pointer-events: auto;
 }
 
+/* Poise: face grid and pairing field, taller than the portrait avatars. */
+.hero--poise .hero__stage-wrap {
+  width: 100%;
+  min-height: 312px;
+  height: 312px;
+  padding-top: 2px;
+}
+
+.hero--poise .hero__avatar-stage {
+  width: 100%;
+  height: 312px;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  pointer-events: auto;
+}
+
+.poise {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: minmax(0, 1fr) 42px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #070b12;
+  user-select: none;
+}
+
+.poise__face,
+.poise__field {
+  width: 100%;
+  height: 100%;
+  display: block;
+  min-width: 0;
+  min-height: 0;
+}
+
+.poise__field {
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.poise__legend {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 6px;
+  background: #070b12;
+}
+
+.poise__scale {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.poise__scale-note {
+  display: block;
+  font-size: 0.62em;
+  line-height: 1.3;
+  color: rgba(244, 247, 251, 0.72);
+}
+
+.poise__reset {
+  pointer-events: auto;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: #f4f7fb;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 0.62em;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.poise__reset:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .avatar {
   position: absolute;
   inset: 0;
@@ -1046,10 +1131,10 @@ button {
   position: relative;
   z-index: 10;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 5px;
   width: 100%;
-  max-width: 420px;
+  max-width: 100%;
   margin: 0 auto;
   pointer-events: auto;
 }
@@ -1063,11 +1148,11 @@ button {
   justify-content: center;
   gap: 4px;
   min-height: 44px;
-  padding: 6px 4px;
+  padding: 6px 2px;
   border-radius: 12px;
   border: 1px solid var(--stroke);
   background: rgba(255, 255, 255, 0.92);
-  font-size: 0.68em;
+  font-size: 0.62em;
   font-weight: 600;
   color: var(--text-soft);
   box-shadow: var(--shadow-soft);
@@ -1112,11 +1197,15 @@ button {
   background: linear-gradient(90deg, #5b9fe0 0%, #5b9fe0 55%, #f0a040 55%, #f0a040 100%);
   border-radius: 3px;
 }
+.avatar-picker__swatch--poise {
+  background: radial-gradient(circle at 50% 45%, #8fb4cc 0 35%, #e07a5c 36% 100%);
+}
 
 .avatar-picker__label {
   line-height: 1;
   text-align: center;
   width: 100%;
+  white-space: nowrap;
 }
 
 /* ---- metric cards (rate, ORI, screen time, FPS, regularity, look) ------ */

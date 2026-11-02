@@ -5,7 +5,7 @@ export const GET: APIRoute = ({ site }) => {
   const body = `User-agent: *
 Allow: /
 
-# Paid app files are not on this site.
+# Installer binaries are linked, not stored on this site.
 Disallow: /downloads/
 
 Sitemap: ${sitemap.href}

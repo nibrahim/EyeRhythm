@@ -1,41 +1,65 @@
 /**
  * Site copy and knobs, edit here as you iterate.
  *
- * Installers are never hosted here. Checkout URLs live in ``dodo`` below.
- * Set ``comingSoonPublic`` to true only if the public store must hide again.
+ * The app is free. Mac and Windows installers are linked below.
+ * They are too large for this host, so the buttons download the
+ * public files directly. The Dodo checkout URLs stay in ``dodo``
+ * so a paid gate can be turned back on without hunting for them.
+ * The app itself only asks for a key when the license gate is on.
  */
 
 /** Hold the deployed site to a coming-soon screen. Local `astro dev` ignores this. */
 const comingSoonPublic = false;
 
+const MAC_FILE_ID = "1BTVMSQ6OCXOvIch8FsmO4FxIK4iSuKYE";
+const WINDOWS_FILE_ID = "1L3UdbNhzzGyhEphri-nl4wHehDXTEQPu";
+
+function driveDownload(fileId: string): string {
+  return `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`;
+}
+
 export const site = {
   name: "EyesRhythm",
   tagline: "Blink rate detector for long screen days",
   description:
-    "EyesRhythm is a private webcam blink rate detector for Mac and Windows. It scores how often and how steadily you blink during screen work, then stays fully offline after you register the license.",
+    "EyesRhythm is a free, private webcam blink rate detector for Mac and Windows. It scores how often and how steadily you blink during screen work, and it stays on your computer.",
   url:
     typeof import.meta.env.SITE === "string" && import.meta.env.SITE
       ? String(import.meta.env.SITE).replace(/\/$/, "")
       : "http://localhost:4321",
   contactEmail: "hello@eyesrhythm.com",
-  cta: "Get a copy",
+  cta: "Download",
   /** False on localhost (`astro dev`) even if the public site is still held. */
   comingSoon: comingSoonPublic && !import.meta.env.DEV,
-  /** Keep false, installers go out from Dodo Payments, not this origin. */
-  downloadsOpen: false,
+  /** True: the site offers the Mac and Windows installers directly. */
+  downloadsOpen: true,
   price: {
-    amount: 12,
+    amount: 0,
     currency: "USD",
-    label: "$12",
-    cadence: "one-time",
-    updates: "Feature updates included for lifetime",
+    label: "Free",
+    cadence: "free",
+    updates: "Free for Mac and Windows",
   },
+  version: "1.4.0",
   recommendedMachine:
     "Tested on Intel Core i7 and on Mac processors. We recommend this configuration.",
+  downloads: {
+    mac: {
+      href: driveDownload(MAC_FILE_ID),
+      file: "EyesRhythm-1.0.0.dmg",
+      size: "93 MB",
+      label: "macOS",
+    },
+    windows: {
+      href: driveDownload(WINDOWS_FILE_ID),
+      file: "EyesRhythm-Setup-1.0.0.exe",
+      size: "81 MB",
+      label: "Windows",
+    },
+  },
   /**
-   * Dodo Payments buy links (product → payment link / checkout URL)
-   * for each OS. Leave empty until the products exist. Never put both
-   * OS files on one product, a purchase is Mac or Windows, not both.
+   * Unused while the app is free. Kept so checkout can be restored
+   * without recreating the Dodo product links.
    */
   dodo: {
     checkoutMac:
@@ -44,13 +68,3 @@ export const site = {
       "https://checkout.dodopayments.com/buy/pdt_0Nmc1TZ9g5VKLY81Xi6pG?quantity=1",
   },
 } as const;
-
-export function checkoutUrl(platform: "mac" | "windows"): string {
-  const url =
-    platform === "mac" ? site.dodo.checkoutMac : site.dodo.checkoutWindows;
-  return /^https:\/\//i.test(url) ? url : "";
-}
-
-export function checkoutReady(): boolean {
-  return Boolean(checkoutUrl("mac") && checkoutUrl("windows"));
-}

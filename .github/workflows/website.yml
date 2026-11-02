@@ -51,7 +51,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Refuse paid binaries on the marketing site
+      - name: Refuse oversized installers on the marketing site
         working-directory: .
         run: |
           set -euo pipefail
@@ -59,7 +59,7 @@ jobs:
                -iname '*.zip' -o -iname '*.dmg' -o -iname '*.exe' \
                -o -iname '*.pkg' -o -iname '*.msi' -o -iname '*.app' \
              \) 2>/dev/null | grep -q .; then
-            echo "::error::Installers must not ship in website/public. Serve copies after payment, not as a public URL."
+            echo "::error::Installers are too large for Cloudflare Pages. Link them from website/src/config.ts instead of committing the files."
             exit 1
           fi
 

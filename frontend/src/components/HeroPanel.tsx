@@ -3,6 +3,7 @@ import { startPreviewPolling } from "../api";
 import type { EngineState } from "../types";
 import { eyesLabel, rateTone } from "../utils/format";
 import { Avatar, AvatarPicker, type AvatarId } from "./Avatar";
+import { PoiseFace } from "./PoiseFace";
 import { RateGraph } from "./RateGraph";
 
 interface Props {
@@ -18,7 +19,7 @@ interface Props {
  * ------------
  * * Eyes status pill — centered on the top of the head (hidden for Trace)
  * * Blinks today — top-right (avatar modes only — hidden in Trace)
- * * Picker — Atlas / Lumen / Vesper / Lens / Trace
+ * * Picker — Atlas / Lumen / Vesper / Lens / Trace / Poise
  *
  * ORI history is owned at App root (`useRateHistory`) so Trace always
  * has the last 5 minutes, even after avatar switches / minimize.
@@ -32,6 +33,7 @@ export function HeroPanel({ state, avatarId, onAvatarChange }: Props) {
   const label = eyesLabel(state.face_found, state.eyes_closed, state.off_screen);
   const isLens = avatarId === "lens";
   const isGraph = avatarId === "graph";
+  const isPoise = avatarId === "poise";
   const [frameUrl, setFrameUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,11 +46,13 @@ export function HeroPanel({ state, avatarId, onAvatarChange }: Props) {
   }, [isLens]);
 
   const heroMod =
-    (isLens ? " hero--lens" : "") + (isGraph ? " hero--graph" : "");
+    (isLens ? " hero--lens" : "") +
+    (isGraph ? " hero--graph" : "") +
+    (isPoise ? " hero--poise" : "");
 
   return (
     <section className={`hero${heroMod}`}>
-      {!isGraph && (
+      {!isGraph && !isPoise && (
         <div className="hero__stat-chip">
           <span className="hero__stat-value">{state.blinks_today}</span>
           <span className="hero__stat-label">blinks today</span>
@@ -63,6 +67,13 @@ export function HeroPanel({ state, avatarId, onAvatarChange }: Props) {
               lastBlinkAt={state.last_blink_at}
               alertOri={state.ori_threshold}
             />
+          ) : isPoise ? (
+            <PoiseFace
+              map={state.face_map ?? null}
+              faceFound={state.face_found}
+              eyesClosed={state.eyes_closed}
+              lastBlinkAt={state.last_blink_at}
+            />
           ) : (
             <Avatar
               id={avatarId}
@@ -74,7 +85,7 @@ export function HeroPanel({ state, avatarId, onAvatarChange }: Props) {
               cameraMessage={state.camera_message}
             />
           )}
-          {!isGraph && (
+          {!isGraph && !isPoise && (
             <div className={`hero__status-pill pill tone-${tone}`}>
               <span className="pill__dot" />
               {label}

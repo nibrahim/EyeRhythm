@@ -1,4 +1,4 @@
-# Old download paths must not serve installers. Paid copies go through checkout.
+# Installers are not stored on this origin. Send leftover /downloads paths home.
 /download  /  302
 /downloads  /  302
 /downloads/*  /  302

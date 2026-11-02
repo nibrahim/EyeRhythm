@@ -27,7 +27,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date as date_cls
 from collections import deque
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +35,7 @@ import cv2
 import numpy as np
 
 from blink_core import BlinkDetector, FrameResult
+from blink_core.face_motion import FaceMotionTracker, empty_face_map
 from blink_core.screentime import ScreenTimeTracker
 from blink_core.interblink_hours import InterBlinkHourTracker
 from app.beeper import Beeper
@@ -1375,6 +1376,10 @@ class EngineSnapshot:
     last_blink_at: float = 0.0       # counted blink → Beep/Practice orange
     last_alert_beep_at: float = 0.0  # alert metronome → Alert red
 
+    # Poise: centered face mesh + movement heat. Empty until the still
+    # pose has been learned. The mesh itself never follows the head.
+    face_map: dict = field(default_factory=empty_face_map)
+
     # Placeholders for future cards (always null for now)
     future_a: None = None
     future_b: None = None
@@ -1455,6 +1460,8 @@ class EyeRhythmEngine:
         self._interblink_hours = InterBlinkHourTracker()
         self._interblink_hours.sync_screen_seconds(self._screen_time.seconds_today)
         self._regularity = RegularityTracker()
+        # Poise: local face motion around a center that stays at the origin.
+        self._face_motion = FaceMotionTracker()
         self._detector: BlinkDetector | None = None
         self._detectors: dict[int, BlinkDetector] = {}
         self._fused_rate = FusedBlinkRate()
@@ -1534,6 +1541,8 @@ class EyeRhythmEngine:
         self._last_preview_at = 0.0
         self._ontop_listeners: list = []
         self._visual_alert_listeners: list = []
+        self._alert_active_listeners: list = []
+        self._blink_pulse_listeners: list = []
 
     # ---- public control -----------------------------------------------
 
@@ -1596,6 +1605,57 @@ class EyeRhythmEngine:
         """Most recent Lens-avatar camera still, or None if not encoding."""
         with self._lock:
             return self._preview_jpeg
+
+    def reset_face_map(self) -> None:
+        """Clear Poise's face grid and the direction histogram."""
+        self._face_motion.reset()
+        self._publish()
+
+    def _poise_source(
+        self,
+        chosen: FrameResult,
+        views: list[tuple[int, np.ndarray, FrameResult, bool]],
+    ) -> FrameResult | None:
+        """
+        Landmarks for the live face grid.
+
+        Prefer the primary camera so a head turn is not cancelled when the
+        hybrid picker hops to whichever camera sees a more frontal face.
+        """
+        primary = int(self.camera_index)
+        for idx, _frame, cam_res, _off in views:
+            if int(idx) == primary and cam_res.face_found and cam_res.landmarks_xyz is not None:
+                return cam_res
+        if chosen.face_found and chosen.landmarks_xyz is not None:
+            return chosen
+        return None
+
+    def _observe_face_motion(
+        self,
+        res: FrameResult | None,
+        *,
+        counting: bool,
+        off_screen: bool,
+    ) -> None:
+        """
+        Feed Poise one mesh, or freeze the grids when this frame has no face.
+
+        A turn past the off-screen angle is still the pose the grid follows.
+        A missing face, or a parked camera, leaves the grids where they are.
+        """
+        del off_screen
+        try:
+            xyz = None
+            if (
+                counting
+                and res is not None
+                and res.face_found
+                and res.landmarks_xyz is not None
+            ):
+                xyz = res.landmarks_xyz
+            self._face_motion.observe(xyz, time.monotonic(), frontal=True)
+        except Exception:
+            pass
 
     def set_preview_wanted(self, wanted: bool) -> None:
         """Turn camera-preview encoding on only while Lens is visible."""
@@ -2049,6 +2109,12 @@ class EyeRhythmEngine:
         with self._lock:
             self._last_blink_at = time.time()
             self._snap.last_blink_at = self._last_blink_at
+            listeners = list(self._blink_pulse_listeners)
+        for cb in listeners:
+            try:
+                cb()
+            except Exception:
+                pass
 
     def _note_alert_beep(self) -> None:
         """UI: red pulse on Alert dot when low-ORI alert beeps."""
@@ -2061,7 +2127,13 @@ class EyeRhythmEngine:
         with self._lock:
             self._alert_active = bool(active)
             self._snap.alert_active = self._alert_active
+            listeners = list(self._alert_active_listeners)
         self._emit_visual_alert()
+        for cb in listeners:
+            try:
+                cb(bool(active))
+            except Exception:
+                pass
 
     def get_toggles(self) -> dict[str, bool]:
         """Copy of Beep / Alert / On top / Practice (safe to read from the UI)."""
@@ -2080,9 +2152,25 @@ class EyeRhythmEngine:
         Register a callback(bool) when Visual alert should draw attention.
 
         True while Alert is latched *and* the chip is on Visual (not Sound).
-        Used on Windows to blink the minimized taskbar button.
         """
         self._visual_alert_listeners.append(callback)
+
+    def on_alert_active_change(self, callback) -> None:
+        """
+        Register a callback(bool) when the low-ORI Alert latch turns on or off.
+
+        Fires for both Visual and Sound. The Dock / taskbar icon uses this
+        to flash orange while the latch is on.
+        """
+        self._alert_active_listeners.append(callback)
+
+    def on_blink_pulse(self, callback) -> None:
+        """
+        Register a callback() for each counted blink (eye-open after close).
+
+        The Dock / taskbar icon uses this to close the eye for a beat.
+        """
+        self._blink_pulse_listeners.append(callback)
 
     def _emit_visual_alert(self) -> None:
         with self._lock:
@@ -2455,6 +2543,7 @@ class EyeRhythmEngine:
             self._snap.last_blink_at = self._last_blink_at
             self._snap.last_alert_beep_at = self._last_alert_beep_at
             self._snap.off_screen = self._look_off_screen
+            self._snap.face_map = self._face_motion.to_public()
             self._snap.ori_threshold = float(self._ori_threshold)
             self._snap.alert_low_minutes = float(self._alert_low_minutes)
             self._snap.writing_angle_deg = float(self._writing_angle_deg)
@@ -2783,6 +2872,7 @@ class EyeRhythmEngine:
                     self._sync_presence_hold(False, last_res, 0)
                     self._alert.update(None, False)
                     self._look_off_screen = False
+                    self._observe_face_motion(None, counting=False, off_screen=False)
                     held_reg = (
                         self._held_regularity
                         if self._held_regularity is not None
@@ -3098,6 +3188,11 @@ class EyeRhythmEngine:
                 if want_preview:
                     self._encode_preview(display_frame, res)
 
+                self._observe_face_motion(
+                    self._poise_source(res, processed),
+                    counting=counting,
+                    off_screen=bool(off_screen),
+                )
                 self._publish(
                     continuous_bpm=round(live_bpm, 1),
                     average_bpm=round(self._screen_time.avg_blinks_per_minute, 1),

@@ -22,7 +22,7 @@ const title = hold
   ? `${site.name}, Coming soon`
   : (Astro.props.title ?? `${site.name} — Blink rate detector for Mac and Windows`);
 const description = hold
-  ? "EyesRhythm is a private blink companion for the desk. Copies will be available when checkout is connected."
+  ? "EyesRhythm is a free blink companion for the desk. Mac and Windows downloads are on the way."
   : (Astro.props.description ?? site.description);
 const type = Astro.props.type ?? "website";
 const published = Astro.props.published;
@@ -79,6 +79,7 @@ const softwareLd = {
     "On-device processing",
     "Optional blink and dryness alerts",
   ],
+  isAccessibleForFree: true,
   offers: {
     "@type": "Offer",
     price: String(site.price.amount),

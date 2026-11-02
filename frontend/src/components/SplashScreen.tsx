@@ -81,7 +81,7 @@ type SplashStep = "loading" | "camera" | "comfort" | "notices";
 const NOTICES = [
   {
     title: "On-device and private",
-    body: "After this copy is activated, EyesRhythm is fully offline in normal use. Camera frames and blink metrics are processed on this computer only — nothing is uploaded. First launch needed the internet once so Dodo Payments could bind your key to this machine.",
+    body: "EyesRhythm stays on this computer. Camera frames and blink metrics are processed here only — nothing is uploaded. There is no account and no license key.",
   },
   {
     title: "A wellness companion, not a medical device",

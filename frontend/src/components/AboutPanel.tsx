@@ -80,7 +80,7 @@ export function AboutPanel() {
           <tr>
             <th scope="row">Notices</th>
             <td>
-              EyesRhythm is MIT-licensed. Packaged copies may be sold. Third-party
+              EyesRhythm is free and MIT-licensed. Third-party
               libraries keep their own licenses (Apache 2.0, BSD, MIT, SIL OFL,
               and LGPLv2.1 for FFmpeg inside OpenCV). Those notices travel with
               this copy as <code>THIRD_PARTY_NOTICES.md</code>.
