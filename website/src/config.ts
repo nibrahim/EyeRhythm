@@ -46,14 +46,14 @@ export const site = {
   downloads: {
     mac: {
       href: driveDownload(MAC_FILE_ID),
-      file: "EyesRhythm-1.0.0.dmg",
+      file: "EyesRhythm-1.4.0.dmg",
       size: "93 MB",
       label: "macOS",
     },
     windows: {
       href: driveDownload(WINDOWS_FILE_ID),
-      file: "EyesRhythm-Setup-1.0.0.exe",
-      size: "81 MB",
+      file: "EyesRhythm-Setup-1.4.0.exe",
+      size: "84 MB",
       label: "Windows",
     },
   },
