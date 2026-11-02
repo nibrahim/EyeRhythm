@@ -2,17 +2,25 @@
  * Poise — a blue face grid beside a top-down bowl.
  *
  * The grid follows the head around the nose bridge and stays until reset.
- * It blinks with the eyes. The bowl matches the glowing dial: up is the
- * top, the rim is 90°, and the ball rolls with the face. The sector
- * being looked at fills orange toward the rim. The wireframe turns gray
- * until a face returns.
+ * It blinks with the eyes. The balance dial splits every direction into
+ * 30° slices: green where the head went most, red where it should go
+ * next. It starts all red each day. The ball rolls with the face. The
+ * wireframe turns gray until a face returns.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { resetFaceMap } from "../api";
 import type { FaceMapState } from "../types";
 import { lookAt, multiply, perspective, cameraPosition, type V3 } from "./poiseCamera";
 import { faceEdges } from "./poiseMesh";
-import { BIN_COUNT, RIM_DEG, bowlAim, decodeBins, drawBowl } from "./poiseField";
+import {
+  BIN_COUNT,
+  type BowlAim,
+  balanceOf,
+  bowlAim,
+  decodeBins,
+  drawBowl,
+  sectorName,
+} from "./poiseField";
 
 interface Props {
   map: FaceMapState | null;
@@ -132,6 +140,11 @@ export function PoiseFace({ map, faceFound, eyesClosed, lastBlinkAt }: Props) {
   const blinkAtRef = useRef(0);
   const blinkStartRef = useRef(-1e9);
   const [webglOk, setWebglOk] = useState(true);
+  const dotsPacked = map?.dots ?? "";
+  const balance = useMemo(
+    () => balanceOf(decodeBins(dotsPacked) ?? new Float32Array(BIN_COUNT)),
+    [dotsPacked],
+  );
   mapRef.current = map;
   foundRef.current = faceFound;
   eyesRef.current = eyesClosed;
@@ -175,6 +188,7 @@ export function PoiseFace({ map, faceFound, eyesClosed, lastBlinkAt }: Props) {
     let alpha = 1;
     let dotKey = "";
     const bars = new Float32Array(BIN_COUNT);
+    const trail: BowlAim[] = [];
 
     const drawFace = (now: number) => {
       if (!gl || !grid || !posBuf || !edgeBuf) return;
@@ -254,7 +268,7 @@ export function PoiseFace({ map, faceFound, eyesClosed, lastBlinkAt }: Props) {
       gl.disable(gl.BLEND);
     };
 
-    const drawField = () => {
+    const drawField = (now: number) => {
       if (!ctx) return;
       const w = dots.clientWidth;
       const h = dots.clientHeight;
@@ -278,17 +292,20 @@ export function PoiseFace({ map, faceFound, eyesClosed, lastBlinkAt }: Props) {
       }
 
       const current = mapRef.current;
-      const aim = foundRef.current
-        ? bowlAim(current?.lr ?? 0, current?.up ?? 0, current?.down ?? 0)
-        : null;
-      drawBowl(ctx, w, h, bars, aim);
+      if (foundRef.current) {
+        trail.push(bowlAim(current?.lr ?? 0, current?.up ?? 0, current?.down ?? 0));
+        if (trail.length > 16) trail.shift();
+      } else {
+        trail.length = 0;
+      }
+      drawBowl(ctx, w, h, bars, trail, now);
     };
 
     let raf = 0;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       drawFace(now);
-      drawField();
+      drawField(now);
     };
     raf = requestAnimationFrame(loop);
     return () => {
@@ -304,10 +321,22 @@ export function PoiseFace({ map, faceFound, eyesClosed, lastBlinkAt }: Props) {
       <div className="poise__legend">
         <div
           className="poise__scale"
-          aria-label={`Up is the top of the dial. The ball follows the face. The sector being looked at fills orange and reaches the rim after five hours. The rim is a ${RIM_DEG} degree tilt.`}
+          aria-label="Each 30 degree wedge turns green the more you look that way and red where you rarely look. The pulsing wedge is the direction to turn next."
         >
+          <span className="poise__key">
+            <span className="poise__key-end">rarely</span>
+            <span className="poise__key-bar" />
+            <span className="poise__key-end">often</span>
+          </span>
           <span className="poise__scale-note">
-            The ball follows your head. Orange fills that sector over 5 hours. Rim is {RIM_DEG}°.
+            {balance.least === null || balance.most === null ? (
+              "New day: look around to turn the dial green."
+            ) : (
+              <>
+                Most: <b className="poise__most">{sectorName(balance.most)}</b>
+                {" · "}Turn more: <b className="poise__least">{sectorName(balance.least)}</b>
+              </>
+            )}
           </span>
         </div>
         <button

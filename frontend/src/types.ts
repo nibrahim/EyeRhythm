@@ -4,9 +4,9 @@
  * `lr` is left/right degrees (positive = the person's right). `up` and
  * `down` are pitch; only one of them is above zero. `mesh` is the face
  * around the nose bridge and stays until reset. The ball reads `lr`,
- * `up`, and `down`. Up is the top of the dial and the rim is 90°.
- * `dots` is little-endian uint16, eight sectors. 0 is empty and 65535
- * fills that sector out to the rim, which is five hours.
+ * `up`, and `down`. Up is the top of the dial.
+ * `dots` is little-endian uint16, twelve 30° sectors. 0 is empty and
+ * 65535 is five hours spent looking that way.
  */
 export interface FaceMapState {
   ready: boolean;
@@ -116,7 +116,7 @@ export interface EngineState {
   last_alert_beep_at: number;
 
   /**
-   * Poise. `mesh` is the live face grid. `dots` is the orange sector fill.
+   * Poise. `mesh` is the live face grid. `dots` is time per 30° direction.
    */
   face_map: FaceMapState;
 

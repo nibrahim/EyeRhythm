@@ -478,6 +478,32 @@ button {
   font-size: 0.62em;
   line-height: 1.3;
   color: rgba(244, 247, 251, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.poise__most {
+  color: #28e696;
+}
+
+.poise__least {
+  color: #ff7a86;
+}
+
+.poise__key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.58em;
+  color: rgba(244, 247, 251, 0.6);
+}
+
+.poise__key-bar {
+  flex: 0 1 120px;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff4d5e, #ffb840, #28e696);
 }
 
 .poise__reset {

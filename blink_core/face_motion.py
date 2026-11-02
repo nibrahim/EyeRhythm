@@ -13,11 +13,12 @@ The live wireframe is that same centered mesh, so the grid on the left
 is the face plotted around its own center. It stays on screen after the
 face leaves. Reset is the only clear.
 
-The right-hand field is a top-down dial of eight sectors, 45° each.
-Up is the top of the dial and down is the bottom. A sector fills from
-the center toward the rim. That span is five hours, so one minute adds
-one three-hundredth of it. Looking straight ahead adds nothing. Looking
-somewhere else never shortens a sector.
+The right-hand field is a top-down dial of twelve sectors, 30° each.
+Up is the top of the dial and down is the bottom. Each sector keeps the
+time spent looking that way, up to five hours, so one minute adds one
+three-hundredth of it. Looking straight ahead adds nothing. Looking
+somewhere else never shortens a sector. The sectors start empty on each
+new calendar day; the wireframe carries over.
 """
 
 from __future__ import annotations
@@ -26,8 +27,9 @@ import base64
 import json
 import math
 import threading
+from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 
@@ -45,14 +47,12 @@ LEFT_CHEEK = (345, 352, 376, 411, 425, 280, 330, 266, 423, 426, 427, 436, 432, 4
 RIGHT_CHEEK = (116, 123, 147, 187, 205, 50, 101, 36, 203, 206, 207, 216, 212, 202, 204)
 
 # Dial layout. The same numbers are repeated in poiseField.ts.
-# Eight sectors of 45°. Sector 0 is centered on the person's right.
+# Twelve sectors of 30°. Sector 0 is centered on the person's right.
 # Looking up is the top of the dial. Looking down is the bottom.
-BIN_COUNT = 8
+BIN_COUNT = 12
 # Inside this fraction of the circle the face is still "straight ahead"
 # and no sector grows. 0.30 is about 15° of yaw or 12° of pitch.
 DEAD_REACH = 0.30
-# How many old 15° bins version 5 and 6 stored.
-_LEGACY_BINS = 24
 
 # Edge of a full turn, in degrees. Past this, the direction stays on the rim.
 _YAW_EDGE = 50.0
@@ -60,8 +60,9 @@ _PITCH_EDGE = 40.0
 # The span from the inner ring to the outer ring. One minute is 1/300 of it.
 _FULL_S = 5.0 * 60.0 * 60.0
 _SMOOTH_TAU = 0.07
-# 8 is eight sectors with up at the top. 7 was six sectors with up at the bottom.
-_STORE_VERSION = 8
+# 10 stores the day the sectors belong to. 9 had no day and was painted
+# with up and down swapped.
+_STORE_VERSION = 10
 
 _DEFAULT_STORE = Path.home() / ".eyerhythm_blinkcounter" / "poise_field.json"
 
@@ -70,9 +71,9 @@ def aim_vector(lr: float, up: float, down: float) -> tuple[float, float, float]:
     """
     Where the face is pointing inside the unit circle.
 
-    +x is the person's right. +y is the top of the circle. Pitch is
-    mirrored, so looking up aims at the bottom and looking down aims at
-    the top. The third value is the reach, already clamped to 1.
+    +x is the person's right. +y is looking down, image-style; the dial
+    flips it so up is drawn at the top. The third value is the reach,
+    already clamped to 1.
     """
     nx = max(-1.0, min(1.0, lr / _YAW_EDGE))
     ny = max(-1.0, min(1.0, (down - up) / _PITCH_EDGE))
@@ -88,7 +89,7 @@ def _sector_index(angle: float) -> int:
     """Sector containing this dial angle. Matches the drawer in poiseField.ts.
 
     ``angle`` uses the picture's frame: 0 is the person's right, positive
-    is up (the top of the dial). Each sector is 45° and is centered on a
+    is up (the top of the dial). Each sector is 30° and is centered on a
     spoke, so looking straight up or right sits in the middle of a sector.
     """
     width = 2.0 * math.pi / BIN_COUNT
@@ -99,7 +100,7 @@ def direction_bin(lr: float, up: float, down: float) -> int | None:
     """
     Sector for this aim, or None while the face stays inside the dead zone.
 
-    Eight sectors of 45°. Looking up fills the top sector and looking down
+    Twelve sectors of 30°. Looking up fills the top sector and looking down
     fills the bottom one. The person's right and left land in opposite
     sectors.
     """
@@ -111,48 +112,11 @@ def direction_bin(lr: float, up: float, down: float) -> int | None:
 
 
 def _mirror_pitch(exposure: np.ndarray) -> np.ndarray:
-    """Swap the up and down sides of a 24-bin field. Left and right stay put."""
+    """Swap the up and down sides of a field whose bin 0 is centered on the right."""
     out = np.empty_like(exposure)
     count = int(exposure.shape[0])
     for i in range(count):
         out[(-i) % count] = exposure[i]
-    return out
-
-
-def _fold_legacy(exposure: np.ndarray) -> np.ndarray:
-    """Add the old 15° bins into the eight sectors.
-
-    Version 6 angles put looking-up at -90° (the bottom of that circle).
-    The dial now puts up at the top, so the angle is negated.
-    """
-    out = np.zeros(BIN_COUNT, dtype=np.float64)
-    step = 2.0 * math.pi / _LEGACY_BINS
-    for i in range(_LEGACY_BINS):
-        angle = i * step
-        if angle > math.pi:
-            angle -= 2.0 * math.pi
-        out[_sector_index(-angle)] += float(exposure[i])
-    np.minimum(out, _FULL_S, out=out)
-    return out
-
-
-def _fold_six(exposure: np.ndarray) -> np.ndarray:
-    """Spread each old 60° sector across the 45° sectors it overlaps.
-
-    Version 7 angles use the same bottom-is-up frame as version 6.
-    """
-    out = np.zeros(BIN_COUNT, dtype=np.float64)
-    old_width = math.pi / 3.0
-    samples = 12
-    for i in range(6):
-        start = -2.0 * math.pi / 3.0 + i * old_width
-        share = float(exposure[i]) / samples
-        if share <= 0.0:
-            continue
-        for step in range(samples):
-            old = start + (step + 0.5) * old_width / samples
-            out[_sector_index(-old)] += share
-    np.minimum(out, _FULL_S, out=out)
     return out
 
 
@@ -209,8 +173,8 @@ def _yaw_pitch_deg(norm: np.ndarray) -> tuple[float, float]:
     if fz < 0.0:
         fx, fy, fz = -fx, -fy, -fz
     yaw = math.degrees(math.atan2(fx, fz))
-    # Forehead closer to the camera than the chin is a look upward.
-    pitch = -math.degrees(math.atan2(fy, fz))
+    # Chin closer to the camera than the forehead is a look upward.
+    pitch = math.degrees(math.atan2(fy, fz))
     return yaw, pitch
 
 
@@ -225,12 +189,19 @@ class FaceMotionTracker:
 
     Call ``observe`` on the camera thread. ``to_public`` is safe from the
     WebSocket thread. ``persist=False`` is for tests, so they do not read
-    or write the real field file.
+    or write the real field file. ``today`` lets tests move the calendar.
     """
 
-    def __init__(self, *, persist: bool = True, store: Path | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        persist: bool = True,
+        store: Path | None = None,
+        today: Callable[[], date] = date.today,
+    ) -> None:
         self._persist = bool(persist)
         self._store = store or _DEFAULT_STORE
+        self._today = today
         self._lock = threading.Lock()
         self._reset_unlocked()
         if self._persist:
@@ -259,6 +230,7 @@ class FaceMotionTracker:
         """
         del frontal
         with self._lock:
+            self._roll_day_unlocked()
             if xyz is None:
                 self._last_t = None
                 return
@@ -293,6 +265,7 @@ class FaceMotionTracker:
     def to_public(self) -> dict[str, Any]:
         """Shallow copy of the latest JSON-ready map."""
         with self._lock:
+            self._roll_day_unlocked()
             return dict(self._public)
 
     # ---------------------------------------------------------------- internals
@@ -306,8 +279,20 @@ class FaceMotionTracker:
         self._samples = 0
         self._mesh_b64 = ""
         self._exposure = np.zeros(BIN_COUNT, dtype=np.float64)
+        self._day = self._today().isoformat()
         self._last_save = 0.0
         self._public = empty_face_map()
+
+    def _roll_day_unlocked(self) -> None:
+        """Empty the sectors when the calendar day changes. The wireframe stays."""
+        today = self._today().isoformat()
+        if today == self._day:
+            return
+        self._day = today
+        self._exposure = np.zeros(BIN_COUNT, dtype=np.float64)
+        self._publish_unlocked()
+        if self._persist:
+            self._write_store()
 
     def _normalize(self, pts: np.ndarray) -> np.ndarray | None:
         """Center on the nose bridge and scale so the eyes are one unit apart."""
@@ -347,6 +332,7 @@ class FaceMotionTracker:
             self._store.parent.mkdir(parents=True, exist_ok=True)
             payload = {
                 "v": _STORE_VERSION,
+                "day": self._day,
                 "exposure": base64.b64encode(
                     np.ascontiguousarray(self._exposure, dtype="<f4").tobytes()
                 ).decode("ascii"),
@@ -359,40 +345,34 @@ class FaceMotionTracker:
             return
 
     def _load(self) -> None:
+        """Restore the wireframe, and the sectors only if they are from today.
+
+        Version 9 has no day, so the file's modified date stands in for it.
+        Older versions keep only the wireframe.
+        """
         try:
             raw = json.loads(self._store.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError, UnicodeError):
+            saved = date.fromtimestamp(self._store.stat().st_mtime).isoformat()
+        except (OSError, json.JSONDecodeError, UnicodeError, ValueError):
             return
-        version = raw.get("v") if isinstance(raw, dict) else None
-        if version not in (_STORE_VERSION, 7, 6, 5):
+        if not isinstance(raw, dict):
             return
-        try:
-            exposure = np.frombuffer(base64.b64decode(raw.get("exposure", "")), dtype="<f4")
-        except (ValueError, TypeError):
-            return
-        if version in (5, 6):
-            if exposure.shape != (_LEGACY_BINS,):
-                return
-            values = np.maximum(exposure.astype(np.float64), 0.0)
-            # Version 5 stored looking-up on the top. Version 6 already swapped it.
-            if version == 5:
-                values = _mirror_pitch(values)
-            values = _fold_legacy(values)
-        elif version == 7:
-            if exposure.shape != (6,):
-                return
-            values = _fold_six(np.maximum(exposure.astype(np.float64), 0.0))
-        elif exposure.shape != (BIN_COUNT,):
-            return
-        else:
-            values = np.clip(exposure.astype(np.float64), 0.0, _FULL_S)
-        self._exposure = values
+        version = raw.get("v")
         mesh = raw.get("mesh", "")
         if isinstance(mesh, str) and mesh:
             self._mesh_b64 = mesh
             self._samples = 1
+        day = raw.get("day") if version == _STORE_VERSION else saved
+        if version in (_STORE_VERSION, 9) and day == self._day:
+            try:
+                exposure = np.frombuffer(base64.b64decode(raw.get("exposure", "")), dtype="<f4")
+            except (ValueError, TypeError):
+                exposure = np.zeros(0, dtype="<f4")
+            if exposure.shape == (BIN_COUNT,):
+                values = np.clip(exposure.astype(np.float64), 0.0, _FULL_S)
+                self._exposure = _mirror_pitch(values) if version == 9 else values
         self._publish_unlocked()
-        if version != _STORE_VERSION:
+        if version != _STORE_VERSION or day != self._day:
             self._write_store()
 
     def _delete_store(self) -> None:

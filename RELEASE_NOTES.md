@@ -1,5 +1,28 @@
 # EyesRhythm release notes
 
+## 1.5.0 — 2 November 2026
+
+The Poise dial shows which way the head turned today, in 30° slices.
+
+### Poise dial
+
+- Twelve directions. A slice turns green the more the head goes that way, and stays red where it rarely goes.
+- Tiles light from the center outward. The least-used direction pulses with an arrow.
+- The center shows a balance score. The ball follows the head and leaves a short trail.
+- Looking up lights the top of the dial and looking down lights the bottom.
+- The dial starts all red each calendar day. The face wireframe stays.
+
+### Files
+
+| Platform | Installer |
+|----------|-----------|
+| macOS | `EyesRhythm-1.5.0.dmg` |
+| Windows | `EyesRhythm-Setup-1.5.0.exe` |
+
+Drag the Mac app into Applications. On Windows, run Setup (per-user, no administrator account). Allow the camera when the system asks.
+
+---
+
 ## 1.4.0 — 2 November 2026
 
 EyesRhythm is free. Packaged Mac and Windows copies open with no license key.

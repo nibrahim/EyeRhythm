@@ -7,6 +7,7 @@ import json
 import math
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 import numpy as np
@@ -60,10 +61,10 @@ def _yaw_image(pts: np.ndarray, deg: float) -> np.ndarray:
 
 
 def _pitch_z(pts: np.ndarray, lift: float) -> np.ndarray:
-    """Bring the forehead closer and the chin farther. Positive lift looks up."""
+    """Bring the chin closer and the forehead farther. Positive lift looks up."""
     out = pts.copy()
-    out[FOREHEAD, 2] -= lift
-    out[CHIN, 2] += lift
+    out[FOREHEAD, 2] += lift
+    out[CHIN, 2] -= lift
     return out
 
 
@@ -93,8 +94,18 @@ def _bins(pub: dict) -> np.ndarray:
 
 
 class FaceMotionTests(unittest.TestCase):
+    def test_every_thirty_degrees_is_its_own_sector(self) -> None:
+        self.assertEqual(BIN_COUNT, 12)
+        seen = []
+        for k in range(BIN_COUNT):
+            ang = math.radians(k * 30.0)
+            # Dial +y is up, so a positive sine is an upward look.
+            lr = 40.0 * math.cos(ang)
+            pitch = 32.0 * math.sin(ang)
+            seen.append(direction_bin(lr, max(pitch, 0.0), max(-pitch, 0.0)))
+        self.assertEqual(seen, list(range(BIN_COUNT)))
+
     def test_cardinal_directions_land_on_opposite_bars(self) -> None:
-        self.assertEqual(BIN_COUNT, 8)
         right = direction_bin(30.0, 0.0, 0.0)
         left = direction_bin(-30.0, 0.0, 0.0)
         up = direction_bin(0.0, 30.0, 0.0)
@@ -251,64 +262,57 @@ class FaceMotionTests(unittest.TestCase):
             self.assertEqual(cleared["samples"], 0)
             self.assertTrue(np.all(_bins(cleared) == 0))
 
-    def test_older_grids_fold_into_the_eight_sectors(self) -> None:
+    def test_a_new_day_starts_with_empty_sectors_and_keeps_the_grid(self) -> None:
+        day = [date(2026, 11, 2)]
+        tr = FaceMotionTracker(persist=False, today=lambda: day[0])
+        t = _feed(tr, _yaw_image(_base_face(), 32.0), 0.0, 1.0)
+        before = tr.to_public()
+        self.assertGreater(float(_bins(before).max()), 0.0)
+
+        day[0] = date(2026, 11, 3)
+        morning = tr.to_public()
+        self.assertTrue(np.all(_bins(morning) == 0))
+        self.assertEqual(morning["mesh"], before["mesh"])
+
+        _feed(tr, _yaw_image(_base_face(), 32.0), t, 1.0)
+        self.assertGreater(float(_bins(tr.to_public()).max()), 0.0)
+
+    def test_saved_sectors_load_only_on_the_same_day(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "poise_field.json"
+            tr = FaceMotionTracker(persist=True, store=path, today=lambda: date(2026, 11, 2))
+            _feed(tr, _yaw_image(_base_face(), 32.0), 0.0, 1.0)
+            tr._write_store()
+            saved = tr.to_public()
+
+            same = FaceMotionTracker(persist=True, store=path, today=lambda: date(2026, 11, 2))
+            self.assertEqual(same.to_public()["dots"], saved["dots"])
+
+            later = FaceMotionTracker(persist=True, store=path, today=lambda: date(2026, 11, 3))
+            fresh = later.to_public()
+            self.assertTrue(np.all(_bins(fresh) == 0))
+            self.assertEqual(fresh["mesh"], saved["mesh"])
+            stored = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual((stored["v"], stored["day"]), (10, "2026-11-03"))
+
+    def test_version_nine_from_today_swaps_up_and_down(self) -> None:
         up = direction_bin(0.0, 30.0, 0.0)
         down = direction_bin(0.0, 0.0, 30.0)
-        right = direction_bin(30.0, 0.0, 0.0)
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "poise_field.json"
-            # Version 5 kept "up" on the top bin of the 24-bin circle.
-            legacy = np.zeros(24, dtype="<f4")
-            legacy[6] = np.float32(3600.0)
-            legacy[0] = np.float32(1800.0)
+            old = np.zeros(BIN_COUNT, dtype="<f4")
+            old[up] = np.float32(600.0)
             payload = {
-                "v": 5,
-                "exposure": base64.b64encode(np.ascontiguousarray(legacy).tobytes()).decode("ascii"),
+                "v": 9,
+                "exposure": base64.b64encode(np.ascontiguousarray(old).tobytes()).decode("ascii"),
                 "mesh": "",
             }
             path.write_text(json.dumps(payload), encoding="utf-8")
             tr = FaceMotionTracker(persist=True, store=path)
             values = _bins(tr.to_public())
-            self.assertGreater(float(values[up]), 0.0)
-            self.assertEqual(float(values[down]), 0.0)
-            self.assertGreater(float(values[right]), 0.0)
-            self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["v"], 8)
-            again = FaceMotionTracker(persist=True, store=path)
-            self.assertTrue(np.array_equal(_bins(again.to_public()), values))
-
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / "poise_field.json"
-            # Version 6 already stored looking-up on the bottom bin.
-            legacy = np.zeros(24, dtype="<f4")
-            legacy[18] = np.float32(3600.0)
-            payload = {
-                "v": 6,
-                "exposure": base64.b64encode(np.ascontiguousarray(legacy).tobytes()).decode("ascii"),
-                "mesh": "",
-            }
-            path.write_text(json.dumps(payload), encoding="utf-8")
-            tr = FaceMotionTracker(persist=True, store=path)
-            values = _bins(tr.to_public())
-            self.assertGreater(float(values[up]), 0.0)
-            self.assertEqual(float(values[down]), 0.0)
-            self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["v"], 8)
-
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / "poise_field.json"
-            # Version 7 kept looking-up in sector 0, drawn at the bottom then.
-            legacy = np.zeros(6, dtype="<f4")
-            legacy[0] = np.float32(3600.0)
-            payload = {
-                "v": 7,
-                "exposure": base64.b64encode(np.ascontiguousarray(legacy).tobytes()).decode("ascii"),
-                "mesh": "",
-            }
-            path.write_text(json.dumps(payload), encoding="utf-8")
-            tr = FaceMotionTracker(persist=True, store=path)
-            values = _bins(tr.to_public())
-            self.assertGreater(float(values[up]), 0.0)
-            self.assertEqual(float(values[down]), 0.0)
-            self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["v"], 8)
+            self.assertGreater(float(values[down]), 0.0)
+            self.assertEqual(float(values[up]), 0.0)
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["v"], 10)
 
 
 if __name__ == "__main__":
