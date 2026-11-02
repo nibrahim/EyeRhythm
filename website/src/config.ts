@@ -22,7 +22,7 @@ export const site = {
   name: "EyesRhythm",
   tagline: "Blink rate detector for long screen days",
   description:
-    "EyesRhythm is a free, private webcam blink rate detector for Mac and Windows. It scores how often and how steadily you blink during screen work, and it stays on your computer.",
+    "EyesRhythm is a free, private webcam blink rate detector for Mac and Windows. It scores how often and how steadily you blink during screen work, and Poise shows which way you turned your head so the neck and shoulders are not stuck in one pose.",
   url:
     typeof import.meta.env.SITE === "string" && import.meta.env.SITE
       ? String(import.meta.env.SITE).replace(/\/$/, "")

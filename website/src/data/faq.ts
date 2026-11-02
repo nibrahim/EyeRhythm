@@ -16,6 +16,10 @@ export const faqs = [
     a: "A counter only totals blinks. Six blinks can still mean two very different minutes if they arrive in clumps with a long dry wait in the middle. EyesRhythm folds rate and regularity into one Ocular Rhythm Index, from 0 to 100.",
   },
   {
+    q: "What is Poise for?",
+    a: "Poise shows which way you turned your head today, in 30° slices. Green is where you looked most. Red is a direction you barely used. Long computer work parks the neck in one pose. Poise is there so you move it up, down, left, and right from time to time, which lets the neck and shoulders relax, then you look back at the screen. It is a reminder, not a treatment.",
+  },
+  {
     q: "Is EyesRhythm a medical device?",
     a: "No. It is a wellness companion for desk work, not a diagnosis or a treatment. Lasting discomfort or a change in vision belongs with an eye-care professional.",
   },
