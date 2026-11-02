@@ -8,9 +8,15 @@ const slides = [
   },
   {
     label: "Avatars",
-    caption: "Pick a look that fits you. Atlas, Lumen, Vesper, Lens, or Trace.",
+    caption: "Pick a look that fits you. Atlas, Lumen, Vesper, Lens, Trace, or Poise.",
     image: "/images/hero/avatars.png",
-    alt: "EyesRhythm Lumen avatar with Atlas, Vesper, Lens, and Trace in the picker",
+    alt: "EyesRhythm Lumen avatar with Atlas, Vesper, Lens, Trace, and Poise in the picker",
+  },
+  {
+    label: "Poise",
+    caption: "See which way your head turned today. Green is where you looked, red is where you did not.",
+    image: "/images/hero/poise.png",
+    alt: "EyesRhythm Poise view with a face grid and a red-to-green direction dial",
   },
   {
     label: "Several cameras",
@@ -80,7 +86,7 @@ const slides = [
         role="tablist"
         aria-label="App views"
         data-hero-rail
-        style="--i: 0; --n: 6;"
+        style="--i: 0; --n: 7;"
       >
         <span class="hero__rail-track" aria-hidden="true"></span>
         <span class="hero__rail-thumb" data-hero-thumb aria-hidden="true"></span>
@@ -204,7 +210,7 @@ const slides = [
 
   .hero__rail {
     --i: 0;
-    --n: 6;
+    --n: 7;
     --cell: 32px;
     position: relative;
     display: grid;

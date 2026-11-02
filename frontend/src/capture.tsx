@@ -12,7 +12,7 @@ import { MetricCard } from "./components/MetricCard";
 import { ReportChart } from "./components/ReportChart";
 import { seedRateHistoryForCapture } from "./hooks/rateHistory";
 import type { ReportPayload } from "./api";
-import { EMPTY_STATE, type EngineState } from "./types";
+import { EMPTY_FACE_MAP, EMPTY_STATE, type EngineState } from "./types";
 import { oriTone } from "./utils/format";
 import "./styles/global.css";
 import "./capture.css";
@@ -24,6 +24,7 @@ const SCENES = [
   "alerts",
   "fps",
   "reports",
+  "poise",
 ] as const;
 type Scene = (typeof SCENES)[number];
 
@@ -294,6 +295,59 @@ function FpsScene() {
   );
 }
 
+/** Fractions of a full day, one per 30° direction, starting at the person's right. */
+const POISE_DAY = [0.3, 0.22, 0.08, 0.05, 0.02, 0.04, 0.12, 0.03, 0, 0.01, 0, 0.14];
+
+function packDots(fractions: number[]): string {
+  const bytes = new Uint8Array(fractions.length * 2);
+  fractions.forEach((fraction, i) => {
+    const value = Math.round(Math.max(0, Math.min(1, fraction)) * 65535);
+    bytes[i * 2] = value & 255;
+    bytes[i * 2 + 1] = (value >> 8) & 255;
+  });
+  let text = "";
+  for (const byte of bytes) text += String.fromCharCode(byte);
+  return btoa(text);
+}
+
+const POISE_DOTS = packDots(POISE_DAY);
+
+function PoiseScene() {
+  const [avatar, setAvatar] = useState<AvatarId>("poise");
+  const [mesh, setMesh] = useState("");
+  useEffect(() => {
+    // Optional local wireframe for this capture. Absent in the repo.
+    fetch("/poise-capture-mesh.txt")
+      .then((response) => (response.ok ? response.text() : ""))
+      .then((text) => setMesh(text.trim()))
+      .catch(() => setMesh(""));
+  }, []);
+  const state: EngineState = {
+    ...live,
+    face_yaw_deg: 28,
+    face_pitch_deg: -6,
+    face_direction: "right",
+    face_map: {
+      ...EMPTY_FACE_MAP,
+      ready: mesh.length > 0,
+      samples: mesh ? 1 : 0,
+      lr: 28,
+      up: 0,
+      down: 6,
+      mesh,
+      dots: POISE_DOTS,
+    },
+  };
+  return (
+    <CaptureFrame title="Poise">
+      <div className="app-shell">
+        <LiveTopbar />
+        <HeroPanel state={state} avatarId={avatar} onAvatarChange={setAvatar} />
+      </div>
+    </CaptureFrame>
+  );
+}
+
 function ReportsScene() {
   const report = useMemo(() => dailyReport(), []);
   return (
@@ -356,6 +410,7 @@ function CaptureApp() {
       {scene === "alerts" && <AlertsScene />}
       {scene === "fps" && <FpsScene />}
       {scene === "reports" && <ReportsScene />}
+      {scene === "poise" && <PoiseScene />}
     </div>
   );
 }
