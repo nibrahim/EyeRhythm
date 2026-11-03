@@ -3,20 +3,18 @@
  *
  * The app is free. Mac and Windows installers are linked below.
  * They are too large for this host, so the buttons download the
- * public files directly. The Dodo checkout URLs stay in ``dodo``
- * so a paid gate can be turned back on without hunting for them.
- * The app itself only asks for a key when the license gate is on.
+ * public files directly from the R2 bucket on
+ * downloads.eyesrhythm.com. On a new release, upload the new
+ * files there and change the names in ``downloads``. The Dodo
+ * checkout URLs stay in ``dodo`` so a paid gate can be turned
+ * back on without hunting for them. The app itself only asks
+ * for a key when the license gate is on.
  */
 
 /** Hold the deployed site to a coming-soon screen. Local `astro dev` ignores this. */
 const comingSoonPublic = false;
 
-const MAC_FILE_ID = "1L-S5o-zDXvchb49qCjmAxMatFvO-Rp0P";
-const WINDOWS_FILE_ID = "1yAIShWaZTTMQ2_OUoVDVX1cG9BsLrDzV";
-
-function driveDownload(fileId: string): string {
-  return `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`;
-}
+const DOWNLOAD_BASE = "https://downloads.eyesrhythm.com";
 
 export const site = {
   name: "EyesRhythm",
@@ -45,13 +43,13 @@ export const site = {
     "Tested on Intel Core i7 and on Mac processors. We recommend this configuration.",
   downloads: {
     mac: {
-      href: driveDownload(MAC_FILE_ID),
+      href: `${DOWNLOAD_BASE}/EyesRhythm-1.5.0.dmg`,
       file: "EyesRhythm-1.5.0.dmg",
       size: "93 MB",
       label: "macOS",
     },
     windows: {
-      href: driveDownload(WINDOWS_FILE_ID),
+      href: `${DOWNLOAD_BASE}/EyesRhythm-Setup-1.5.0.exe`,
       file: "EyesRhythm-Setup-1.5.0.exe",
       size: "84 MB",
       label: "Windows",
