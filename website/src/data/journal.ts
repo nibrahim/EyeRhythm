@@ -1,5 +1,17 @@
 export const posts = [
   {
+    slug: "every-control",
+    title: "How to use every control",
+    description:
+      "A walk through EyesRhythm, from the first question to the last slider. What each button, view, and setting does, in the order you meet it.",
+    date: "2026-11-04",
+    read: "12 min",
+    kicker: "The window",
+    cover: "/images/guide/dashboard.jpg",
+    coverAlt:
+      "The EyesRhythm window, with the Atlas face, four score cards, and the Beep, Visual, and Practice buttons.",
+  },
+  {
     slug: "jobs-that-dry-the-eyes",
     title: "The jobs that dry your eyes",
     description:
