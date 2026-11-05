@@ -14,23 +14,22 @@ const post = getPost("every-control")!;
   imageAlt={post.coverAlt}
 >
   <main id="main">
-    <header class="cover">
+    <header class="banner">
       <img
         src={post.cover}
         alt={post.coverAlt}
-        width="1000"
-        height="1724"
+        width="1280"
+        height="720"
       />
-      <div class="cover__shade"></div>
-      <div class="cover__copy">
+    </header>
+
+    <article class="wrap article">
+      <header class="intro">
         <p class="kicker"><span class="kicker__dot"></span>{post.kicker}</p>
         <h1 class="display">{post.title}</h1>
         <p class="lede">{post.description}</p>
         <p class="meta">{post.read} · 4 November 2026</p>
-      </div>
-    </header>
-
-    <article class="wrap article">
+      </header>
       <div class="prose">
         <p>
           EyesRhythm is a small window that sits beside your work. It watches
@@ -194,29 +193,33 @@ const post = getPost("every-control")!;
 
         <h2>Lens</h2>
         <p>
-          <strong>Lens</strong> replaces the face with the camera picture, so
-          you can check the view. You want both eyes in the frame, light on
-          your face, and the pill changing from No face to Eyes open. The
-          small camera mark on the picture is only a label. When the check
-          looks right, switch back to Atlas, Lumen, Vesper, Trace, or Poise.
-          You do not need to watch yourself for the rest of the day.
-        </p>
-        <p>
-          The letter <strong>C</strong> jumps to Lens, and C again jumps back
-          to Atlas.
+          The face in the window is a stand-in. When the camera has found
+          your eyes, the pill reads <strong>Eyes open</strong> and the eyes
+          on the face stay open between blinks. That is the sign the eyes
+          have been detected. You do not have to keep your own picture on
+          the screen.
         </p>
         <figure class="shot">
           <img
-            src="/images/guide/lens.jpg"
-            alt="Lens selected, showing the camera view with a No face pill because the chair is empty. The six view buttons sit underneath."
-            width="1904"
-            height="1148"
+            src="/images/guide/eyes-open.jpg"
+            alt="Atlas, the dummy face, with both eyes open. The pill says Eyes open, and the blink count is running."
+            width="992"
+            height="574"
           />
           <figcaption>
-            Lens, with an empty chair. The pill says No face until someone
-            sits down in front of the camera.
+            Atlas once the eyes are detected. The pill says Eyes open, and
+            the blink count is running.
           </figcaption>
         </figure>
+        <p>
+          <strong>Lens</strong> swaps that face for the camera picture, so
+          you can check the view. You want both eyes in the frame, light on
+          your face, and the pill on Eyes open. The small camera mark on the
+          picture is only a label. When the check looks right, switch back
+          to Atlas, Lumen, Vesper, Trace, or Poise. You do not need to watch
+          yourself for the rest of the day. The letter <strong>C</strong>
+          jumps to Lens, and C again jumps back to Atlas.
+        </p>
 
         <h2>Trace</h2>
         <p>
@@ -243,12 +246,14 @@ const post = getPost("every-control")!;
         <h2>Poise</h2>
         <p>
           <strong>Poise</strong> is about where you point your head during the
-          day, in slices of 30 degrees. Green is a direction you have already
-          used. Red is still waiting. The pulsing slice is the one to try
-          next. A short turn up, down, left, or right, then back to the
-          screen, is the habit it is there to encourage. A long turn still
-          counts as off-screen for the blink score, because that score is
-          about time at the work.
+          day, in slices of 30 degrees. The left side is a wireframe of the
+          face the camera has learned, drawn in blue and kept in the center.
+          On the right, green is a direction you have already used. Red is
+          still waiting. The pulsing slice is the one to try next. A short
+          turn up, down, left, or right, then back to the screen, is the
+          habit it is there to encourage. A long turn still counts as
+          off-screen for the blink score, because that score is about time
+          at the work.
         </p>
         <p>
           The bar under the dial runs from <strong>rarely</strong> to
@@ -260,14 +265,14 @@ const post = getPost("every-control")!;
         </p>
         <figure class="shot">
           <img
-            src="/images/guide/poise.jpg"
-            alt="The Poise dial, with a green slice to the left, a 12 percent balance, and a Reset button."
-            width="1904"
-            height="1544"
+            src="/images/guide/poise-face.jpg"
+            alt="Poise with a blue 3D wireframe face on the left and a dial on the right. A green slice points left, the balance reads 14 percent, and Reset sits under the dial."
+            width="992"
+            height="772"
           />
           <figcaption>
-            Poise on a day that has mostly looked left. The note says to turn
-            a little more upward.
+            Poise with the wireframe face beside the dial. This day has
+            mostly looked left, and the note asks for a little more upward.
           </figcaption>
         </figure>
 
@@ -673,65 +678,32 @@ const post = getPost("every-control")!;
 </Layout>
 
 <style>
-  .cover {
-    position: relative;
-    width: 100%;
-    min-height: min(72vh, 640px);
-    display: grid;
-    align-items: end;
-    color: #fff;
-    background: #1d1d1f;
-  }
-
-  .cover img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center 18%;
-  }
-
-  .cover__shade {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0.28) 0%,
-      rgba(0, 0, 0, 0.22) 40%,
-      rgba(0, 0, 0, 0.72) 100%
-    );
-  }
-
-  .cover__copy {
-    position: relative;
-    z-index: 1;
+  .banner {
     width: min(var(--wrap), calc(100% - var(--gutter) * 2));
-    margin: 0 auto;
-    padding: 48px 0 40px;
+    margin: 28px auto 0;
+  }
+
+  .banner img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 28px;
+  }
+
+  .intro {
     display: grid;
     gap: 12px;
-    justify-items: start;
+    max-width: 42rem;
   }
 
-  .cover .kicker {
-    color: rgba(255, 255, 255, 0.86);
-  }
-
-  .cover .display {
-    font-size: clamp(2.4rem, 6vw, 4.2rem);
-    max-width: 14ch;
-    color: #fff;
-  }
-
-  .cover .lede {
-    color: rgba(255, 255, 255, 0.88);
-    max-width: 34rem;
+  .intro .display {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    max-width: 16ch;
   }
 
   .meta {
     font-size: 0.88rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-soft);
   }
 
   .article {

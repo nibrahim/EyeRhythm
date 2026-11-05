@@ -7,9 +7,10 @@ export const posts = [
     date: "2026-11-04",
     read: "12 min",
     kicker: "The window",
-    cover: "/images/guide/dashboard.jpg",
+    cover: "/images/guide/cover.jpg",
     coverAlt:
-      "The EyesRhythm window, with the Atlas face, four score cards, and the Beep, Visual, and Practice buttons.",
+      "EyesRhythm watches your blinks through the webcam and helps you keep a steady rhythm. Instruction Manual of using the EyesRhythm.",
+    plainCover: true,
   },
   {
     slug: "jobs-that-dry-the-eyes",
@@ -22,6 +23,7 @@ export const posts = [
     cover: "/images/jobs-cover.jpg",
     coverAlt:
       "A man working at a laptop on a wooden desk, looking at the screen, a webcam visible on the lid.",
+    plainCover: false,
   },
   {
     slug: "count-is-not-rhythm",
