@@ -3,9 +3,9 @@ export const posts = [
     slug: "every-control",
     title: "How to use every control",
     description:
-      "A walk through EyesRhythm, from the first question to the last slider. What each button, view, and setting does, in the order you meet it.",
+      "A short look at every EyesRhythm control: the opening questions, the six views, the buttons, and the sliders.",
     date: "2026-11-04",
-    read: "12 min",
+    read: "4 min",
     kicker: "The window",
     cover: "/images/guide/cover.jpg",
     coverAlt:
