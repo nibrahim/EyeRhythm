@@ -15,6 +15,7 @@ const post = posts[0];
         <span class="more">Read the guide →</span>
       </div>
       <img
+        class:list={[post.plainCover && "plain"]}
         src={post.cover}
         alt={post.coverAlt}
         width="1280"
@@ -61,6 +62,13 @@ const post = posts[0];
     border-radius: 28px;
     aspect-ratio: 16 / 10;
     object-fit: cover;
+  }
+
+  img.plain {
+    aspect-ratio: auto;
+    height: auto;
+    object-fit: contain;
+    background: #e8eef6;
   }
 
   @media (min-width: 880px) {

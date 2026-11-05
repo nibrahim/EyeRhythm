@@ -10,10 +10,13 @@ const featured = posts[0];
   description="Guides on blink rate, why screens dry the eyes, and how to set up a webcam blink detector at your desk."
 >
   <main id="main">
-    <a class="hero-card" href={`/journal/${featured.slug}`}>
+    <a
+      class:list={["hero-card", featured.plainCover && "hero-card--plain"]}
+      href={`/journal/${featured.slug}`}
+    >
       <img
         src={featured.cover}
-        alt=""
+        alt={featured.plainCover ? featured.coverAlt : ""}
         width="1280"
         height="720"
       />
@@ -103,6 +106,43 @@ const featured = posts[0];
 
   .hero-card span:last-child {
     font-weight: 600;
+  }
+
+  .hero-card--plain {
+    min-height: 0;
+    display: block;
+    width: min(var(--wrap), calc(100% - var(--gutter) * 2));
+    margin: 28px auto 0;
+    color: inherit;
+    background: transparent;
+  }
+
+  .hero-card--plain img {
+    position: static;
+    height: auto;
+    border-radius: 28px;
+    object-fit: contain;
+  }
+
+  .hero-card--plain::after {
+    display: none;
+  }
+
+  .hero-card--plain .hero-card__copy {
+    width: 100%;
+    padding: 22px 0 8px;
+  }
+
+  .hero-card--plain .display {
+    color: var(--text);
+  }
+
+  .hero-card--plain .kicker {
+    color: var(--blue-deep);
+  }
+
+  .hero-card--plain .lede {
+    color: var(--text-soft);
   }
 
   .list {
