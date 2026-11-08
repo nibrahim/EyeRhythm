@@ -6,11 +6,13 @@ Every day millions of knowledge workers, students and creators spend hours stari
 
 EyesRhythm is a lightweight, **on-device** companion that quietly watches your blink rate through the built-in webcam and gently nudges you back toward a healthy rhythm (~15–20 blinks per minute). No accounts, no cloud, no analytics, no video ever leaves your machine.
 
-Official **macOS and Windows** copies are sold as a one-time license at [eyesrhythm.com](https://eyesrhythm.com). After payment, Dodo Payments emails a unique key. Packaged builds ask for that key on first launch (internet once). After that the app stays offline.
+Official **macOS and Windows** copies are free to download at [eyesrhythm.com](https://eyesrhythm.com). There is no account and no license key. The app stays on your computer.
 
-The source in this tree is MIT-licensed: you may use, modify, and share it under `LICENSE`, provided you keep the copyright notice and the third-party notices in `THIRD_PARTY_NOTICES.md`. Selling a packaged copy does not re-license MediaPipe, OpenCV, FFmpeg, or the other libraries listed there.
+The source in this tree is under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0). You may use, modify, and share it for a noncommercial purpose, provided you keep `LICENSE`, the required notice below, and the third-party notices in `THIRD_PARTY_NOTICES.md`. Commercial use is not included. Third-party libraries keep their own licenses.
 
-> **Privacy first.** After activation, EyesRhythm runs offline. Camera frames are not uploaded. Local JSON under `~/.eyerhythm_blinkcounter/` holds today’s blink count and screen-time minutes (resets at midnight), plus an optional research log of inter-blink interval stats per screen-time hour. The license file in that same folder is the only record of activation.
+Required Notice: Copyright Pranay Soni (https://github.com/pranaycv)
+
+> **Privacy first.** EyesRhythm runs on this computer. Camera frames are not uploaded. Local JSON under `~/.eyerhythm_blinkcounter/` holds today’s blink count and screen-time minutes (resets at midnight), plus an optional research log of inter-blink interval stats per screen-time hour.
 
 ---
 
@@ -109,15 +111,16 @@ The default window is small and resizable. Maximising scales typography and layo
 
 ## Libraries and licenses
 
-All runtime libraries used here allow commercial distribution of a packaged
-app. None of them require EyesRhythm’s own source to be published.
+EyesRhythm’s own code is under the PolyForm Noncommercial License 1.0.0.
+Third-party libraries keep their own licenses. Those terms are what allow
+the packaged app to include them. None of them re-license EyesRhythm’s code.
 
 See **[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)** (also in
 Settings → About, and inside every freeze). Full texts live in `licenses/`.
 
-| Component | License | In the sold app |
-|-----------|---------|-----------------|
-| EyesRhythm source | MIT | Yes |
+| Component | License | In the app |
+|-----------|---------|------------|
+| EyesRhythm source | PolyForm Noncommercial 1.0.0 | Yes |
 | MediaPipe + Face Landmarker model | Apache 2.0 | Yes |
 | OpenCV | Apache 2.0 | Yes |
 | FFmpeg (inside the OpenCV wheel) | LGPLv2.1 | Yes — replaceable library, notice required |
@@ -168,4 +171,4 @@ If the counter feels off for you, or you have ideas for the reserved metric card
 
 EyesRhythm is a wellness companion, not a medical device. It is not intended to diagnose, treat, cure, or prevent disease.
 
-Official copies: [eyesrhythm.com](https://eyesrhythm.com). Source terms: [`LICENSE`](LICENSE). Third-party terms: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+Official copies: [eyesrhythm.com](https://eyesrhythm.com). Source: [github.com/pranaycv/EyeRhythm](https://github.com/pranaycv/EyeRhythm). Source terms: [`LICENSE`](LICENSE). Third-party terms: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

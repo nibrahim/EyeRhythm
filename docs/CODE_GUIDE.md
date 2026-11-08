@@ -304,5 +304,5 @@ Useful flags:
 
 ---
 
-EyesRhythm source is MIT. Packaged copies are free to download. Third-party terms:
+EyesRhythm source is under the PolyForm Noncommercial License 1.0.0. Packaged copies are free to download for a noncommercial purpose. Third-party terms:
 `THIRD_PARTY_NOTICES.md`. Take care of your eyes.

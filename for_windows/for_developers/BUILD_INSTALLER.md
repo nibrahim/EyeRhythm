@@ -21,7 +21,7 @@ This document is for maintainers. Follow these steps whenever you update the app
    - `EyesRhythm-Windows-setup` → `EyesRhythm-Setup.exe`
 4. Send the zip (or the Setup.exe) to the other person.
 
-Tag `v1.0.0` (or any `v*`) to attach both files to a GitHub Release. The repo is private, so you still download and forward the files yourself.
+Tag `v1.0.0` (or any `v*`) to attach both files to a GitHub Release. The repo is public, so the release page is a link you can share.
 
 Typical runtime: 10–20 minutes. Python is pinned to **3.11**.
 

@@ -80,17 +80,18 @@ export function AboutPanel() {
           <tr>
             <th scope="row">Notices</th>
             <td>
-              EyesRhythm is free and MIT-licensed. Third-party
-              libraries keep their own licenses (Apache 2.0, BSD, MIT, SIL OFL,
-              and LGPLv2.1 for FFmpeg inside OpenCV). Those notices travel with
-              this copy as <code>THIRD_PARTY_NOTICES.md</code>.
+              EyesRhythm is free for noncommercial use under the PolyForm
+              Noncommercial License 1.0.0. Third-party libraries keep their own
+              licenses (Apache 2.0, BSD, MIT, SIL OFL, and LGPLv2.1 for FFmpeg
+              inside OpenCV). Those notices travel with this copy as{" "}
+              <code>THIRD_PARTY_NOTICES.md</code>.
             </td>
           </tr>
         </tbody>
       </table>
       {notices ? (
         <details className="about__notices">
-          <summary>Open-source licenses in this copy</summary>
+          <summary>Licenses in this copy</summary>
           <pre>{notices}</pre>
         </details>
       ) : null}

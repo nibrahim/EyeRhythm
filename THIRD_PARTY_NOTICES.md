@@ -1,10 +1,13 @@
 # Third-party notices
 
-EyesRhythm’s own code is under the MIT License (see `LICENSE`).
-Packaged Mac and Windows copies may be sold. Third-party software
-included in those copies keeps its own license. This file is the
-attribution that MIT, Apache 2.0, BSD, and LGPLv2.1 require you to
-keep with the copy.
+EyesRhythm’s own code is under the PolyForm Noncommercial License 1.0.0
+(https://polyformproject.org/licenses/noncommercial/1.0.0). See `LICENSE`.
+
+Required Notice: Copyright Pranay Soni (https://github.com/pranaycv)
+
+Third-party software included in Mac and Windows copies keeps its own
+license. This file is the attribution Apache 2.0, BSD, MIT, LGPLv2.1,
+and the SIL Open Font License require you to keep with the copy.
 
 Full license texts:
 
