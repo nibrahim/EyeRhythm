@@ -68,7 +68,7 @@ To stop opening at login: `./for_mac/uninstall_autostart.sh`.
 
 ```bash
 ./for_linux/setup.sh                 # venv + Python deps + React build
-./for_linux/run.sh                   # opens the dashboard in your browser
+./for_linux/run.sh                   # launches the desktop window
 ./for_linux/install_autostart.sh     # optional: open at every login
 ```
 
@@ -119,7 +119,7 @@ Close the window to quit (or Ctrl+C in browser mode).
 * **`app/`** — camera engine, local FastAPI server, desktop window  
 * **`frontend/`** — React + TypeScript + Vite UI  
 
-The default window is small and resizable. Maximising scales typography and layout with the viewport. Works on **macOS and Windows**. Linux runs from source in the browser, or with `--headless` in the terminal.
+The default window is small and resizable. Maximising scales typography and layout with the viewport. Works on **macOS and Windows**. Linux runs from source in a desktop window, with `--browser` in the browser, or with `--headless` in the terminal.
 
 ---
 

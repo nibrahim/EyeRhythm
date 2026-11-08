@@ -5,11 +5,12 @@
 #
 # 1. Activates the EyeRhythm/ virtualenv
 # 2. Builds the React UI if frontend/dist is missing
-# 3. Starts:  python -m app.main --browser
+# 3. Starts:  python -m app.main
 #
 # Examples:
 #   ./for_linux/run.sh
 #   ./for_linux/run.sh --camera 1
+#   ./for_linux/run.sh --browser
 # =============================================================================
 set -e
 
@@ -54,4 +55,4 @@ echo "EyesRhythm  ·  $(pwd)"
 echo "Keys in UI: B beep  ·  A alert  ·  P practice  ·  D more/less  ·  W settings"
 echo
 
-exec python -m app.main --browser "$@"
+exec python -m app.main "$@"

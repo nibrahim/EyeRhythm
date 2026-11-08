@@ -59,6 +59,10 @@ EyesRhythm does not modify FFmpeg.
 Non-headless Linux wheels of `opencv-python` can also include Qt under
 LGPL. Official EyesRhythm packages are macOS and Windows only.
 
+Running from source on Linux also installs PySide6 and Qt from PyPI for the
+desktop window, under LGPL-3.0. They are downloaded by `pip` and not included
+in this repository or in official packages.
+
 ---
 
 ## BSD-3-Clause / BSD-style
