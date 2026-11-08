@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const scenes = ["trace", "avatars", "cameras", "alerts", "fps", "reports"];
+const scenes = ["trace", "avatars", "cameras", "alerts", "fps", "reports", "poise"];
 const outDir = path.join(root, "website/public/images/hero");
 fs.mkdirSync(outDir, { recursive: true });
 

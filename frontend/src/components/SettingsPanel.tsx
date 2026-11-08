@@ -142,7 +142,7 @@ export function SettingsPanel() {
           {restoring ? "Restoring…" : "Restore defaults"}
         </button>
       </div>
-      {cameras.length > 1 ? (
+      {cameras.length > 0 ? (
         <label className="settings__field">
           <div className="settings__row">
             <span className="settings__name">Camera</span>
@@ -150,7 +150,7 @@ export function SettingsPanel() {
           <select
             className="settings__select"
             value={
-              cameraIndex === "hybrid"
+              cameraIndex === "hybrid" && cameras.length > 1
                 ? "hybrid"
                 : String(cameraIndex ?? cameras[0]?.index ?? 0)
             }
@@ -161,7 +161,9 @@ export function SettingsPanel() {
               else onCameraChange(Number(raw));
             }}
           >
-            <option value="hybrid">Hybrid (utilizes CPU extensively)</option>
+            {cameras.length > 1 ? (
+              <option value="hybrid">Hybrid (utilizes CPU extensively)</option>
+            ) : null}
             {cameras.map((cam) => (
               <option key={cam.index} value={cam.index}>
                 {cam.label}
@@ -169,11 +171,21 @@ export function SettingsPanel() {
             ))}
           </select>
           <p className="settings__help">
-            One webcam, or Hybrid to use every built-in and USB camera at
-            once (not a phone). Hybrid keeps full frame rate by running every
-            camera together (utilizes CPU extensively). Each tick grabs all
-            cameras at the same instant, then counts blinks on the
-            front-facing view. The engine restarts when you change this.
+            {cameras.length > 1 ? (
+              <>
+                One webcam, or Hybrid to use every built-in and USB camera at
+                once (not a phone). Hybrid keeps full frame rate by running
+                every camera together (utilizes CPU extensively). Each tick
+                grabs all cameras at the same instant, then counts blinks on
+                the front-facing view. The engine restarts when you change
+                this.
+              </>
+            ) : (
+              <>
+                The webcam EyesRhythm is using. Plug in another desk camera
+                to choose Hybrid.
+              </>
+            )}
           </p>
         </label>
       ) : null}

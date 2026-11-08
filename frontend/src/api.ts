@@ -337,6 +337,11 @@ export async function setToggle(
   return res.json();
 }
 
+/** Forget the Poise face and its movement heat. The next still look rebuilds it. */
+export async function resetFaceMap(): Promise<void> {
+  await fetch("/api/face-map/reset", { method: "POST" });
+}
+
 /** Tell the engine to start/stop encoding camera JPEGs for the Lens avatar. */
 export async function setPreviewEnabled(enabled: boolean): Promise<void> {
   await fetch(`/api/preview/${enabled ? "enable" : "disable"}`, {

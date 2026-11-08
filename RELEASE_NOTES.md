@@ -1,5 +1,94 @@
 # EyesRhythm release notes
 
+## 1.5.0 — 2 November 2026
+
+The Poise dial shows which way the head turned today, in 30° slices.
+
+### Poise dial
+
+- Twelve directions. A slice turns green the more the head goes that way, and stays red where it rarely goes.
+- Tiles light from the center outward. The least-used direction pulses with an arrow.
+- The center shows a balance score. The ball follows the head and leaves a short trail.
+- Looking up lights the top of the dial and looking down lights the bottom.
+- The dial starts all red each calendar day. The face wireframe stays.
+
+### Files
+
+| Platform | Installer |
+|----------|-----------|
+| macOS | `EyesRhythm-1.5.0.dmg` |
+| Windows | `EyesRhythm-Setup-1.5.0.exe` |
+
+Drag the Mac app into Applications. On Windows, run Setup (per-user, no administrator account). Allow the camera when the system asks.
+
+---
+
+## 1.4.0 — 2 November 2026
+
+EyesRhythm is free. Packaged Mac and Windows copies open with no license key.
+
+### License
+
+- The activation gate stays in the app and is off. First launch goes straight to the splash.
+- Turn it back on with `--require-license` or `EYERHYTHM_REQUIRE_LICENSE=1`.
+
+### Files
+
+| Platform | Installer |
+|----------|-----------|
+| macOS | `EyesRhythm-1.4.0.dmg` |
+| Windows | `EyesRhythm-Setup-1.4.0.exe` |
+
+Drag the Mac app into Applications. On Windows, run Setup (per-user, no administrator account). Allow the camera when the system asks.
+
+---
+
+## 1.3.0 — 17 September 2026
+
+Screen-time reports in the dock, and Sound-mode alerts that stay on a one-minute cadence.
+
+### Screen time reports
+
+- Reports splits into **Ocular rhythm** and **Screen time**. Both use the same Daily / Weekly / Monthly picker.
+- Daily screen time is minutes at the screen in each 5-minute slot. Weekly and monthly show hours per day, with total, daily average, and days present.
+- These charts read the screen-time seconds already stored in the local ORI history bins. No extra diary file.
+
+### Sound alert
+
+- After a low-ORI Sound cue plays, the next cue waits **one minute**, even if the alert latch flickers (brief face loss or ORI bouncing around the line).
+- Beeps still stop as soon as ORI is back at or above the threshold.
+
+### Files
+
+| Platform | Installer |
+|----------|-----------|
+| macOS | `EyesRhythm-1.3.0.dmg` |
+| Windows | `EyesRhythm-Setup-1.3.0.exe` |
+
+Drag the Mac app into Applications. On Windows, run Setup (per-user, no administrator account). Allow the camera when the system asks.
+
+---
+
+## 1.2.1 — 13 September 2026
+
+Camera picker is visible again in Settings after 1.2.0 hid it on machines with more than one desk webcam.
+
+### Camera picker
+
+- Settings shows **Camera** whenever a desk webcam is found. A black first frame no longer empties the list for the whole session.
+- **Hybrid** still appears when there are two or more desk cameras (built-in plus USB). Phone, iPad, and Continuity cameras stay out of the list.
+
+### Files
+
+| Platform | Installer |
+|----------|-----------|
+| macOS | `EyesRhythm-1.2.1.dmg` |
+| Windows | `EyesRhythm-Setup-1.2.1.exe` |
+
+Drag the Mac app into Applications. On Windows, run Setup (per-user, no administrator account). Allow the camera when the system asks.
+
+---
+
 ## 1.2.0 — 13 September 2026
 
 Hybrid multi-camera support. If you have more than one desk webcam (built-in plus USB), you can use them together instead of picking a single camera.

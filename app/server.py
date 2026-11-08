@@ -10,11 +10,12 @@ Serves:
 * GET  /api/state          — one-shot engine snapshot
 * POST /api/toggles/{name} — beep | alert | ontop | practice  body: {"value": bool?}
 * GET  /api/preview        — latest JPEG bytes (when camera panel open)
-* WS   /ws/stats           — live JSON snapshots (~10 Hz)
+* POST /api/face-map/reset — clear the Poise movement map
+* WS   /ws/stats           — live JSON snapshots (~20 Hz)
 * WS   /ws/preview         — live JPEG frames as binary (when client asks)
 
-The UI talks to localhost only. First-run license activation is the
-Python process calling Dodo Payments; blink data is never uploaded.
+The UI talks to localhost only. The license gate is off unless it is
+turned on; blink data is never uploaded.
 """
 
 from __future__ import annotations
@@ -436,6 +437,12 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
             "quotes": quotes,
         }
 
+    @app.post("/api/face-map/reset")
+    def face_map_reset():
+        """Forget Poise's centered face and start the movement map over."""
+        engine.reset_face_map()
+        return {"ok": True}
+
     @app.post("/api/preview/enable")
     def preview_enable():
         """Ask the engine to start encoding camera JPEGs (Lens avatar)."""
@@ -464,14 +471,14 @@ def create_app(engine: "EyeRhythmEngine") -> FastAPI:
 
     @app.websocket("/ws/stats")
     async def ws_stats(ws: WebSocket):
-        """Live feed of metrics (~10 times a second) for the dashboard cards."""
+        """Live feed of metrics (~20 times a second) for the dashboard cards."""
         await ws.accept()
         _try_start_engine()
         try:
             while True:
                 snap = engine.snapshot().to_dict()
                 await ws.send_text(json.dumps(snap))
-                await asyncio.sleep(0.1)  # 10 Hz is plenty for the dashboard
+                await asyncio.sleep(0.05)  # 20 Hz so the face grid can follow the head
         except WebSocketDisconnect:
             pass
         except Exception:

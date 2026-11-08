@@ -25,6 +25,7 @@ export function ControlsBar({ state }: Props) {
   const [practicePulse, setPracticePulse] = useState(false);
 
   const lastBlinkRef = useRef(0);
+  const lastAlertBeepRef = useRef(0);
 
   // Blink detected → orange on Beep (if on) and Practice (if on).
   useEffect(() => {
@@ -44,14 +45,18 @@ export function ControlsBar({ state }: Props) {
     }
   }, [state.last_blink_at, state.beep, state.practice]);
 
-  // Sound-alert cue → red on Alert chip.
+  // Sound-alert cue → brief red on Alert chip (at most once a minute).
   useEffect(() => {
-    if (state.alert_mode === "sound" && state.alert_active) {
-      setAlertPulse(true);
-      return;
+    const t = state.last_alert_beep_at ?? 0;
+    if (t > 0 && t !== lastAlertBeepRef.current) {
+      lastAlertBeepRef.current = t;
+      if (state.alert_mode === "sound") {
+        setAlertPulse(true);
+        const id = window.setTimeout(() => setAlertPulse(false), 320);
+        return () => window.clearTimeout(id);
+      }
     }
-    setAlertPulse(false);
-  }, [state.alert_mode, state.alert_active]);
+  }, [state.last_alert_beep_at, state.alert_mode]);
 
   const flip = async (name: ToggleName) => {
     if (busy) return;

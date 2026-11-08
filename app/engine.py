@@ -27,7 +27,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date as date_cls
 from collections import deque
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +35,7 @@ import cv2
 import numpy as np
 
 from blink_core import BlinkDetector, FrameResult
+from blink_core.face_motion import FaceMotionTracker, empty_face_map
 from blink_core.screentime import ScreenTimeTracker
 from blink_core.interblink_hours import InterBlinkHourTracker
 from app.beeper import Beeper
@@ -86,6 +87,9 @@ MODEL_PATH = str(ROOT / "models" / "face_landmarker.task")
 # ORI alert: beep after enough time below this; stop at/above it.
 ALERT_ORI_THRESHOLD = 50.0
 ALERT_POLL_S = 0.5
+# Once a Sound-mode cue has played, wait this long before the next one while
+# ORI is still below the threshold. Latch flicker must not restart the timer.
+ALERT_BEEP_INTERVAL_S = 60.0
 # After a fresh start (or face return after a long break), rate (and therefore
 # ORI) is still filling its 60 s window and would look artificially low.
 # Suppress alert beeps for this long so we act on real data only.
@@ -535,7 +539,7 @@ def _macos_profiler_camera_devices() -> list[dict[str, str]]:
                 out.append({
                     "name": name,
                     "model_id": str(item.get("spcamera_model-id") or "").strip(),
-                    "unique_id": "",
+                    "unique_id": str(item.get("spcamera_unique-id") or "").strip(),
                 })
         return out
     except (OSError, subprocess.SubprocessError, ValueError, TypeError):
@@ -665,8 +669,16 @@ def _probe_camera_index(
     if not cap.isOpened():
         _release_camera(cap)
         return False, 0, 0, 0.0, 0.0
-    ok, frame = cap.read()
+    ok, frame = False, None
+    # First frames are often black on USB / FaceTime; match open_camera warmup.
+    for _ in range(8):
+        ok, frame = cap.read()
+        if ok and _frame_is_usable(frame):
+            break
+        time.sleep(0.05)
     _release_camera(cap)
+    if platform.system() == "Darwin" and CAMERA_RELEASE_SETTLE_S > 0:
+        time.sleep(CAMERA_RELEASE_SETTLE_S)
     if not ok or not _frame_is_usable(frame):
         return False, 0, 0, 0.0, 0.0
     h, w = frame.shape[:2]
@@ -686,6 +698,11 @@ def _describe_from_os_devices(
     the same way OpenCV sorts them. Phone / Continuity entries are omitted
     from the picker but do not shift the index numbers of the cameras that
     remain.
+
+    A failed probe must not hide a named desk camera. Opening each index
+    to confirm a live frame is best-effort for the resolution label only —
+    first frames are often black, and a camera already in use will not
+    reopen. An empty picker then hides Settings → Camera for the session.
     """
     work = list(devices) if devices else []
     if any(str(d.get("unique_id") or "") for d in work):
@@ -700,13 +717,22 @@ def _describe_from_os_devices(
             model_id = str(dev.get("model_id") or "")
             if not _is_desk_camera(name, model_id):
                 continue
-        else:
-            name = f"Camera {index}"
+            ok, w, h, _mean, _std = _probe_camera_index(index, backend)
+            out.append(
+                {
+                    "index": index,
+                    "label": f"{name} ({w}×{h})" if ok and w and h else name,
+                    "name": name,
+                    "width": w if ok else 0,
+                    "height": h if ok else 0,
+                }
+            )
+            continue
 
+        name = f"Camera {index}"
         ok, w, h, _mean, _std = _probe_camera_index(index, backend)
         if not ok:
             continue
-
         out.append(
             {
                 "index": index,
@@ -743,9 +769,10 @@ def describe_cameras(
     on macOS (same as OpenCV). Phone / iPad Continuity cameras are omitted
     from the picker.
 
-    The first call actually opens each index to confirm it works. Later
-    calls reuse that list unless ``refresh=True`` — re-opening cameras
-    after the desktop window is up stalls WKWebView (blank white window).
+    The first call may open each index for a resolution label. Later calls
+    reuse that list unless ``refresh=True`` — re-opening cameras after the
+    desktop window is up stalls WKWebView (blank white window). Named desk
+    cameras stay in the picker even if that first open fails.
     """
     global _cameras_cache
     with _cameras_cache_lock:
@@ -887,6 +914,9 @@ class AlertMonitor:
     history. They can resume if ORI dips below 50 again while that history
     still qualifies.
 
+    Sound cues fire at most once every ``ALERT_BEEP_INTERVAL_S`` (60 s) after
+    the first beep. Brief face / ORI flicker does not reset that gap.
+
     Alert beeps are also suppressed for ``ALERT_WARMUP_S`` (default 60 s) after:
       * construction / first face of the session, and
       * face re-detection after an absence of ``FACE_BREAK_S`` or more.
@@ -927,6 +957,8 @@ class AlertMonitor:
         self._trend: deque[tuple[float, float]] = deque()
         self._last_trend_sample_at: float | None = None
         self._active = False
+        # 0 = never beeped this process. Interval is measured from the last cue.
+        self._last_beep_mono = 0.0
 
     def update(self, ori: float | None, face_found: bool) -> None:
         """
@@ -1042,6 +1074,24 @@ class AlertMonitor:
             return False
         return self._low_ori_duration_s(now) >= self._low_duration_s
 
+    def _maybe_fire_alert_beep_locked(self, now: float, should: bool) -> bool:
+        """
+        True once per ``ALERT_BEEP_INTERVAL_S`` while the low-ORI latch holds.
+
+        The timer is **not** cleared when ``should`` briefly goes false, so a
+        flickering face or ORI around the line cannot re-trigger immediately.
+        Caller holds the lock.
+        """
+        if not should:
+            return False
+        if (
+            self._last_beep_mono > 0.0
+            and (now - self._last_beep_mono) < ALERT_BEEP_INTERVAL_S
+        ):
+            return False
+        self._last_beep_mono = now
+        return True
+
     def _on_face_reappeared(self, now: float) -> None:
         """Apply warmup after first face or after a long absence (caller holds lock)."""
         if not self._ever_had_face:
@@ -1113,6 +1163,7 @@ class AlertMonitor:
     def _run(self) -> None:
         """Wake every half-second: keep Alert latched while ORI is still low."""
         while not self._stop.is_set():
+            fire_beep = False
             with self._lock:
                 now = self._time()
                 # Keep trend head fresh even between sparse camera frames.
@@ -1121,9 +1172,15 @@ class AlertMonitor:
                 should = self._should_beep_locked(now)
                 changed = should != self._active
                 self._active = should
+                fire_beep = self._maybe_fire_alert_beep_locked(now, should)
             if changed and self._on_active is not None:
                 try:
                     self._on_active(should)
+                except Exception:
+                    pass
+            if fire_beep and self._on_alert_beep is not None:
+                try:
+                    self._on_alert_beep()
                 except Exception:
                     pass
             self._stop.wait(self._poll_s)
@@ -1319,6 +1376,10 @@ class EngineSnapshot:
     last_blink_at: float = 0.0       # counted blink → Beep/Practice orange
     last_alert_beep_at: float = 0.0  # alert metronome → Alert red
 
+    # Poise: centered face mesh + movement heat. Empty until the still
+    # pose has been learned. The mesh itself never follows the head.
+    face_map: dict = field(default_factory=empty_face_map)
+
     # Placeholders for future cards (always null for now)
     future_a: None = None
     future_b: None = None
@@ -1399,6 +1460,8 @@ class EyeRhythmEngine:
         self._interblink_hours = InterBlinkHourTracker()
         self._interblink_hours.sync_screen_seconds(self._screen_time.seconds_today)
         self._regularity = RegularityTracker()
+        # Poise: local face motion around a center that stays at the origin.
+        self._face_motion = FaceMotionTracker()
         self._detector: BlinkDetector | None = None
         self._detectors: dict[int, BlinkDetector] = {}
         self._fused_rate = FusedBlinkRate()
@@ -1478,6 +1541,8 @@ class EyeRhythmEngine:
         self._last_preview_at = 0.0
         self._ontop_listeners: list = []
         self._visual_alert_listeners: list = []
+        self._alert_active_listeners: list = []
+        self._blink_pulse_listeners: list = []
 
     # ---- public control -----------------------------------------------
 
@@ -1540,6 +1605,57 @@ class EyeRhythmEngine:
         """Most recent Lens-avatar camera still, or None if not encoding."""
         with self._lock:
             return self._preview_jpeg
+
+    def reset_face_map(self) -> None:
+        """Clear Poise's face grid and the direction histogram."""
+        self._face_motion.reset()
+        self._publish()
+
+    def _poise_source(
+        self,
+        chosen: FrameResult,
+        views: list[tuple[int, np.ndarray, FrameResult, bool]],
+    ) -> FrameResult | None:
+        """
+        Landmarks for the live face grid.
+
+        Prefer the primary camera so a head turn is not cancelled when the
+        hybrid picker hops to whichever camera sees a more frontal face.
+        """
+        primary = int(self.camera_index)
+        for idx, _frame, cam_res, _off in views:
+            if int(idx) == primary and cam_res.face_found and cam_res.landmarks_xyz is not None:
+                return cam_res
+        if chosen.face_found and chosen.landmarks_xyz is not None:
+            return chosen
+        return None
+
+    def _observe_face_motion(
+        self,
+        res: FrameResult | None,
+        *,
+        counting: bool,
+        off_screen: bool,
+    ) -> None:
+        """
+        Feed Poise one mesh, or freeze the grids when this frame has no face.
+
+        A turn past the off-screen angle is still the pose the grid follows.
+        A missing face, or a parked camera, leaves the grids where they are.
+        """
+        del off_screen
+        try:
+            xyz = None
+            if (
+                counting
+                and res is not None
+                and res.face_found
+                and res.landmarks_xyz is not None
+            ):
+                xyz = res.landmarks_xyz
+            self._face_motion.observe(xyz, time.monotonic(), frontal=True)
+        except Exception:
+            pass
 
     def set_preview_wanted(self, wanted: bool) -> None:
         """Turn camera-preview encoding on only while Lens is visible."""
@@ -1993,6 +2109,12 @@ class EyeRhythmEngine:
         with self._lock:
             self._last_blink_at = time.time()
             self._snap.last_blink_at = self._last_blink_at
+            listeners = list(self._blink_pulse_listeners)
+        for cb in listeners:
+            try:
+                cb()
+            except Exception:
+                pass
 
     def _note_alert_beep(self) -> None:
         """UI: red pulse on Alert dot when low-ORI alert beeps."""
@@ -2005,7 +2127,13 @@ class EyeRhythmEngine:
         with self._lock:
             self._alert_active = bool(active)
             self._snap.alert_active = self._alert_active
+            listeners = list(self._alert_active_listeners)
         self._emit_visual_alert()
+        for cb in listeners:
+            try:
+                cb(bool(active))
+            except Exception:
+                pass
 
     def get_toggles(self) -> dict[str, bool]:
         """Copy of Beep / Alert / On top / Practice (safe to read from the UI)."""
@@ -2024,9 +2152,25 @@ class EyeRhythmEngine:
         Register a callback(bool) when Visual alert should draw attention.
 
         True while Alert is latched *and* the chip is on Visual (not Sound).
-        Used on Windows to blink the minimized taskbar button.
         """
         self._visual_alert_listeners.append(callback)
+
+    def on_alert_active_change(self, callback) -> None:
+        """
+        Register a callback(bool) when the low-ORI Alert latch turns on or off.
+
+        Fires for both Visual and Sound. The Dock / taskbar icon uses this
+        to flash orange while the latch is on.
+        """
+        self._alert_active_listeners.append(callback)
+
+    def on_blink_pulse(self, callback) -> None:
+        """
+        Register a callback() for each counted blink (eye-open after close).
+
+        The Dock / taskbar icon uses this to close the eye for a beat.
+        """
+        self._blink_pulse_listeners.append(callback)
 
     def _emit_visual_alert(self) -> None:
         with self._lock:
@@ -2399,6 +2543,7 @@ class EyeRhythmEngine:
             self._snap.last_blink_at = self._last_blink_at
             self._snap.last_alert_beep_at = self._last_alert_beep_at
             self._snap.off_screen = self._look_off_screen
+            self._snap.face_map = self._face_motion.to_public()
             self._snap.ori_threshold = float(self._ori_threshold)
             self._snap.alert_low_minutes = float(self._alert_low_minutes)
             self._snap.writing_angle_deg = float(self._writing_angle_deg)
@@ -2727,6 +2872,7 @@ class EyeRhythmEngine:
                     self._sync_presence_hold(False, last_res, 0)
                     self._alert.update(None, False)
                     self._look_off_screen = False
+                    self._observe_face_motion(None, counting=False, off_screen=False)
                     held_reg = (
                         self._held_regularity
                         if self._held_regularity is not None
@@ -3042,6 +3188,11 @@ class EyeRhythmEngine:
                 if want_preview:
                     self._encode_preview(display_frame, res)
 
+                self._observe_face_motion(
+                    self._poise_source(res, processed),
+                    counting=counting,
+                    off_screen=bool(off_screen),
+                )
                 self._publish(
                     continuous_bpm=round(live_bpm, 1),
                     average_bpm=round(self._screen_time.avg_blinks_per_minute, 1),

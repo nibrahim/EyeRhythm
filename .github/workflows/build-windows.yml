@@ -79,6 +79,13 @@ jobs:
           path: EyesRhythm-Windows.zip
           if-no-files-found: error
 
+      - name: Read product version
+        id: ver
+        shell: pwsh
+        run: |
+          $ver = python -c "from app.version import VERSION; print(VERSION)"
+          "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
 
@@ -94,11 +101,18 @@ jobs:
           & $iscc "for_windows\for_developers\EyeRhythm.iss"
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit $LASTEXITCODE" }
 
+      - name: Name the installer with the version
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.ver.outputs.version }}"
+          Copy-Item "for_windows\for_developers\Output\EyesRhythm-Setup.exe" "EyesRhythm-Setup-$ver.exe"
+          Copy-Item "EyesRhythm-Windows.zip" "EyesRhythm-Windows-$ver.zip"
+
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: EyesRhythm-Windows-setup
-          path: for_windows/for_developers/Output/EyesRhythm-Setup.exe
+          path: EyesRhythm-Setup-${{ steps.ver.outputs.version }}.exe
           if-no-files-found: error
 
       - name: Attach to GitHub Release
@@ -106,6 +120,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            EyesRhythm-Windows.zip
-            for_windows/for_developers/Output/EyesRhythm-Setup.exe
+            EyesRhythm-Windows-${{ steps.ver.outputs.version }}.zip
+            EyesRhythm-Setup-${{ steps.ver.outputs.version }}.exe
           generate_release_notes: true

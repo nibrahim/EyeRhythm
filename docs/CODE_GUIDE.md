@@ -8,9 +8,9 @@ How the project fits together after the React UI rewrite.
 
 1. Opens the **webcam** in the background  
 2. Detects **face + blinks** (MediaPipe)  
-3. On packaged first launch, asks for the **Dodo Payments license key**
-   (internet once), then shows a **launch splash** (ocular-comfort self-check
-   + notices), then a **React dashboard** in a compact desktop window  
+3. Shows a **launch splash** (ocular-comfort self-check + notices), then a
+   **React dashboard** in a compact desktop window. The license gate is off
+   unless you turn it on
 4. Optionally **beeps** on blinks or when ORI stays below the threshold for the Alert duration (default 3 min in the last 5 min)  
 5. Saves **today’s** blink count and face-time to a local JSON file  
 
@@ -48,7 +48,7 @@ Blink data is not uploaded. Privacy is by design. Camera preview is collapsed by
 
 | Path | Role |
 |------|------|
-| `app/version.py` | Product SemVer (`1.2.0`) |
+| `app/version.py` | Product SemVer (`1.5.0`) |
 | `app/main.py` | Start engine + HTTP + desktop window |
 | `app/engine.py` | Camera, detector, stats, beeps/alerts |
 | `app/camera_idle.py` | Battery: 1 min no-face → camera off; peek every 2 min; 30 s confirm |
@@ -198,22 +198,22 @@ History is kept across days in the same file.
 
 ---
 
-## License activation (packaged copies)
+## License activation (kept, off)
 
-Paid Mac/Windows builds require a Dodo Payments key on **first launch**
-(internet once). The key plus a hashed machine id are sent to Dodo;
-the result is stored in `~/.eyerhythm_blinkcounter/license.json`. Later
-launches stay offline.
+The Dodo Payments gate stays in the app and is **off**, including packaged
+Mac and Windows builds. Copies open with no key. Blink data still never
+leaves the machine.
 
-Running from source does not ask for a key. Overrides:
+Turn the gate on only when you mean to:
 
-* `--require-license` / `EYERHYTHM_REQUIRE_LICENSE=1` — show the gate anyway
-* `--skip-license` / `EYERHYTHM_SKIP_LICENSE=1` — skip even when packaged
+* `--require-license` / `EYERHYTHM_REQUIRE_LICENSE=1` — ask for a key
+* `--skip-license` / `EYERHYTHM_SKIP_LICENSE=1` — skip even if the gate was forced
 * `EYERHYTHM_DODO_TEST=1` — talk to Dodo test mode instead of live
 
-The dashboard UI talks only to localhost. Python is the process that calls
-`https://live.dodopayments.com/licenses/activate`. Fill product ids
-in `app/license.py` after the Dodo products exist.
+When the gate is on, the key plus a hashed machine id go to Dodo and the
+result is stored in `~/.eyerhythm_blinkcounter/license.json`. The dashboard
+UI talks only to localhost. Python is the process that calls
+`https://live.dodopayments.com/licenses/activate`.
 
 UI: `frontend/src/components/LicenseScreen.tsx`.
 
@@ -294,7 +294,7 @@ Useful flags:
 * Daily screen-time / blink persistence  
 * Beep + low-ORI alert behaviour  
 * Camera reconnect after sleep/wake  
-* Offline after a one-time license activation  
+* Offline in normal use. The license gate is off  
 
 ## What changed
 

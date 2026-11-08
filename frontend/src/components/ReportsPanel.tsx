@@ -1,6 +1,6 @@
 /**
- * Reports dock: daily 5-min ORI bars, weekly bars, monthly daily bars.
- * Period is chosen by the user; data comes from ori_history.json.
+ * Reports dock: daily / weekly / monthly ORI and screen-time charts.
+ * Period is chosen once; both sections read the same ori_history.json bins.
  */
 
 import { useEffect, useState } from "react";
@@ -88,15 +88,33 @@ export function ReportsPanel() {
         onChange={setDate}
       />
 
-      <p className="reports__caption">
-        {kind === "daily" && "5-minute mean ORI across 24 hours"}
-        {kind === "weekly" && "Daily mean ORI, Monday–Sunday"}
-        {kind === "monthly" && "Daily mean ORI for the month"}
-        {" · Green dotted line is the trained-eye target (75)"}
-      </p>
-
       {error ? <p className="settings__help">{error}</p> : null}
-      {report ? <ReportChart report={report} /> : null}
+
+      <section className="reports__section" aria-labelledby="reports-ori">
+        <h3 id="reports-ori" className="reports__section-title">
+          Ocular rhythm
+        </h3>
+        <p className="reports__caption">
+          {kind === "daily" && "5-minute mean ORI across 24 hours"}
+          {kind === "weekly" && "Daily mean ORI, Monday–Sunday"}
+          {kind === "monthly" && "Daily mean ORI for the month"}
+          {" · Green dotted line is the trained-eye target (75)"}
+        </p>
+        {report ? <ReportChart report={report} metric="ori" /> : null}
+      </section>
+
+      <section className="reports__section" aria-labelledby="reports-screen">
+        <h3 id="reports-screen" className="reports__section-title">
+          Screen time
+        </h3>
+        <p className="reports__caption">
+          {kind === "daily" &&
+            "Minutes looking at the screen in each 5-minute slot"}
+          {kind === "weekly" && "Hours looking at the screen, Monday–Sunday"}
+          {kind === "monthly" && "Hours looking at the screen each day of the month"}
+        </p>
+        {report ? <ReportChart report={report} metric="screen" /> : null}
+      </section>
     </div>
   );
 }

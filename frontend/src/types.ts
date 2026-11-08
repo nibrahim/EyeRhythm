@@ -1,4 +1,36 @@
 /**
+ * Poise, one frame.
+ *
+ * `lr` is left/right degrees (positive = the person's right). `up` and
+ * `down` are pitch; only one of them is above zero. `mesh` is the face
+ * around the nose bridge and stays until reset. The ball reads `lr`,
+ * `up`, and `down`. Up is the top of the dial.
+ * `dots` is little-endian uint16, twelve 30° sectors. 0 is empty and
+ * 65535 is five hours spent looking that way.
+ */
+export interface FaceMapState {
+  ready: boolean;
+  samples: number;
+  lr: number;
+  up: number;
+  down: number;
+  /** Base64 little-endian float32, 468 × xyz. Nose bridge is the origin. */
+  mesh: string;
+  /** Base64 little-endian uint16, one value per histogram direction. */
+  dots: string;
+}
+
+export const EMPTY_FACE_MAP: FaceMapState = {
+  ready: false,
+  samples: 0,
+  lr: 0,
+  up: 0,
+  down: 0,
+  mesh: "",
+  dots: "",
+};
+
+/**
  * Live numbers the dashboard displays.
  *
  * This is a TypeScript copy of the Python `EngineSnapshot`. Every ~0.1 s
@@ -83,6 +115,11 @@ export interface EngineState {
   /** Wall-clock: last low-rate alert beep (Alert red pulse). */
   last_alert_beep_at: number;
 
+  /**
+   * Poise. `mesh` is the live face grid. `dots` is time per 30° direction.
+   */
+  face_map: FaceMapState;
+
   future_a: null;
   future_b: null;
 
@@ -140,6 +177,7 @@ export const EMPTY_STATE: EngineState = {
   practice_result_regularity: null,
   last_blink_at: 0,
   last_alert_beep_at: 0,
+  face_map: EMPTY_FACE_MAP,
   future_a: null,
   future_b: null,
   running: false,

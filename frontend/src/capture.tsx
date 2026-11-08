@@ -12,7 +12,7 @@ import { MetricCard } from "./components/MetricCard";
 import { ReportChart } from "./components/ReportChart";
 import { seedRateHistoryForCapture } from "./hooks/rateHistory";
 import type { ReportPayload } from "./api";
-import { EMPTY_STATE, type EngineState } from "./types";
+import { EMPTY_FACE_MAP, EMPTY_STATE, type EngineState } from "./types";
 import { oriTone } from "./utils/format";
 import "./styles/global.css";
 import "./capture.css";
@@ -24,6 +24,7 @@ const SCENES = [
   "alerts",
   "fps",
   "reports",
+  "poise",
 ] as const;
 type Scene = (typeof SCENES)[number];
 
@@ -106,7 +107,7 @@ function dailyReport(): ReportPayload {
       i,
       t: `${String(Math.floor(hour)).padStart(2, "0")}:${String((i % 12) * 5).padStart(2, "0")}`,
       ori,
-      screen_s: ori == null ? 0 : 280,
+      screen_s: ori == null ? 0 : 300,
       blinks: ori == null ? 0 : 12,
     };
   });
@@ -121,8 +122,8 @@ function dailyReport(): ReportPayload {
     points,
     summary: {
       mean_ori: mean,
-      screen_s: 11520,
-      blinks: 2184,
+      screen_s: livePts.length * 300,
+      blinks: livePts.length * 12,
       days_with_data: 1,
     },
   };
@@ -294,6 +295,59 @@ function FpsScene() {
   );
 }
 
+/** Fractions of a full day, one per 30° direction, starting at the person's right. */
+const POISE_DAY = [0.3, 0.22, 0.08, 0.05, 0.02, 0.04, 0.12, 0.03, 0, 0.01, 0, 0.14];
+
+function packDots(fractions: number[]): string {
+  const bytes = new Uint8Array(fractions.length * 2);
+  fractions.forEach((fraction, i) => {
+    const value = Math.round(Math.max(0, Math.min(1, fraction)) * 65535);
+    bytes[i * 2] = value & 255;
+    bytes[i * 2 + 1] = (value >> 8) & 255;
+  });
+  let text = "";
+  for (const byte of bytes) text += String.fromCharCode(byte);
+  return btoa(text);
+}
+
+const POISE_DOTS = packDots(POISE_DAY);
+
+function PoiseScene() {
+  const [avatar, setAvatar] = useState<AvatarId>("poise");
+  const [mesh, setMesh] = useState("");
+  useEffect(() => {
+    // Optional local wireframe for this capture. Absent in the repo.
+    fetch("/poise-capture-mesh.txt")
+      .then((response) => (response.ok ? response.text() : ""))
+      .then((text) => setMesh(text.trim()))
+      .catch(() => setMesh(""));
+  }, []);
+  const state: EngineState = {
+    ...live,
+    face_yaw_deg: 28,
+    face_pitch_deg: -6,
+    face_direction: "right",
+    face_map: {
+      ...EMPTY_FACE_MAP,
+      ready: mesh.length > 0,
+      samples: mesh ? 1 : 0,
+      lr: 28,
+      up: 0,
+      down: 6,
+      mesh,
+      dots: POISE_DOTS,
+    },
+  };
+  return (
+    <CaptureFrame title="Poise">
+      <div className="app-shell">
+        <LiveTopbar />
+        <HeroPanel state={state} avatarId={avatar} onAvatarChange={setAvatar} />
+      </div>
+    </CaptureFrame>
+  );
+}
+
 function ReportsScene() {
   const report = useMemo(() => dailyReport(), []);
   return (
@@ -311,11 +365,21 @@ function ReportsScene() {
               Monthly
             </button>
           </div>
-          <p className="reports__caption">
-            5-minute mean ORI across 24 hours · Green dotted line is the
-            trained-eye target (75)
-          </p>
-          <ReportChart report={report} />
+          <section className="reports__section">
+            <h3 className="reports__section-title">Ocular rhythm</h3>
+            <p className="reports__caption">
+              5-minute mean ORI across 24 hours · Green dotted line is the
+              trained-eye target (75)
+            </p>
+            <ReportChart report={report} metric="ori" />
+          </section>
+          <section className="reports__section">
+            <h3 className="reports__section-title">Screen time</h3>
+            <p className="reports__caption">
+              Minutes looking at the screen in each 5-minute slot
+            </p>
+            <ReportChart report={report} metric="screen" />
+          </section>
         </div>
       </div>
     </CaptureFrame>
@@ -346,6 +410,7 @@ function CaptureApp() {
       {scene === "alerts" && <AlertsScene />}
       {scene === "fps" && <FpsScene />}
       {scene === "reports" && <ReportsScene />}
+      {scene === "poise" && <PoiseScene />}
     </div>
   );
 }
