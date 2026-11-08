@@ -9,19 +9,20 @@ reverting the few call sites in the camera loop.
 Policy (from inter-blink research: mean IBI ≈ 3 s)
 --------------------------------------------------
 1. While a face is present → run at full rate (``FACE_FPS``, default 30).
-2. On each **counted** blink → sleep ``POST_BLINK_SLEEP_S`` (default 0.800 s),
+2. On each **counted** blink → sleep ``POST_BLINK_SLEEP_S`` (default 0.250 s),
    then resume full rate for the next blink.
 3. While no face → drop to ``NO_FACE_FPS`` (default 1) until a face returns.
 
 This only slows processing. After a full minute with no face, ``camera_idle``
 releases the webcam (see that module).
 
-Nothing here changes blink counting, screen-time rules, regularity, beeps,
-or the research log — only *when* the engine sleeps between frames.
+Nothing here changes screen-time rules, regularity, beeps, or the research
+log. Frames are not analysed during the rest, so a blink that falls inside
+it is missed: keep the rest shorter than the gap between close blinks.
 
 Manual tunables
 ---------------
-* ``POST_BLINK_SLEEP_S``  ← primary knob (post-blink rest; default 0.800)
+* ``POST_BLINK_SLEEP_S``  ← primary knob (post-blink rest; default 0.250)
 * ``FACE_FPS``            ← full rate while face present (default 30)
 * ``NO_FACE_FPS``         ← hunt rate with no face (default 1)
 * ``NO_FACE_GRACE_FRAMES``← consecutive misses before dropping rate
@@ -43,9 +44,10 @@ import time
 # ---------------------------------------------------------------------------
 
 # PRIMARY KNOB: rest after every counted blink before processing again.
-# ~0.8 s is safe given mean IBI ≈ 3 s (and stays under screen-time MAX_GAP_S).
+# 1.0 s missed about half of blinks at about 50 per minute, because mean IBI
+# ≈ 3 s says little about bursts. Gaps as short as 0.3 s have been measured.
 # Raise to save more CPU; lower if you need tighter multi-blink resolution.
-POST_BLINK_SLEEP_S = 1.0
+POST_BLINK_SLEEP_S = 0.25
 
 # Full inference rate while a face is in view (and after post-blink rest).
 FACE_FPS = 30.0
