@@ -1,5 +1,25 @@
 # EyesRhythm release notes
 
+## 1.6.0 — 7 November 2026
+
+The source on main is the current app. EyesRhythm’s own code is under the PolyForm Noncommercial License 1.0.0.
+
+### License
+
+- Noncommercial use is allowed. Commercial use is not included.
+- Required Notice: Copyright Pranay Soni (https://github.com/pranaycv)
+
+### Files
+
+The Mac and Windows downloads stay the 1.5.0 installers until the next packaged build is uploaded.
+
+| Platform | Installer |
+|----------|-----------|
+| macOS | `EyesRhythm-1.5.0.dmg` |
+| Windows | `EyesRhythm-Setup-1.5.0.exe` |
+
+---
+
 ## 1.5.0 — 2 November 2026
 
 The Poise dial shows which way the head turned today, in 30° slices.
