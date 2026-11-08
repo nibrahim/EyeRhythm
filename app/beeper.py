@@ -12,7 +12,8 @@ How each OS is handled
 ----------------------
 * **Windows** – built-in ``winsound.Beep`` (pure standard library)
 * **macOS**   – short clip of a system sound via ``afplay`` (non-blocking)
-* **Linux**   – terminal bell character as a last resort
+* **Linux**   – generated tone via ``pw-play``, ``paplay`` or ``aplay``
+  (non-blocking), with the terminal bell character as a last resort
 
 Important design choices
 ------------------------
@@ -29,11 +30,18 @@ Important design choices
 
 from __future__ import annotations
 
+import array
+import atexit
+import math
+import os
 import platform
+import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
+import wave
 from typing import Callable
 
 
@@ -49,6 +57,44 @@ _MAX_PENDING = 8
 # Tink/Pop tails that used to hold the old busy-flag for ~1.5 s per beep).
 _MAC_CLIP_S = 0.10
 _MAC_SOUND = "/System/Library/Sounds/Tink.aiff"
+
+# Linux: first player found wins. Same tone as the Windows beep.
+_LINUX_PLAYERS = ("pw-play", "paplay", "aplay")
+_LINUX_TONE_HZ = 700
+_LINUX_TONE_S = 0.10
+_LINUX_TONE_RATE = 48000
+_LINUX_TONE_VOLUME = 0.5
+# Fade in and out so the tone does not start or end with a harsh click.
+_LINUX_TONE_FADE_S = 0.005
+
+
+def _write_tone_wav() -> str:
+    """Write the beep to a temporary WAV for this run and return its path."""
+    total = int(_LINUX_TONE_RATE * _LINUX_TONE_S)
+    fade = int(_LINUX_TONE_RATE * _LINUX_TONE_FADE_S)
+    samples = array.array("h")
+    for i in range(total):
+        envelope = min(1.0, i / fade, (total - 1 - i) / fade)
+        wave_value = math.sin(2.0 * math.pi * _LINUX_TONE_HZ * i / _LINUX_TONE_RATE)
+        samples.append(int(32767 * _LINUX_TONE_VOLUME * envelope * wave_value))
+    if sys.byteorder == "big":
+        samples.byteswap()
+
+    handle, path = tempfile.mkstemp(prefix="eyesrhythm-beep-", suffix=".wav")
+    with os.fdopen(handle, "wb") as raw, wave.open(raw, "wb") as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(_LINUX_TONE_RATE)
+        out.writeframes(samples.tobytes())
+    atexit.register(_remove_quietly, path)
+    return path
+
+
+def _remove_quietly(path: str) -> None:
+    try:
+        os.remove(path)
+    except OSError:
+        pass
 
 
 class Beeper:
@@ -72,6 +118,8 @@ class Beeper:
         self._pending = 0
         # Optional callback when a beep is actually started (UI pulse).
         self._on_beep = on_beep
+        # Linux play command, built on first use. [] means no player was found.
+        self._linux_command: list[str] | None = None
 
     def beep(self) -> None:
         """
@@ -149,11 +197,28 @@ class Beeper:
                 )
 
             else:
-                # Linux / other: ASCII bell. Only works if the terminal can ring.
-                sys.stdout.write("\a")
-                sys.stdout.flush()
+                command = self._find_linux_command()
+                if command:
+                    # Non-blocking for the same reason as afplay above.
+                    subprocess.Popen(
+                        command,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        start_new_session=True,
+                    )
+                else:
+                    # No player: ASCII bell. Only works if the terminal can ring.
+                    sys.stdout.write("\a")
+                    sys.stdout.flush()
 
         except Exception:
             # Audio must NEVER crash the app. Missing sound files, no speaker,
             # sandbox restrictions, etc. are all treated as “no sound this time”.
             pass
+
+    def _find_linux_command(self) -> list[str]:
+        """Command that plays the beep, or [] when no player is installed."""
+        if self._linux_command is None:
+            player = next(filter(shutil.which, _LINUX_PLAYERS), None)
+            self._linux_command = [player, _write_tone_wav()] if player else []
+        return self._linux_command
