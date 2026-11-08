@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# EyesRhythm — launch the app from source (macOS / Linux)
+# EyesRhythm — launch the app from source (macOS)
 # =============================================================================
 #
 # 1. Activates the EyeRhythm/ virtualenv

@@ -51,7 +51,7 @@ Score = max(0, 100 − 100 × CV)
 * **Node.js 18+** (to build the UI once)  
 * Webcam + OS camera permission  
 
-### macOS / Linux
+### macOS
 
 ```bash
 ./for_mac/setup.sh                 # venv + Python deps + React build
@@ -63,6 +63,16 @@ First launch: allow **Camera** permission
 (System Settings → Privacy & Security → Camera).
 
 To stop opening at login: `./for_mac/uninstall_autostart.sh`.
+
+### Linux
+
+```bash
+./for_linux/setup.sh                 # venv + Python deps + React build
+./for_linux/run.sh                   # opens the dashboard in your browser
+./for_linux/install_autostart.sh     # optional: open at every login
+```
+
+To stop opening at login: `./for_linux/uninstall_autostart.sh`. See [`for_linux/README.md`](for_linux/README.md).
 
 ### Windows
 
@@ -109,7 +119,7 @@ Close the window to quit (or Ctrl+C in browser mode).
 * **`app/`** — camera engine, local FastAPI server, desktop window  
 * **`frontend/`** — React + TypeScript + Vite UI  
 
-The default window is small and resizable. Maximising scales typography and layout with the viewport. Works on **macOS and Windows** (Linux supported via browser or pywebview).
+The default window is small and resizable. Maximising scales typography and layout with the viewport. Works on **macOS and Windows**. Linux runs from source in the browser, or with `--headless` in the terminal.
 
 ---
 

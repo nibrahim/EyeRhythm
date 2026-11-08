@@ -1,6 +1,6 @@
-# EyesRhythm on macOS / Linux
+# EyesRhythm on macOS
 
-Everything Mac/Linux-related lives in this folder.
+Everything Mac-related lives in this folder. For Linux, see [`for_linux/`](../for_linux/README.md).
 
 ```
 for_mac/
@@ -149,4 +149,4 @@ Do not send the project folder, `build/`, or `.venv`.
 | App starts then immediately exits | Look for a crash log at `~/Library/Logs/EyesRhythm_crash.log` |
 | Double-click `.app` shows Retry / Ignore / Report | The bundle was missing `NSCameraUsageDescription`. Rebuild with `./for_mac/build_mac.sh` (the script now stamps the camera privacy key). |
 
-That’s everything required to run EyesRhythm on a Mac or Linux machine.
+That’s everything required to run EyesRhythm on a Mac.
