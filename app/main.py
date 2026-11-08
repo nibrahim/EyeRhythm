@@ -31,6 +31,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app import license as app_license  # noqa: E402
+from app import linux_window  # noqa: E402
 from app import preferences  # noqa: E402
 from app.engine import (  # noqa: E402
     EyeRhythmEngine,
@@ -629,6 +630,11 @@ def main() -> None:
             import webview  # noqa: F401
         except ImportError:
             _log("pywebview not installed — falling back to browser")
+            use_browser = True
+    if not use_browser:
+        problem = linux_window.prepare_window()
+        if problem:
+            _log(f"{problem} — falling back to browser")
             use_browser = True
 
     def _run_browser() -> None:

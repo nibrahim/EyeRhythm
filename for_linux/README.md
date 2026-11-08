@@ -20,6 +20,12 @@ for_linux/
 - About 1.3 GB of disk for the virtual environment, mostly Qt.
 - Audio through `pw-play`, `paplay` or `aplay` for practice and blink beeps.
 
+On Ubuntu and Debian, install these system packages first. `libxcb-cursor0` is only needed for X11 sessions, and Plasma usually includes it already:
+
+```bash
+sudo apt install python3-venv nodejs npm libxcb-cursor0
+```
+
 ## Run
 
 ```bash
@@ -56,7 +62,8 @@ This adds an entry to `~/.config/autostart`, which GNOME, KDE and most desktops 
 
 | Symptom | Fix |
 |---------|-----|
-| Window does not open and the browser does | Run from a terminal and read the log. Qt may need a system library such as `libxcb-cursor0` |
+| Window does not open and the browser does | Run from a terminal and read the log. On X11, install `libxcb-cursor0` |
+| `ensurepip is not available` during setup | Install `python3-venv`, delete `EyeRhythm/` and rerun `setup.sh` |
 | Status says `reconnecting…` | Open the camera shutter if your laptop has one, and close other apps using the camera |
 | Numpy fails to install | You are on Python 3.13 or newer. Delete `EyeRhythm/` and rerun `setup.sh` with Python 3.12 or uv installed |
 | Port 8742 is in use | Another copy is running. `run.sh` stops it, or pass `--port` |

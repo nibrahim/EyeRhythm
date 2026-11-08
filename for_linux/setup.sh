@@ -59,6 +59,13 @@ else
     echo "Install Node.js 18+, then:  cd frontend && npm ci && npm run build"
 fi
 
+if [ -z "${WAYLAND_DISPLAY:-}" ] && ! ldconfig -p 2>/dev/null | grep -q libxcb-cursor; then
+    echo
+    echo "NOTE: libxcb-cursor is missing, so the window cannot open on X11 and the"
+    echo "app will use your browser instead. On Debian or Ubuntu:"
+    echo "  sudo apt install libxcb-cursor0"
+fi
+
 echo
 echo "=============================================="
 echo "  Setup complete."
