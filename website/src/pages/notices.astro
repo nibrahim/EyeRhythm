@@ -4,24 +4,32 @@ import Legal from "../components/Legal.astro";
 
 <Legal
   kicker="Notices"
-  title="Open-source notices, EyesRhythm"
-  description="Third-party software in EyesRhythm keeps its own license. The app itself is free."
-  heading="Open-source notices."
-  lede="EyesRhythm’s own code is MIT, and the app is free. Giving it away does not re-license the libraries inside it."
+  title="Notices, EyesRhythm"
+  description="EyesRhythm is free for noncommercial use under the PolyForm Noncommercial License. Third-party software keeps its own license."
+  heading="Notices."
+  lede="EyesRhythm is free to download for a noncommercial purpose. Its code is under the PolyForm Noncommercial License 1.0.0. The libraries inside it keep their own licenses."
 >
+  <p>Required Notice: Copyright Pranay Soni (https://github.com/pranaycv)</p>
+  <p>
+    The license is the{" "}
+    <a href="https://polyformproject.org/licenses/noncommercial/1.0.0">
+      PolyForm Noncommercial License 1.0.0</a>. Source:{" "}
+    <a href="https://github.com/pranaycv/EyeRhythm">github.com/pranaycv/EyeRhythm</a>.
+  </p>
   <p>
     Official Mac and Windows copies include <code>LICENSE</code>,{" "}
     <code>THIRD_PARTY_NOTICES.md</code>, and the texts under{" "}
-    <code>licenses/</code>. In the app: Settings → About → Open-source licenses
-    in this copy.
+    <code>licenses/</code>. In the app: Settings → About → Licenses in this
+    copy.
   </p>
   <p>
     <strong>Apache 2.0</strong> — MediaPipe, the Face Landmarker model, OpenCV.
   </p>
   <p>
     <strong>LGPLv2.1</strong> — FFmpeg, shipped inside the OpenCV Python wheel
-    as a replaceable library. EyesRhythm source does not have to be published
-    because of this. The LGPL text travels with the copy.
+    as a replaceable library. The LGPL text travels with the copy. EyesRhythm’s
+    own source is the public repository above, under the PolyForm Noncommercial
+    License.
   </p>
   <p>
     <strong>MIT / BSD</strong> — FastAPI, Pydantic, React, Vite, Uvicorn,

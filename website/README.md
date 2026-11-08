@@ -61,7 +61,7 @@ That is not enough by itself:
 Indexing a new domain often takes days to a few weeks. Rankings need
 links from other sites as well as this copy.
 
-Keep the GitHub repo **private**.
+The GitHub repo is public: [pranaycv/EyeRhythm](https://github.com/pranaycv/EyeRhythm), under the PolyForm Noncommercial License 1.0.0.
 
 ### Downloads (free)
 
