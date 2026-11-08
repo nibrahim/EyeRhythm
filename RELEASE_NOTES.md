@@ -11,12 +11,12 @@ The source on main is the current app. EyesRhythm’s own code is under the Poly
 
 ### Files
 
-The Mac and Windows downloads stay the 1.5.0 installers until the next packaged build is uploaded.
+Official downloads are the 1.6.0 installers on the GitHub release.
 
 | Platform | Installer |
 |----------|-----------|
-| macOS | `EyesRhythm-1.5.0.dmg` |
-| Windows | `EyesRhythm-Setup-1.5.0.exe` |
+| macOS | `EyesRhythm-1.6.0.dmg` |
+| Windows | `EyesRhythm-Setup-1.6.0.exe` |
 
 ---
 
