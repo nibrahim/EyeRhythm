@@ -8,6 +8,8 @@ Starts:
 3. A desktop window (pywebview) loading the UI — or the system browser
    if ``--browser`` is passed / pywebview is unavailable
 
+``--headless`` starts only the engine and prints its numbers to the terminal.
+
 Restores last session preferences (avatar, window size, Beep/Alert/On top).
 """
 
@@ -37,6 +39,7 @@ from app.engine import (  # noqa: E402
     resolve_startup_camera,
 )
 from app.server import run_server, UI_DIST  # noqa: E402
+from app.terminal import TerminalReporter  # noqa: E402
 from app.tray_icon import bind_tray_icon  # noqa: E402
 
 # The dashboard talks to this machine only (never the internet).
@@ -302,7 +305,7 @@ def _wait_for_server(host: str, port: int, timeout: float = 15.0) -> bool:
     return False
 
 
-def _startup_console_checks(camera_index: int) -> list[str]:
+def _startup_console_checks(camera_index: int, *, need_ui: bool = True) -> list[str]:
     """Lightweight checks printed to stderr (no OpenCV window)."""
     issues: list[str] = []
     if sys.version_info < (3, 10):
@@ -314,7 +317,7 @@ def _startup_console_checks(camera_index: int) -> list[str]:
             issues.append(f"Missing dependency: {mod}")
     if not Path(MODEL_PATH).is_file():
         issues.append(f"Model not found: {MODEL_PATH}")
-    if not (UI_DIST / "index.html").is_file():
+    if need_ui and not (UI_DIST / "index.html").is_file():
         issues.append(
             "React UI not built. Run:  cd frontend && npm install && npm run build"
         )
@@ -488,6 +491,24 @@ def _open_webview(
     _save_window_size(window)
 
 
+def _run_headless(engine: EyeRhythmEngine) -> None:
+    """Engine only: no server, window, or browser. Numbers go to the terminal."""
+    if app_license.is_required() and not app_license.is_activated():
+        _fatal("This copy needs activating in the app before it can run headless.")
+    reporter = TerminalReporter(engine)
+    reporter.bind()
+    _log("running headless — press Ctrl+C to quit")
+    try:
+        engine.start()
+        reporter.run()
+    except KeyboardInterrupt:
+        _log("interrupted")
+    finally:
+        # Always stop the camera loop so today's stats are saved.
+        engine.stop()
+        _log("shutdown complete")
+
+
 def main() -> None:
     """
     Boot sequence (plain English):
@@ -509,6 +530,8 @@ def main() -> None:
                         help=f"local API port (default {DEFAULT_PORT})")
     parser.add_argument("--browser", action="store_true",
                         help="open system browser instead of desktop window")
+    parser.add_argument("--headless", action="store_true",
+                        help="no window or UI server; print live numbers to the terminal")
     parser.add_argument("--skip-checks", action="store_true",
                         help="skip dependency / build checks")
     parser.add_argument("--no-engine", action="store_true",
@@ -530,7 +553,7 @@ def main() -> None:
         app_license.set_enforcement(True)
 
     if not args.skip_checks:
-        issues = _startup_console_checks(args.camera)
+        issues = _startup_console_checks(args.camera, need_ui=not args.headless)
         for msg in issues:
             _log(f"CHECK: {msg}")
         hard = [m for m in issues if m.startswith("Python")
@@ -568,7 +591,10 @@ def main() -> None:
     )
 
     engine = EyeRhythmEngine(camera_index=initial, hybrid=hybrid)
-    if pick_required:
+    if pick_required and args.headless:
+        # No picker to wait for, so use the first camera.
+        _log(f"multiple cameras detected {avail} — using {initial}; choose with --camera")
+    elif pick_required:
         engine.set_awaiting_camera_pick(True)
         _log(f"multiple cameras detected {avail} — pick one in the app")
     elif hybrid:
@@ -577,6 +603,10 @@ def main() -> None:
     elif avail:
         preferences.save(camera_index=initial, camera_mode="single")
         _log(f"camera {initial} ready ({len(avail)} found)")
+
+    if args.headless:
+        _run_headless(engine)
+        return
 
     # Local HTTP + WebSocket for the React UI (same machine only).
     run_server(engine, host=args.host, port=port)
